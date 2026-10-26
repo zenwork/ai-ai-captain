@@ -12,6 +12,7 @@
     "design:preview": "node scripts/render-design-proposals.mjs --write --png",
     "design:check": "node scripts/render-design-proposals.mjs --check",
     "design:mockup": "tsx scripts/render-deck-mockup.ts",
+    "demo:keys": "tsx scripts/demo-keys.ts",
     "reload:streamdeck": "npm run build:streamdeck && node scripts/streamdeck-cli.mjs",
     "build:sea": "npm run build && node scripts/build-sea.mjs",
     "start": "node dist/server/main.js",
