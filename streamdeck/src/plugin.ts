@@ -2,11 +2,11 @@ import { action, SingletonAction, streamDeck, type KeyAction, type KeyDownEvent,
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
-import type { Session } from "../../src/shared/session.js";
+import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
 import { defaultPaletteId, getPalette, type PaletteId } from "../../src/shared/palette.js";
 import type { HubSettings } from "../../src/shared/settings.js";
-import { dashboardImage, emptyImage, pagerImage, sessionImage, sessionSignature, waitingPulseIntervalMs } from "./cards.js";
+import { appImage, appSignature, dashboardImage, emptyImage, pagerImage, sessionImage, sessionSignature, waitingPulseIntervalMs } from "./cards.js";
 import { svgDataUri } from "./images.js";
 import { HubSupervisor, isHubHealthy, localHubPort, spawnHubProcess } from "./hub-supervisor.js";
 
@@ -21,6 +21,7 @@ const dashboardActions = new Map<string, KeyAction<SessionSettings>>();
 const renderedControls = new Map<string, string>();
 let palette: PaletteId = defaultPaletteId;
 let sessions: Session[] = [];
+let clients: Client[] = [];
 const pages = new Map<string, number>();
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 let refreshInFlight: Promise<void> | undefined;
@@ -38,6 +39,14 @@ function orderedSessions(): Session[] {
   return [...sessions].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
 }
 
+function orderedClients(): Client[] {
+  return [...clients].sort((left, right) => left.name.localeCompare(right.name) || left.id.localeCompare(right.id));
+}
+
+function keyItemCount(): number {
+  return sessions.length + clients.length;
+}
+
 function sessionKeys(deviceId: string): KeyAction<SessionSettings>[] {
   return [...visibleKeys.values()].filter((key) => key.device.id === deviceId && key.coordinates).sort((left, right) => left.coordinates!.row - right.coordinates!.row || left.coordinates!.column - right.coordinates!.column);
 }
@@ -47,7 +56,7 @@ function pageSize(deviceId: string): number {
 }
 
 function totalPages(deviceId: string): number {
-  return Math.max(1, Math.ceil(sessions.length / pageSize(deviceId)));
+  return Math.max(1, Math.ceil(keyItemCount() / pageSize(deviceId)));
 }
 
 function currentPage(deviceId: string): number {
@@ -71,9 +80,10 @@ async function readSessions(): Promise<void> {
   try {
     const response = await fetch(`${hubUrl}/api/sessions`, { signal: AbortSignal.timeout(4000) });
     if (!response.ok) throw new Error(`Hub returned ${response.status}`);
-    const payload = await response.json() as { sessions: Session[]; settings?: HubSettings };
+    const payload = await response.json() as { sessions: Session[]; clients?: Client[]; settings?: HubSettings };
     sessions = payload.sessions;
     palette = getPalette(payload.settings?.palette).id;
+    clients = payload.clients ?? [];
   } catch {
     sessions = sessions.map((session) => ({ ...session, state: "unknown" }));
   }
@@ -149,13 +159,15 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
       continue;
     }
     const session = ordered[index];
+    const client = session ? undefined : orderedClients()[index - ordered.length];
     if (session?.state === "waiting") hasWaiting = true;
     const completion = session && doneAttention(session, options.now);
     if (completion?.nextChangeAt !== undefined) nextDoneAt = Math.min(nextDoneAt ?? Infinity, completion.nextChangeAt);
     const keyNumber = index + 1;
-    const signature = session ? sessionSignature(session, keyNumber, options) : `empty:${palette}`;
+    const signature = session ? sessionSignature(session, keyNumber, options) : client ? appSignature(client, keyNumber, palette) : `empty:${palette}`;
     if (renderedCards.get(key.id) !== signature) {
-      await key.setImage(svgDataUri(session ? sessionImage(session, keyNumber, options) : emptyImage(palette)));
+      const image = session ? sessionImage(session, keyNumber, options) : client ? appImage(client, keyNumber, palette) : emptyImage(palette);
+      await key.setImage(svgDataUri(image));
       await key.setTitle("");
       renderedCards.set(key.id, signature);
       updatedKeys++;
@@ -248,6 +260,18 @@ async function requestSessionRemoval(keyAction: KeyAction<SessionSettings>, sess
   }
 }
 
+async function focusClient(keyAction: KeyAction<SessionSettings>, client: Client): Promise<void> {
+  try {
+    const response = await fetch(`${hubUrl}/api/clients/${encodeURIComponent(client.id)}/focus`, { method: "POST", signal: AbortSignal.timeout(10000) });
+    const result = await response.json() as { focused?: boolean; reason?: string };
+    if (response.ok && result.focused) return;
+    streamDeck.logger.warn(result.reason ?? "The hub could not focus the app");
+  } catch {
+    streamDeck.logger.warn("The hub could not focus the app");
+  }
+  await keyAction.showAlert();
+}
+
 @action({ UUID: "com.local.ai-ai-captain.session" })
 class SessionKey extends SingletonAction<SessionSettings> {
   async onWillAppear(event: WillAppearEvent<SessionSettings>): Promise<void> {
@@ -269,7 +293,11 @@ class SessionKey extends SingletonAction<SessionSettings> {
     const index = sessionIndex(event.action);
     if (index === undefined) return;
     const session = orderedSessions()[index];
-    if (!session) return;
+    if (!session) {
+      const client = orderedClients()[index - sessions.length];
+      if (client) await focusClient(event.action, client);
+      return;
+    }
     const previousFailureTime = failedFocusTimes.get(session.id);
     if (previousFailureTime !== undefined && Date.now() - previousFailureTime <= removalConfirmationWindowMilliseconds) {
       await requestSessionRemoval(event.action, session.id);

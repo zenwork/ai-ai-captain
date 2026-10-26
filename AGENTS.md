@@ -190,3 +190,14 @@ Do these steps in sequence:
 6. Tell the user the result of each step. If a step failed or you did not do it, say so.
 
 Do not commit or push without a request from the user.
+
+## 8. Commits
+
+Release Please reads the commit messages to make new versions. Use [Conventional Commits](https://www.conventionalcommits.org/) for all commits.
+
+- Use this format: `type(scope): description`. The scope is optional.
+- Use one of these types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- Write the description in the imperative form, in lower case, with no final period.
+- Keep the first line to a maximum of 72 characters.
+- Mark a breaking change with `!` after the type or scope, or with a `BREAKING CHANGE:` footer.
+- Write the commit message in ASD-STE100 Simplified Technical English (see section 1).

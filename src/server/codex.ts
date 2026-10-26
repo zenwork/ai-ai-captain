@@ -163,11 +163,13 @@ export class CodexTracker {
         cursor.signature = "";
         continue;
       }
-      const inIde = /intellij/i.test(owner.focusTarget?.appName ?? "");
+      const hostName = owner.focusTarget?.appName ?? "";
+      const inIde = /intellij/i.test(hostName);
+      const inDesktopApp = /^(?:ChatGPT|Codex)$/i.test(hostName);
       const input: SessionInput = {
         id,
         source: "codex-local",
-        harness: inIde ? "codex-ide" : "codex-cli",
+        harness: inIde ? "codex-ide" : inDesktopApp ? "codex-app" : "codex-cli",
         label: `${observed.project ? basename(observed.project) : "Codex"} · ${owner.sessionId.slice(-6)}`,
         state: available ? observed.state : "unknown",
         ended: false,

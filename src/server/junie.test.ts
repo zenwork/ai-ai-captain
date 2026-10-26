@@ -60,6 +60,7 @@ describe("Junie tracking", () => {
     expect(session?.state).toBe("working");
     expect(session?.harness).toBe("intellij-ai");
     expect(session?.label).toBe("example · ofk2");
+    expect(session?.focusTarget).toEqual({ pid: 10, appName: "IntelliJ IDEA", appPath: "/Applications/IntelliJ IDEA.app" });
     expect(JSON.stringify(session)).not.toContain("Private task");
   });
 

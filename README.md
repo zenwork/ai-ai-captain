@@ -1,20 +1,57 @@
 # AI AI Captain
 
+<table border="0">
+<tr>
+<td>
 <img alt="Stream Deck XL with six AI sessions in different states, empty session keys, and the INFO key" src="docs/images/stream-deck-xl-workflow.gif" width="400px"/>
-<br>
+</td>
+<td valign="top">
+
+<img alt="Aye aye, captain, standing by" src="docs/images/aye-aye-captain.png" width="200px"/>
+
+</td>
+</tr>
+</table>
+
 
 AI AI Captain is an AI session monitor for Stream Deck XL. 
 
-* The hub tracks cli sessions: Copilot, Codex, and Claude Code.
-* The hub tracks IntelliJ IDEA sessions: Copilot, Codex, and Claude Code.
-* The hub tracks JetBrains AI Assistant sessions.
-* The hub tracks Claude desktop sessions.
-* The dashboard remains static and client-rendered. Each session has an identity, state, host application, and optional project and model. The hub does not retain conversation content.
+* The hub tracks CLI sessions automatically: GitHub Copilot, Codex, and Claude Code.
+* The hub tracks IntelliJ IDEA sessions automatically: GitHub Copilot, Codex (including JetBrains AI Assistant), Claude Code, and Junie. Junie does not show WAITING.
+* The hub tracks Codex sessions in the ChatGPT desktop app. Plain ChatGPT chats are not tracked.
+* The hub tracks Claude Code sessions in the Claude desktop app. An experimental adapter tracks open Claude desktop chats. It needs Accessibility access.
+* The hub shows an APP key for detected apps without session tracking, such as ChatGPT and Microsoft Copilot. Press the key to focus the app.
+* Other harnesses can report sessions through the CLI reporter or the HTTP API.
+* Press a stale session key twice within 10 seconds to remove it.
+* The dashboard is static and client-rendered. Each session has an identity, state, host application, and optional project and model. The hub does not retain conversation content.
+* There is an dashboard that delivers info on all the sessions.
+* There are a few palletes that can be selected from the dashboard.
+
+
+Supported features.
+
+
+<table>
+<tr>
+<td align="center" valign="top"><img alt="GitHub Copilot key" src="docs/images/keys/copilot-cli.png" width="72"/><br><b>GitHub Copilot</b><br>CLI</td>
+<td align="center" valign="top"><img alt="GitHub Copilot key" src="docs/images/keys/copilot-ide.png" width="72"/><br><b>GitHub Copilot</b><br>IntelliJ IDEA</td>
+<td align="center" valign="top"><img alt="Codex key" src="docs/images/keys/codex-cli.png" width="72"/><br><b>Codex</b><br>CLI</td>
+<td align="center" valign="top"><img alt="Codex key" src="docs/images/keys/codex-ide.png" width="72"/><br><b>Codex</b><br>IntelliJ IDEA</td>
+<td align="center" valign="top"><img alt="Codex key" src="docs/images/keys/codex-app.png" width="72"/><br><b>Codex</b><br>ChatGPT desktop app</td>
+</tr>
+<tr>
+<td align="center" valign="top"><img alt="Claude Code key" src="docs/images/keys/claude-cli.png" width="72"/><br><b>Claude Code</b><br>CLI</td>
+<td align="center" valign="top"><img alt="Claude Code key" src="docs/images/keys/claude-ide.png" width="72"/><br><b>Claude Code</b><br>IntelliJ IDEA</td>
+<td align="center" valign="top"><img alt="Claude Code and experimental chats key" src="docs/images/keys/claude-app.png" width="72"/><br><b>Claude Code<br>chats</b><br>Claude desktop app</td>
+<td align="center" valign="top"><img alt="Junie key" src="docs/images/keys/intellij-ai.png" width="72"/><br><b>Junie</b><br>IntelliJ IDEA</td>
+<td align="center" valign="top"><img alt="Other harnesses key" src="docs/images/keys/generic.png" width="72"/><br><b>Other harnesses</b><br>CLI reporter or HTTP API</td>
+</tr>
+</table>
+
 
 
 New users: start with the [User Guide](USER_GUIDE.md). It explains how to build, install, run, and configure AI AI Captain in step-by-step instructions.
 
-<img alt="Aye aye, captain, standing by" src="docs/images/aye-aye-captain.png" width="200px"/>
 
 ## Anchor specifications
 
@@ -70,7 +107,7 @@ To add the purple **INFO** key, drag **AI AI Captain → Open AI AI Captain Dash
 
 On macOS, running Copilot CLI sessions and Copilot sessions hosted by IntelliJ's Copilot runtime appear separately without installing the IntelliJ bridge. The hub identifies sessions from open Copilot session hold files, reads their existing `events.jsonl` streams incrementally, and derives state from turn, permission, error, and shutdown events. Several conversations in one IDE process therefore produce several session keys. The adapter retains only metadata; it does not persist or forward message content. Set `AI_AI_CAPTAIN_COPILOT_HOME` if Copilot stores its `session-state` directory somewhere other than `~/.copilot`.
 
-Codex CLI and Codex sessions inside JetBrains AI Assistant (including its Codex ACP runtime) are also tracked automatically. Live Codex writer locks or open rollout files identify individual sessions; existing local rollout events supply their project, model, and state. A Codex session uses square code brackets with an `IJ` badge when hosted in IntelliJ, distinct from Copilot's goggles. Turn completion/cancellation means blue **DONE** while the conversation stays open; **WAITING** is reserved for a requested action. A live session with no readable rollout telemetry shows **UNK**, never a guessed running state. The adapter does not change Codex settings or retain prompts, responses, or tool contents. Set `AI_AI_CAPTAIN_CODEX_HOME` to override the Codex data directory; otherwise the hub uses `CODEX_HOME` or `~/.codex`. See [integrations/README.md](integrations/README.md) for coverage limits.
+Codex CLI and Codex sessions inside JetBrains AI Assistant (including its Codex ACP runtime) are also tracked automatically. Live Codex writer locks or open rollout files identify individual sessions; existing local rollout events supply their project, model, and state. A Codex session uses square code brackets with an `IJ` badge when hosted in IntelliJ, and with an app-window badge when hosted in the ChatGPT desktop app. Copilot uses goggles. Turn completion/cancellation means blue **DONE** while the conversation stays open; **WAITING** is reserved for a requested action. A live session with no readable rollout telemetry shows **UNK**, never a guessed running state. The adapter does not change Codex settings or retain prompts, responses, or tool contents. Set `AI_AI_CAPTAIN_CODEX_HOME` to override the Codex data directory; otherwise the hub uses `CODEX_HOME` or `~/.codex`. See [integrations/README.md](integrations/README.md) for coverage limits.
 
 #### Closed terminals and IntelliJ projects
 
@@ -87,13 +124,15 @@ Keys use a large type icon, a host badge, and a state symbol on a colored backgr
 
 Claude Code CLI and IntelliJ sessions use live registrations under `~/.claude/sessions`. Local Code runtimes hosted by Claude desktop use the same adapter. Set `AI_AI_CAPTAIN_CLAUDE_HOME` to override the root; otherwise `CLAUDE_CONFIG_DIR` takes precedence over `~/.claude`. No hook installation or Claude setting change is required. Missing model or approval metadata is not inferred.
 
+Detected apps without session tracking, such as ChatGPT, use an APP key after the session keys. Press the key to focus the app. The hub sends the app list in `GET /api/sessions` and accepts `POST /api/clients/:id/focus`.
+
 Junie sessions in IntelliJ IDEA appear automatically from `~/.junie/sessions`. Set `AI_AI_CAPTAIN_JUNIE_HOME` to override the folder. A session shows only while its project is open in IntelliJ IDEA. The hub reads status values only. It never reads prompts or task names.
 
 Regular Claude desktop chat has an experimental Accessibility adapter. It tracks exposed conversation URLs and known English controls, not chat history. Enable Accessibility access for the application that runs the hub. Hidden chats, unsupported controls, and remote Code runtimes remain unsupported. Claude stays under **Other detected apps** when no exposed chat supplies usable metadata.
 
 A tracked chat key requests the existing conversation through its restricted Claude deep link. See [Claude adapter contracts](intagration.md#claude-adapters) for limits.
 
-Other harnesses require lifecycle reporters; see [integrations/README.md](integrations/README.md). The manual IntelliJ bridge remains a fallback. ChatGPT and Microsoft Copilot desktop conversations are not automatically tracked.
+Other harnesses require lifecycle reporters; see [integrations/README.md](integrations/README.md). The manual IntelliJ bridge remains a fallback. Plain ChatGPT chats and Microsoft Copilot desktop conversations are not automatically tracked.
 
 Pressing an IntelliJ session key targets its project window using the session's absolute project path and IntelliJ's command-line launcher. Automatically tracked Copilot sessions target the exact owning IDEA installation, even when several versions are installed. IntelliJ reuses the matching open project or may open it if it was closed. Other applications, or IntelliJ sessions without project metadata, still use application-level activation. Selecting a particular conversation tab is not yet supported. Invalid/unavailable project paths and failed focus requests show an alert on the key rather than silently falling back to application focus.
 

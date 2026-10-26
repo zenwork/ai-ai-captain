@@ -44,7 +44,7 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     if (request.headers.origin && request.headers.origin !== new URL(dashboardUrl).origin) return reply.code(403).send({ error: "Cross-origin dashboard opening is not allowed" });
     return dashboard.open(dashboardUrl);
   });
-  app.get("/api/sessions", async () => ({ sessions: store.list(), settings: settings.get() }));
+  app.get("/api/sessions", async () => ({ sessions: store.list(), clients: clients.list(), settings: settings.get() }));
   app.get("/api/clients", async () => ({ clients: clients.list() }));
   app.get("/api/settings", async () => ({ settings: settings.get(), palettes: palettes.map(({ id, name, mode, contrast }) => ({ id, name, mode, contrast })) }));
   app.put("/api/settings", async (request, reply) => {
@@ -80,6 +80,12 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     const session = store.get(id);
     if (!session) return reply.code(404).send({ error: "Session not found" });
     return focus(session.focusTarget, session.project);
+  });
+  app.post("/api/clients/:id/focus", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const client = clients.list().find((candidate) => candidate.id === id);
+    if (!client) return reply.code(404).send({ error: "App not found" });
+    return focus(client.focusTarget, undefined);
   });
   app.get("/api/events", async (request, reply) => {
     reply.hijack();

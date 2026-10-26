@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72" role="img"><title>JETBRAINS AI Native assistant</title><g font-family="Arial, Helvetica, sans-serif"><g aria-label="JETBRAINS AI, Native assistant: DONE, Fresh · bright, Fjord">
+<rect width="72" height="72" rx="8" fill="#142C41"/>
+<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="#B0D4EE" stroke-width="1.5"/>
+<g color="#F2F6FA"><rect x="21" y="19" width="28" height="28" rx="3" fill="#F2F6FA"/><text x="35" y="39" fill="#142C41" font-size="20" text-anchor="middle" font-weight="800">IJ</text><g transform="translate(45 17) scale(0.5416666666666666)"><g fill="none" stroke="#F2F6FA" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+  <path d="M20 3v4" />
+  <path d="M22 5h-4" />
+  <path d="M4 17v2" />
+  <path d="M5 18H3" /></g></g></g>
+
+
+<rect x="3" y="51" width="66" height="18" rx="4" fill="#B0D4EE"/>
+<g color="#111827"><g transform="translate(7 53.5) scale(0.5833333333333334)"><g fill="none" stroke="#111827" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></g></g></g>
+<text x="44" y="64.1" fill="#111827" font-size="12" text-anchor="middle" font-weight="800" letter-spacing=".1">DONE</text>
+</g></g></svg>

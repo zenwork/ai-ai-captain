@@ -12,7 +12,7 @@ import { listProcesses, type ProcessInfo } from "./processes.js";
 import { SessionStore } from "./store.js";
 
 const candidates = [
-  { key: "chatgpt", name: "ChatGPT", appBundle: "ChatGPT.app", executable: "ChatGPT", bundleId: "com.openai.chat" },
+  { key: "chatgpt", name: "ChatGPT", appBundle: "ChatGPT.app", executable: "ChatGPT", bundleId: "com.openai.codex" },
   { key: "claude", name: "Claude", appBundle: "Claude.app", executable: "Claude", bundleId: "com.anthropic.claudefordesktop" },
   { key: "copilot", name: "Copilot", appBundle: "Copilot.app", executable: "Copilot", bundleId: "com.microsoft.copilot" },
 ];

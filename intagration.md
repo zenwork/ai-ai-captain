@@ -13,6 +13,7 @@ This file intentionally uses the requested name `intagration.md`. It owns integr
 | Copilot CLI                         | Live `inuse.<pid>.hold` ownership and per-session `events.jsonl`                            | Depends on installed local event/lock formats                                                          |
 | Copilot in IntelliJ                 | Same session telemetry plus IDE process ancestry/project lifetime evidence                  | Several conversations can share one runtime; ACP variants without these files need another reporter    |
 | Codex CLI                           | Live writer locks/open rollout files and supported rollout events                           | Missing rollout history yields UNKNOWN; not every approval pause is recorded                           |
+| Codex in the ChatGPT desktop app    | Same Codex ownership and rollout telemetry; the key shows the Codex desktop app badge       | Plain ChatGPT chats have no known local status source (see INT-10)                                     |
 | Codex in JetBrains AI Assistant     | Codex ownership/rollout telemetry through the installed ACP runtime                         | Does not intercept/take over JetBrains' app-server connection                                          |
 | Claude Code CLI and IntelliJ        | Live `sessions/<pid>.json` registration, validated process identity, and host lifetime      | Requires the installed registration format; approval states and models must be exported by the runtime |
 | Claude Code in the desktop app      | Same live registrations with Claude app ancestry                                            | Remote or isolated runtimes without local registrations need a reporter                                |
@@ -20,7 +21,7 @@ This file intentionally uses the requested name `intagration.md`. It owns integr
 | Other harness hooks                 | Generic CLI/HTTP reporter                                                                   | Requires the harness to invoke configured hooks                                                        |
 | Other IntelliJ tasks                | Optional manual Kotlin bridge                                                               | One manually reported task per project, not per-conversation automatic telemetry                       |
 | Claude desktop chat                 | Experimental Accessibility adapter for exposed conversation URLs and known English controls | Requires Accessibility access; hidden chats and other UI formats are not fully supported               |
-| ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`                                                        | Individual conversations not automatically tracked                                                     |
+| ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`; shown as an APP key on Stream Deck                    | Plain conversations not automatically tracked (see INT-10 for ChatGPT research)                        |
 
 Node.js 24+ is required to build AI AI Captain and for local hub development. Stream Deck 7.1+ is required for the current plugin; its manifest targets macOS 13+ and the embedded Node 20 runtime. The plugin also runs the bundled hub on that Node 20 runtime. The default hardware profile targets the XL. macOS is required for the current automatic process/lifetime adapters and focus commands, not for the generic session API itself.
 
@@ -265,3 +266,24 @@ streamdeck validate streamdeck/com.local.ai-ai-captain.sdPlugin
 ```
 
 Review SVGs at 72 pixels and on the physical device. After a linked plugin reloads, verify a fresh app-log connection. Additional integration event mappings and examples are in [integrations/README.md](integrations/README.md); these anchors govern the cross-integration invariants and explicitly identify remaining gaps.
+
+## INT-10 — ChatGPT desktop research
+
+**Proposed.** Do not implement without approval from the user.
+
+Findings from a local check on macOS:
+
+- `/Applications/ChatGPT.app` has the bundle ID `com.openai.codex`. It is the Codex desktop app under the ChatGPT name. The hub now uses this bundle ID for app focus.
+- The app has no `com.openai.chat` data folder. An earlier ChatGPT app stored chats in `~/Library/Application Support/com.openai.chat`. This folder does not exist for the current app, and the old files were not encrypted. Do not read chat files.
+- Its coding threads run through the Codex app server in `~/.codex`. The folder has `thread-writer-locks/`, `sessions/**/rollout-*.jsonl`, and `hooks.json`. The existing Codex adapter reads these files.
+- Plain chat conversations in ChatGPT have no known local status file or hook.
+
+Options:
+
+ Option                             | Coverage                                  | Risk                                                          |
+ ---------------------------------- | ----------------------------------------- | ------------------------------------------------------------- |
+ Use the Codex adapter for threads  | Codex threads in the ChatGPT app          | Check that the app server holds the locks for each thread     |
+ Add a `hooks.json` reporter        | Codex threads, with WAITING events        | The user must change `~/.codex/hooks.json`; AGENTS.md forbids the hub to do it |
+ Use Accessibility like Claude      | Plain chat, if the UI exposes identity    | Fragile; needs a stable chat identifier first                 |
+
+Next step: run a Codex thread in the ChatGPT app. Check if the Codex adapter shows it. Report the result before any new code.

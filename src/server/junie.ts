@@ -75,6 +75,7 @@ export class JunieTracker {
         state,
         ended: false,
         project: entry.projectDir,
+        focusTarget: hosts.length > 0 ? hostApplication(hosts[0].pid, processes) : undefined,
         metadata: {
           sessionId: entry.sessionId,
           host: "IntelliJ IDEA",

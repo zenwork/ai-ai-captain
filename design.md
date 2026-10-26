@@ -47,6 +47,7 @@ Claude Code registrations use the Claude mark with a terminal, IntelliJ, or desk
 | Microsoft Copilot app | Microsoft Copilot ribbon, not GitHub goggles | App window |
 | Codex CLI | Square code brackets; deliberately not another terminal icon | Terminal `>_` |
 | Codex in IntelliJ / JetBrains AI | Same code brackets | `IJ` |
+| Codex desktop app (ChatGPT app) | Same code brackets | App window |
 | Native JetBrains AI | Neutral `IJ` monogram with sparkle | Included in main symbol |
 | Claude CLI | Claude starburst | Terminal `>_` |
 | Claude in IntelliJ | Same starburst | `IJ` |
@@ -152,7 +153,7 @@ Any adopted visual update must reach both card previews and hardware rendering. 
 
 | Artifact                                                       | Purpose                                                                                                                                         |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Main SVG contact sheet](docs/design/palettes/default.svg)     | Fjord preview: eleven client/host combinations × ten state/brightness examples, 110 tiles, plus fixed controls and 72-pixel samples             |
+| [Main SVG contact sheet](docs/design/palettes/default.svg)     | Fjord preview: twelve client/host combinations × ten state/brightness examples, 120 tiles, plus fixed controls and 72-pixel samples             |
 | [Main PNG preview](docs/design/palettes/default.png)           | Raster review of that study                                                                                                                     |
 | [Assessed DONE close-up](docs/design/done-assessment.svg)      | Fresh, aged, and assessed DONE in all five palettes                                                                                             |
 | [Palette gallery](docs/design/README.md#palette-gallery)       | Links to complete palette sheets and PNGs, including dark and light high contrast                                                               |

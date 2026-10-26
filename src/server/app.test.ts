@@ -55,6 +55,20 @@ describe("session API", () => {
     expect((await app.inject({ method: "POST", url: "/api/sessions/missing/focus" })).statusCode).toBe(404);
   });
 
+  it("focuses a detected app and reports missing apps", async () => {
+    const focused: Array<FocusTarget | undefined> = [];
+    const clients = new ClientRegistry();
+    clients.replace([{ id: "desktop:chatgpt", name: "ChatGPT", focusTarget: { appName: "ChatGPT" }, sessionTracking: "unavailable" }]);
+    const app = createApp({ clients, webRoot: "/no-static-assets", focus: async (target) => {
+      focused.push(target);
+      return { focused: true };
+    } });
+    apps.push(app);
+    expect((await app.inject({ method: "POST", url: "/api/clients/desktop:chatgpt/focus" })).json()).toEqual({ focused: true });
+    expect(focused).toEqual([{ appName: "ChatGPT" }]);
+    expect((await app.inject({ method: "POST", url: "/api/clients/missing/focus" })).statusCode).toBe(404);
+  });
+
   it("serves the static client without rendering it on the server", async () => {
     const app = createApp();
     apps.push(app);

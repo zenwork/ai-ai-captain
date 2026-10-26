@@ -42,7 +42,8 @@ export function hostApplication(pid: number, processes: ProcessInfo[]): FocusTar
   let current = byPid.get(pid);
   while (current && !visited.has(current.pid)) {
     visited.add(current.pid);
-    const match = current.name.match(/^(.*\/([^/]+)\.app)\/Contents\/MacOS\/[^/]+$/);
+    // Use the outermost app bundle. Helper apps nested inside an app cannot be activated.
+    const match = current.name.match(/^(.*?\/([^/]+)\.app)\/Contents\/.*[^/]$/);
     if (match) {
       const appName = match[2].startsWith("IntelliJ IDEA") ? "IntelliJ IDEA" : match[2];
       return { pid: current.pid, appName, appPath: match[1] };

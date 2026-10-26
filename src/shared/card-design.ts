@@ -44,6 +44,7 @@ export const cardIdentities = [
   { id: "copilot-app", title: "MICROSOFT COPILOT", detail: "Desktop app · distinct ribbon", icon: "copilot", host: "app-window" },
   { id: "codex-cli", title: "CODEX", detail: "CLI", icon: "square-code", host: "terminal" },
   { id: "codex-ide", title: "CODEX", detail: "IntelliJ / JetBrains AI", icon: "square-code", host: "ide" },
+  { id: "codex-app", title: "CODEX", detail: "Desktop app", icon: "square-code", host: "app-window" },
   { id: "intellij-ai", title: "JETBRAINS AI", detail: "Native assistant", icon: "jetbrains", host: undefined },
   { id: "claude-cli", title: "CLAUDE", detail: "CLI", icon: "claude", host: "terminal" },
   { id: "claude-ide", title: "CLAUDE", detail: "IntelliJ", icon: "claude", host: "ide" },

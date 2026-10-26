@@ -14,17 +14,19 @@ This anchor owns observable behavior and acceptance criteria. See [architecture.
 - Session titles, model names, process presence, and open files unrelated to ownership must not be used as substitutes for conversation identity.
 - A model change updates metadata, not session identity. A Claude model inside Copilot remains a Copilot session.
 - Newly confirmed sessions enter the hub inventory and fill configured session keys automatically. They do not require manually creating another hardware action for each conversation.
-- Unsupported desktop applications appear under **Other detected apps**, not as fabricated session records or session keys.
+- Unsupported desktop applications appear under **Other detected apps**, not as fabricated session records. On Stream Deck they use app keys (FUNC-07), which are not sessions.
 
-| Workflow                                                 | Current coverage                                                                                                                    |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Copilot CLI and IntelliJ Copilot runtime                 | Automatic individual sessions from supported local telemetry                                                                        |
-| Codex CLI and JetBrains AI Assistant's Codex ACP runtime | Automatic individual sessions from supported local telemetry                                                                        |
-| Claude Code CLI and IntelliJ Claude runtimes             | Automatic sessions from live local registrations; requires a supported registration format                                          |
-| Claude Code in the desktop app                           | Same registrations with Claude app ancestry; remote/isolated runtimes need a reporter                                               |
-| Other IntelliJ AI workflows                              | Optional manual bridge, one reported task per project; not automatic conversation discovery                                         |
-| Claude desktop chat                                      | Experimental exposed-chat adapter using Accessibility conversation URLs and known English controls; hidden chats remain unsupported |
-| ChatGPT and Microsoft Copilot desktop conversations      | App presence only; session adapters not implemented                                                                                 |
+| Workflow                                                 | Current coverage                                                                                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Copilot CLI and IntelliJ Copilot runtime                 | Automatic individual sessions from supported local telemetry                                                                            |
+| Codex CLI and JetBrains AI Assistant's Codex ACP runtime | Automatic individual sessions from supported local telemetry                                                                            |
+| Codex in the ChatGPT desktop app                         | Automatic individual sessions with the Codex desktop app badge; plain ChatGPT chats are not tracked                                     |
+| Junie in IntelliJ IDEA                                   | Automatic sessions from `~/.junie/sessions` while the project is open; WAITING is not shown; Junie CLI outside IntelliJ is not detected |
+| Claude Code CLI and IntelliJ Claude runtimes             | Automatic sessions from live local registrations; requires a supported registration format                                              |
+| Claude Code in the desktop app                           | Same registrations with Claude app ancestry; remote/isolated runtimes need a reporter                                                   |
+| Other IntelliJ AI workflows                              | Optional manual bridge, one reported task per project; not automatic conversation discovery                                             |
+| Claude desktop chat                                      | Experimental exposed-chat adapter using Accessibility conversation URLs and known English controls; hidden chats remain unsupported     |
+| ChatGPT and Microsoft Copilot desktop plain chats        | App presence only (APP key); session adapters not implemented                                                                           |
 
 Illustrated icons do not expand this coverage matrix.
 
@@ -192,6 +194,8 @@ The response distinguishes application/project focus where available and reports
 - Sessions fill configured AI Session keys in reading order, skipping other action types without skipping conversations. Up to 30 session keys are used per device.
 - Paging capacity follows the actual number of configured session keys. Previous/next paging wraps and is independent per device.
 - Logical session order is creation time, then stable ID. State changes do not reorder it. Removing sessions or changing layout can compact assignments; permanent physical pinning is not promised.
+- **Implemented:** after all sessions, each detected app without session tracking fills one AI Session key. Apps sort by name. An app key shows the app icon, the key number, and the label APP, in the control style. It never shows a state. Paging counts sessions and app keys together.
+- Pressing an app key asks the hub to focus the app (`POST /api/clients/:id/focus`). A failed press shows an alert. App keys cannot be removed.
 - Empty session keys stay empty and do not perform focus or dashboard navigation.
 - INFO is a separate **Open AI AI Captain Dashboard** action, manually placed wherever desired. It never appears automatically after the last session or migrates when sessions arrive.
 - The dashboard shortcut opens the configured hub URL even when session polling cannot connect.
