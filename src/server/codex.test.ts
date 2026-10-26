@@ -190,6 +190,12 @@ describe("Codex session tracking", () => {
     expect(store.list()[0].metadata?.lastTelemetryAt).toBeUndefined();
   });
 
+  it("marks sessions hosted by the ChatGPT desktop app as Codex desktop app sessions", async () => {
+    const { store, tracker } = await fixture();
+    await tracker.reconcile([{ sessionId: "01a17262-0000-0000-0000-000000000001", pid: 322, focusTarget: { appName: "ChatGPT" } }]);
+    expect(store.list()[0]).toMatchObject({ harness: "codex-app" });
+  });
+
   it("distinguishes readable but unsupported telemetry from a read failure", async () => {
     const { store, tracker, owners } = await fixture();
     await writeFile(owners[0].rolloutPath!, "not-json\n");

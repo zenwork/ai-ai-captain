@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { parseProcesses } from "./processes.js";
+import { hostApplication, type ProcessInfo } from "./processes.js";
 
-describe("process inventory", () => {
-  it("retains process start identity and application paths with spaces", () => {
-    expect(parseProcesses(" 1857 1 Sun Oct 25 08:00:00 2026 /Applications/IntelliJ IDEA.app/Contents/MacOS/idea\n20 1857 Sun Oct  4 09:00:00 2026 /runtime/copilot-runtime\ninvalid\n")).toEqual([
-      { pid: 1857, parentPid: 1, startedAt: new Date("Sun Oct 25 08:00:00 2026").toISOString(), name: "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea" },
-      { pid: 20, parentPid: 1857, startedAt: new Date("Sun Oct 4 09:00:00 2026").toISOString(), name: "/runtime/copilot-runtime" },
-    ]);
+describe("host application lookup", () => {
+  it("uses the outermost app bundle instead of a nested helper app", () => {
+    const processes: ProcessInfo[] = [
+      { pid: 20, parentPid: 1, name: "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/CodexCLI" },
+    ];
+    expect(hostApplication(20, processes)).toEqual({ pid: 20, appName: "ChatGPT", appPath: "/Applications/ChatGPT.app" });
+  });
+
+  it("finds the app of a parent process", () => {
+    const processes: ProcessInfo[] = [
+      { pid: 10, parentPid: 1, name: "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal" },
+      { pid: 11, parentPid: 10, name: "/bin/zsh" },
+    ];
+    expect(hostApplication(11, processes)).toEqual({ pid: 10, appName: "Terminal", appPath: "/System/Applications/Utilities/Terminal.app" });
   });
 });

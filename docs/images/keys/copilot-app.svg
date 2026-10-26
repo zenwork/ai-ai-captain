@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72" role="img"><title>MICROSOFT COPILOT Desktop app · distinct ribbon</title><g font-family="Arial, Helvetica, sans-serif"><g aria-label="MICROSOFT COPILOT, Desktop app · distinct ribbon: DONE, Fresh · bright, Fjord">
+<rect width="72" height="72" rx="8" fill="#142C41"/>
+<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="#B0D4EE" stroke-width="1.5"/>
+<g color="#F2F6FA"><g transform="translate(21.5 19) scale(1.2083333333333333)"><g fill="#F2F6FA" fill-rule="evenodd"><path d="M16.295 5.29l-0.242 0.986h-2.32c-1.721 0-3.22 1.197-3.638 2.902l-2.101 8.593H3.798c-2.44 0-4.229-2.342-3.637-4.761l2.106-8.612c0.557-2.274 2.556-3.87 4.85-3.87h5.54c2.44 0 4.23 2.343 3.638 4.761"></path><path d="M16.295 5.29l-0.242 0.986h-2.32c-1.721 0-3.22 1.197-3.638 2.902l-2.101 8.593H3.798c-2.44 0-4.229-2.342-3.637-4.761l2.106-8.612c0.557-2.274 2.556-3.87 4.85-3.87h5.54c2.44 0 4.23 2.343 3.638 4.761M7.752 18.758l0.242-0.986h2.321c1.72 0 3.22-1.197 3.637-2.903l2.102-8.593h4.196c2.439 0 4.228 2.343 3.637 4.762l-2.107 8.611c-0.556 2.274-2.555 3.87-4.85 3.87h-5.54c-2.44 0-4.229-2.342-3.638-4.761"></path><path d="M7.752 18.758l0.242-0.986h2.321c1.72 0 3.22-1.197 3.637-2.903l2.102-8.593h4.196c2.439 0 4.228 2.343 3.637 4.762l-2.107 8.611c-0.556 2.274-2.555 3.87-4.85 3.87h-5.54c-2.44 0-4.229-2.342-3.638-4.761"></path></g></g></g>
+<g color="#F2F6FA"><rect x="48" y="4" width="20" height="14" rx="3" fill="#0A1420" stroke="#43546A" stroke-width=".6"/><g transform="translate(52 5) scale(0.5)"><g fill="none" stroke="#F2F6FA" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" />
+  <path d="M10 4v4" />
+  <path d="M2 8h20" />
+  <path d="M6 4v4" /></g></g></g>
+
+<rect x="3" y="51" width="66" height="18" rx="4" fill="#B0D4EE"/>
+<g color="#111827"><g transform="translate(7 53.5) scale(0.5833333333333334)"><g fill="none" stroke="#111827" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></g></g></g>
+<text x="44" y="64.1" fill="#111827" font-size="12" text-anchor="middle" font-weight="800" letter-spacing=".1">DONE</text>
+</g></g></svg>

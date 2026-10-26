@@ -1,4 +1,4 @@
-import type { Session } from "../../src/shared/session.js";
+import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
 import { cardIdentities, cardStates, escapeXml, renderCard, renderControl, type CardPhase } from "../../src/shared/card-design.js";
 import { cardIcons } from "../../src/shared/card-assets.js";
@@ -20,7 +20,7 @@ export function sessionType(session: Session): SessionType {
   const inIde = /intellij|jetbrains/i.test(host) || /(?:^|[ -])ide(?:$|[ -])/.test(identity);
   const inApp = /desktop|(?:^|[ -])app(?:$|[ -])/.test(identity);
   if (identity.includes("copilot")) return inApp ? "copilot-app" : inIde ? "copilot-ide" : "copilot-cli";
-  if (identity.includes("codex")) return inIde ? "codex-ide" : "codex-cli";
+  if (identity.includes("codex")) return inIde ? "codex-ide" : inApp ? "codex-app" : "codex-cli";
   if (identity.includes("claude")) {
     if (inIde) return "claude-ide";
     if (inApp || (!identity.includes("cli") && /claude/i.test(host))) return "claude-app";
@@ -33,7 +33,7 @@ export function sessionType(session: Session): SessionType {
 
 export const sessionTypeLabels: Record<SessionType, string> = {
   "copilot-app": "Copilot app", "copilot-cli": "Copilot CLI", "copilot-ide": "Copilot in IntelliJ", "intellij-ai": "IntelliJ AI",
-  "codex-cli": "Codex CLI", "codex-ide": "Codex in IntelliJ", "claude-cli": "Claude CLI", "claude-ide": "Claude in IntelliJ", "claude-app": "Claude Desktop", chatgpt: "ChatGPT", generic: "AI session",
+  "codex-cli": "Codex CLI", "codex-ide": "Codex in IntelliJ", "codex-app": "Codex desktop app", "claude-cli": "Claude CLI", "claude-ide": "Claude in IntelliJ", "claude-app": "Claude Desktop", chatgpt: "ChatGPT", generic: "AI session",
 };
 
 export function sessionPhase(session: Session, options: CardOptions = {}): CardPhase {
@@ -61,6 +61,22 @@ export function sessionImage(session: Session, keyNumber?: number, options: Card
 export function emptyImage(palette?: PaletteId): string {
   const colors = getPalette(palette);
   return svg(`<rect width="72" height="72" rx="8" fill="${colors.canvas}"/><path d="M27 36h18" stroke="${colors.badge.border}" stroke-width="3" stroke-linecap="round"/>`, "Unused session key");
+}
+
+export function appIconName(client: Client): string {
+  const identity = `${client.id} ${client.name} ${client.focusTarget.bundleId ?? ""}`.toLowerCase();
+  if (identity.includes("chatgpt") || identity.includes("openai")) return "openai";
+  if (identity.includes("claude") || identity.includes("anthropic")) return "claude";
+  return "app-window";
+}
+
+export function appImage(client: Client, keyNumber?: number, palette?: PaletteId): string {
+  const number = keyNumber !== undefined && Number.isFinite(keyNumber) ? String(Math.trunc(keyNumber)) : undefined;
+  return svg(renderControl(appIconName(client), "APP", getPalette(palette), cardIcons, number), `${client.name}: app detected, sessions not tracked`);
+}
+
+export function appSignature(client: Client, keyNumber?: number, palette?: PaletteId): string {
+  return JSON.stringify(["app", client.id, appIconName(client), keyNumber, getPalette(palette).id]);
 }
 
 export function dashboardImage(palette?: PaletteId): string {

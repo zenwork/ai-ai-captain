@@ -176,6 +176,11 @@ const outputs = new Map([
   ["done-assessment.svg", assessment()],
   ...specification.palettes.map((palette) => [`palettes/${palette.id}.svg`, fullSheet(palette)]),
 ]);
+const keyImageState = states.find((state) => state.id === "done-bright");
+for (const identity of identities) {
+  const keyImage = `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72" role="img"><title>${escapeXml(`${identity.title} ${identity.detail}`)}</title><g font-family="Arial, Helvetica, sans-serif">${card(identity, keyImageState, preview)}</g></svg>\n`;
+  outputs.set(`../images/keys/${identity.id}.svg`, keyImage);
+}
 for (const svg of outputs.values()) validateSvg(svg);
 outputs.set("palette-contrast.json", `${JSON.stringify(report, null, 2)}\n`);
 const runtimeAssets = `import type { CardPalette, CardIcons } from "./card-design.js";\n\nexport const defaultPaletteId = ${JSON.stringify(specification.selectedPalette ?? specification.previewPalette)} as const;\n\nexport const designPalettes = ${JSON.stringify(specification.palettes, null, 2)} as const satisfies readonly CardPalette[];\n\nexport const cardIcons = ${JSON.stringify(icons, null, 2)} as const satisfies CardIcons;\n`;
