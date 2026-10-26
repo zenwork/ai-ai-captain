@@ -1,0 +1,9 @@
+{
+  "name": "AI AI Captain Session Monitor",
+  "short_name": "AI AI Captain",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0f14",
+  "theme_color": "#0c0f14",
+  "icons": [{ "src": "/ai-ai-captain.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

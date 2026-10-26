@@ -1,0 +1,50 @@
+{
+  "Actions": [
+    {
+      "UUID": "com.local.ai-ai-captain.session",
+      "Name": "AI Session",
+      "Icon": "imgs/session",
+      "Tooltip": "Shows and focuses the session assigned to this key position",
+      "States": [{ "Image": "imgs/session", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "Controllers": ["Keypad"]
+    },
+    {
+      "UUID": "com.local.ai-ai-captain.previous-page",
+      "Name": "Previous Session Page",
+      "Icon": "imgs/previous",
+      "Tooltip": "Show the previous page of sessions",
+      "States": [{ "Image": "imgs/previous", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "Controllers": ["Keypad"]
+    },
+    {
+      "UUID": "com.local.ai-ai-captain.next-page",
+      "Name": "Next Session Page",
+      "Icon": "imgs/next",
+      "Tooltip": "Show the next page of sessions",
+      "States": [{ "Image": "imgs/next", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "Controllers": ["Keypad"]
+    },
+    {
+      "UUID": "com.local.ai-ai-captain.dashboard",
+      "Name": "Open AI AI Captain Dashboard",
+      "Icon": "imgs/dashboard",
+      "Tooltip": "Open session state explanations, telemetry evidence, and troubleshooting details in your browser",
+      "States": [{ "Image": "imgs/dashboard", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "Controllers": ["Keypad"]
+    }
+  ],
+  "Profiles": [{ "Name": "profiles/ai-ai-captain-xl", "DeviceType": 2, "AutoInstall": true, "DontAutoSwitchWhenInstalled": true }],
+  "Author": "AI AI Captain",
+  "Category": "AI AI Captain",
+  "CategoryIcon": "imgs/plugin",
+  "CodePath": "bin/plugin.cjs",
+  "Description": "Monitor and focus local AI sessions",
+  "Name": "AI AI Captain",
+  "Icon": "imgs/plugin",
+  "SDKVersion": 3,
+  "Software": { "MinimumVersion": "7.1" },
+  "OS": [{ "Platform": "mac", "MinimumVersion": "13" }],
+  "Nodejs": { "Version": "20" },
+  "UUID": "com.local.ai-ai-captain",
+  "Version": "0.1.0.0"
+}

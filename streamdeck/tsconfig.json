@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "..",
+    "outDir": "../dist/streamdeck",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "noEmit": false
+  },
+  "include": ["./src/**/*.ts", "../src/shared/session.ts"],
+  "exclude": ["./src/**/*.test.ts"]
+}

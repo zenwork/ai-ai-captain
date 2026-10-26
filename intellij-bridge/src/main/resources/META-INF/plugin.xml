@@ -1,0 +1,15 @@
+<idea-plugin>
+    <id>com.local.aiaicaptain.bridge</id>
+    <name>AI AI Captain Bridge</name>
+    <vendor>AI AI Captain</vendor>
+    <description>Reports the active IntelliJ AI task to the local AI AI Captain hub.</description>
+    <depends>com.intellij.modules.platform</depends>
+    <actions>
+        <group id="com.local.aiaicaptain.bridge.group" text="AI AI Captain">
+            <add-to-group group-id="ToolsMenu" anchor="last" />
+            <action id="com.local.aiaicaptain.bridge.start" class="com.local.aiaicaptain.bridge.StartSessionAction" text="AI AI Captain: Start or Update Session" description="Report an active AI session to AI AI Captain" />
+            <action id="com.local.aiaicaptain.bridge.wait" class="com.local.aiaicaptain.bridge.WaitSessionAction" text="AI AI Captain: Mark Session Waiting" description="Mark the current AI session as waiting" />
+            <action id="com.local.aiaicaptain.bridge.end" class="com.local.aiaicaptain.bridge.EndSessionAction" text="AI AI Captain: End Session" description="End the current AI session" />
+        </group>
+    </actions>
+</idea-plugin>

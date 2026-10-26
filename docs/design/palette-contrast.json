@@ -1,0 +1,65 @@
+{
+  "scope": "Text and identity contrast checks, not a claim of complete accessibility certification",
+  "palettes": [
+    {
+      "id": "fjord",
+      "name": "Fjord",
+      "target": 4.5,
+      "minimums": {
+        "captions": 8.361,
+        "hostBadges": 17.056,
+        "controls": 8.121,
+        "stateLabels": 6.871,
+        "identityMarks": 7.609
+      }
+    },
+    {
+      "id": "nocturne",
+      "name": "Nocturne",
+      "target": 4.5,
+      "minimums": {
+        "captions": 8.793,
+        "hostBadges": 16.87,
+        "controls": 8.435,
+        "stateLabels": 5.694,
+        "identityMarks": 7.345
+      }
+    },
+    {
+      "id": "ember-ice",
+      "name": "Ember & Ice",
+      "target": 4.5,
+      "minimums": {
+        "captions": 8.723,
+        "hostBadges": 15.961,
+        "controls": 9.431,
+        "stateLabels": 6.33,
+        "identityMarks": 7.892
+      }
+    },
+    {
+      "id": "signal",
+      "name": "Signal",
+      "target": 7,
+      "minimums": {
+        "captions": 12.307,
+        "hostBadges": 20.191,
+        "controls": 13.082,
+        "stateLabels": 8.284,
+        "identityMarks": 11.724
+      }
+    },
+    {
+      "id": "porcelain",
+      "name": "Porcelain",
+      "target": 7,
+      "minimums": {
+        "captions": 7.438,
+        "hostBadges": 16.22,
+        "controls": 11.019,
+        "stateLabels": 8.112,
+        "identityMarks": 11.447
+      }
+    }
+  ]
+}
