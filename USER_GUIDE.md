@@ -279,6 +279,19 @@ A stale key shows an alert when you push it, and the session does not exist any 
 
 The hub removes the session. An automatic adapter can show the session again if its source files change.
 
+### 7.7 Show all key variations (demo)
+
+Use the demo to test the keys. It shows 24 keys: each of the 12 key types two times. The states change every 4 seconds.
+
+1. Make sure that the hub runs.
+2. Type `npm run demo:keys`.
+3. Look at keys 1 to 24 on the Stream Deck.
+4. To stop the demo, push Ctrl+C. The demo removes its keys.
+
+To change the time between steps, type `npm run demo:keys -- --interval 8`. The unit is seconds.
+
+NOTE: The demo cannot show the aged and assessed DONE keys. These keys need real session age. The demo keys go before other session keys on the first page.
+
 ---
 
 ## 8. Configure AI AI Captain

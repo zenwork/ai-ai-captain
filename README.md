@@ -80,6 +80,14 @@ npm run dev
 
 Open <http://127.0.0.1:43681>.
 
+## Demo all keys
+
+```sh
+npm run demo:keys
+```
+
+The command shows 24 demo keys and cycles their states. Push Ctrl+C to remove them. Refer to [USER_GUIDE.md](USER_GUIDE.md) section 7.7.
+
 ## Report a session
 
 ```sh
