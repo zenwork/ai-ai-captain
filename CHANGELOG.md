@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/zenwork/ai-ai-captain/compare/v0.2.0...v0.2.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* **web:** fix deck startup and add keep-on-top controls ([#4](https://github.com/zenwork/ai-ai-captain/issues/4)) ([768aef5](https://github.com/zenwork/ai-ai-captain/commit/768aef540aca0473acb30da74e819ffeb535833b)), closes [#3](https://github.com/zenwork/ai-ai-captain/issues/3)
+
 ## [0.2.0](https://github.com/zenwork/ai-ai-captain/compare/v0.1.0...v0.2.0) (2026-10-27)
 
 
