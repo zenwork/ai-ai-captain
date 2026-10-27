@@ -1,5 +1,5 @@
-const cacheName = "ai-ai-captain-shell-v3";
-const shell = ["/", "/styles.css", "/app.js", "/manifest.webmanifest", "/ai-ai-captain.svg", "/THIRD_PARTY_NOTICES.txt"];
+const cacheName = "ai-ai-captain-shell-v4";
+const shell = ["/", "/styles.css", "/app.js", "/manifest.webmanifest", "/deck.html", "/deck.js", "/deck.webmanifest", "/ai-ai-captain.svg", "/THIRD_PARTY_NOTICES.txt"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(shell)).then(() => self.skipWaiting()));

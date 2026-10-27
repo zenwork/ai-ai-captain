@@ -80,6 +80,18 @@ npm run dev
 
 Open <http://127.0.0.1:43681>.
 
+## Virtual deck (no Stream Deck)
+
+Open <http://127.0.0.1:43681/deck.html>, or use the "Open deck only" link on the dashboard, to see a virtual Stream Deck XL. Install it as a standalone app from the browser. Refer to [USER_GUIDE.md](USER_GUIDE.md) section 6.2.
+
+To start the hub without the Stream Deck and open the deck in a small Chrome window, run this command:
+
+```sh
+npm run deck:app
+```
+
+Push Ctrl+C to stop the hub. Set `AI_AI_CAPTAIN_DECK_WINDOW_SIZE` (default `420,140`) to change the window size. The hub uses port 43682, so it does not conflict with the Stream Deck hub. Set `AI_AI_CAPTAIN_DECK_PORT` to change the port.
+
 ## Demo all keys
 
 ```sh
