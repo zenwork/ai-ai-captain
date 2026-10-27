@@ -1,9 +1,11 @@
 {
   "name": "ai-ai-captain",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "npm run build:web && tsx watch src/server/main.ts",
     "build": "tsc -p tsconfig.json && tsc -p streamdeck/tsconfig.json && npm run build:streamdeck",
