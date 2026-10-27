@@ -224,6 +224,8 @@ Use **Icon palette** in the dashboard to save the shared palette in `settings.js
 
 | Variable                            | Consumer                     | Default / meaning                                                                                                                                     |
 | ----------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AI_AI_CAPTAIN_DECK_PORT`           | `deck:app` hub                | `43682`; separate from the Stream Deck hub                                                                                                             |
+| `AI_AI_CAPTAIN_DECK_WINDOW_SIZE`    | `deck:app` browser            | `420,140`; Chrome or Chromium app window size                                                                                                          |
 | `AI_AI_CAPTAIN_PORT`                | Hub                          | `43681`; hub remains bound to `127.0.0.1`                                                                                                             |
 | `AI_AI_CAPTAIN_URL`                 | CLI, Stream Deck, IDE bridge | `http://127.0.0.1:43681`; set consistently when changing ports                                                                                        |
 | `AI_AI_CAPTAIN_DATA_DIR`            | Hub                          | `~/Library/Application Support/ai-ai-captain`; an earlier `ai-deck` directory moves here at first start                                               |
@@ -261,6 +263,7 @@ Validation commands for relevant implementation changes are:
 npm test
 npm run typecheck
 npx tsc --noEmit --strict --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM web-src/main.ts
+npx tsc --noEmit --strict --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM web-src/deck.ts web-src/deck.test.ts
 npm run build
 streamdeck validate streamdeck/com.local.ai-ai-captain.sdPlugin
 ```

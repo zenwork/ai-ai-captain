@@ -136,6 +136,8 @@ INFO uses a neutral/purple dashboard-grid symbol and remains a separate, manuall
 
 The browser must use the same card semantics and logical key numbering, but has room for names, models, projects, timestamps, evidence, and grouped navigation. Its preview represents logical sessions, not every user's hardware layout. UNKNOWN diagnostics expand automatically; missing data must be described rather than hidden behind a misleading icon.
 
+The standalone deck toolbar has a **Keep on top** button. In Picture-in-Picture, its label changes to **Return to deck** and `aria-pressed` becomes `true`. Both windows provide a return control. The original page explains that it must stay open. The floating window uses the same stylesheet, card images, and keyboard controls. Unsupported browsers disable the button and show an associated explanation. Request failures use a visible status message with a safe error code.
+
 Any adopted visual update must reach both card previews and hardware rendering. Supporting browser badges, explanations, and legends must use consistent wording and meaning even when their layout differs.
 
 ## DSN-08 — Accessibility and visual acceptance
