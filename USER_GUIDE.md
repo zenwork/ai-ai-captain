@@ -199,6 +199,18 @@ To start AI AI Captain when you log in to the Mac, make sure that **Elgato Strea
 
 You can also push the INFO key. Refer to [8.2](#82-add-a-key-that-opens-the-dashboard).
 
+#### Use the virtual deck without a Stream Deck
+
+The hub shows a virtual Stream Deck XL at <http://127.0.0.1:43681/deck.html>. It has the same keys and key numbers as the hardware. The grid is small when you have few sessions. It becomes larger when you add sessions, up to 8 columns by 4 rows, and it fits the window. Push a key to go to its session or app. When the keys do not fit, use the PREV and NEXT keys to change the page.
+
+To change the key size, push the **−**, **Auto**, or **+** button under the deck. To show all keys in one row, push **Single row**. The page saves these settings in the browser. In a single row, the PREV and NEXT keys appear when the keys do not fit.
+
+To install the virtual deck as an app, do these steps:
+
+1. Open the address in Chrome or Edge.
+2. Click the install icon in the address bar, or select **Install AI AI Captain Deck**.
+3. Make sure that the hub runs before you open the app.
+
 ### 6.3 Stop AI AI Captain
 
 1. Click the Stream Deck icon in the menu bar.

@@ -137,6 +137,8 @@ Key animations are local presentation timers, not extra discovery or HTTP reques
 
 Shared icons are flattened into transformed path groups with explicit fill/stroke colors. Each key image has one root SVG viewport: nested SVG elements and inherited `currentColor` must not be used for hardware artwork. Browser rendering alone is not sufficient compatibility verification; inspect the Stream Deck application preview after renderer changes.
 
+The hub also serves a standalone deck page at `/deck.html` with its own manifest. It draws a virtual Stream Deck with the same key images and key numbers as the plugin. The grid is at most 8 columns by 4 rows. It becomes smaller to fit the window and the number of keys. It shows the PREV and NEXT keys only when the keys do not fit. A toolbar makes the keys smaller or bigger (32 to 160 pixels) and has a single-row mode. The page saves these settings in `localStorage`. It uses SSE and works without a Stream Deck. The layout rule is in `src/shared/deck-layout.ts`.
+
 The service worker caches the static shell and explicitly excludes `/api/` requests. A cached shell or last browser snapshot is not fresh lifecycle evidence.
 
 ## ARCH-07 — State and persistence ownership

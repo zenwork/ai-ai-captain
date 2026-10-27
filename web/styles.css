@@ -65,3 +65,22 @@ footer { margin: 20px 0 0; color: #636d7c; text-align: center; font-size: 11px; 
 footer a { color: #a0b2c4; }
 @media (max-width: 420px) { .appearance > div { align-items: stretch; flex-direction: column; width: 100%; } }
 @media (max-width: 640px) { main { margin-top: 32px; } .topbar { padding: 0 20px; } .summary { align-items: start; flex-direction: column; gap: 5px; } .summary p { margin: 0; } .session-card { padding: 14px; } }
+
+.deck-page { display: grid; place-items: center; min-height: 100vh; margin: 0; }
+.deck-shell { width: fit-content; max-width: 100vw; }
+.deck-grid { display: grid; grid-template-columns: repeat(var(--columns), var(--key-size, 72px)); gap: 8px; padding: 12px; border-radius: 18px; background: #070a0f; border: 1px solid #ffffff1c; }
+.deck-grid .deck-key { padding: 0; }
+.deck-key-empty { cursor: default; }
+.deck-status { margin: 10px 0 0; text-align: center; color: #aeb8c7; font-size: 12px; }
+.topbar-links { margin-left: auto; margin-right: 16px; }
+.deck-link { color: inherit; text-decoration: underline; }
+.deck-toolbar { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }
+.deck-toolbar button { min-width: 32px; padding: 4px 10px; border: 1px solid #ffffff24; border-radius: 8px; background: #0c0f14; color: #aeb8c7; font-size: 12px; cursor: pointer; }
+.deck-toolbar button[aria-pressed="true"] { border-color: #aeb8c7; color: #fff; }
+
+.deck-side-controls { display: grid; grid-template-columns: auto 92px; grid-template-areas: "grid toolbar" "grid status"; grid-template-rows: auto 1fr; align-items: start; column-gap: 10px; }
+.deck-side-controls .deck-grid { grid-area: grid; }
+.deck-side-controls .deck-toolbar { grid-area: toolbar; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 0; }
+.deck-side-controls .deck-toolbar button { min-width: 0; padding: 2px 0; font-size: 11px; border-radius: 6px; }
+.deck-side-controls .deck-toolbar button[data-control="row"] { grid-column: 1 / -1; }
+.deck-side-controls .deck-status { grid-area: status; margin-top: 4px; font-size: 11px; }
