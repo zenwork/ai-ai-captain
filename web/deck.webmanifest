@@ -1,0 +1,11 @@
+{
+  "id": "/deck.html",
+  "name": "AI AI Captain Deck",
+  "short_name": "AI Captain Deck",
+  "start_url": "/deck.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0c0f14",
+  "theme_color": "#0c0f14",
+  "icons": [{ "src": "/ai-ai-captain.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
