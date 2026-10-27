@@ -1,5 +1,5 @@
 #!/bin/sh
-# Start the hub without the Stream Deck and open the virtual deck in a small Chrome app window.
+# Start the hub without the Stream Deck and open the virtual deck in Chrome.
 set -eu
 
 # Use a port that differs from the default hub port, so this hub does not conflict with the Stream Deck hub.
@@ -15,7 +15,8 @@ hub_process_identifier=$!
 trap 'kill "$hub_process_identifier" 2>/dev/null || true' EXIT INT TERM
 
 attempt=0
-until curl --silent --fail --output /dev/null "$deck_address"; do
+until curl --disable --noproxy '*' --connect-timeout 1 --max-time 1 \
+  --silent --fail --output /dev/null "$deck_address"; do
   attempt=$((attempt + 1))
   if [ "$attempt" -ge "$startup_attempts" ]; then
     echo "The hub did not start in time." >&2
@@ -24,8 +25,6 @@ until curl --silent --fail --output /dev/null "$deck_address"; do
   sleep 0.2
 done
 
-# Start the Chrome binary directly. A running Chrome gets the app window and no second Chrome starts.
-chrome_binary="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-"$chrome_binary" --app="$deck_address" --window-size="$window_size" >/dev/null 2>&1 &
+sh scripts/open-deck-browser.sh "$deck_address" "$window_size"
 echo "The hub runs at ${deck_address}. Press Ctrl+C to stop it."
 wait "$hub_process_identifier"

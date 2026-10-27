@@ -205,6 +205,22 @@ The hub shows a virtual Stream Deck XL at <http://127.0.0.1:43681/deck.html>. It
 
 To change the key size, push the **−**, **Auto**, or **+** button under the deck. To show all keys in one row, push **Single row**. The page saves these settings in the browser. In a single row, the PREV and NEXT keys appear when the keys do not fit.
 
+To keep the deck above other windows, click **Keep on top** in a browser that supports Document Picture-in-Picture. The floating window keeps the deck controls and live updates. Keep the original page or app window open. Click **Return to deck** in either window to return the deck. Closing the floating window also returns the deck.
+
+The browser requires a click to open Picture-in-Picture. The startup script cannot open it automatically. If the browser does not support this feature, the button is disabled and the page shows an explanation.
+
+To start a separate hub and open a small deck app window, run this command from the project folder:
+
+```sh
+npm run deck:app
+```
+
+The command detects macOS or Linux. macOS uses Google Chrome. Linux uses Chrome or Chromium from `PATH`. Other operating systems are not supported by this command.
+
+The hub uses port `43682` by default. Set `AI_AI_CAPTAIN_DECK_PORT` to change it. Set `AI_AI_CAPTAIN_DECK_WINDOW_SIZE` to change the default `420,140` window size. The startup check ignores proxy settings and curl configuration. Each check has a one-second limit.
+
+Push Ctrl+C in the Terminal to stop this hub.
+
 To install the virtual deck as an app, do these steps:
 
 1. Open the address in Chrome or Edge.

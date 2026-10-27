@@ -84,11 +84,17 @@ Open <http://127.0.0.1:43681>.
 
 Open <http://127.0.0.1:43681/deck.html>, or use the "Open deck only" link on the dashboard, to see a virtual Stream Deck XL. Install it as a standalone app from the browser. Refer to [USER_GUIDE.md](USER_GUIDE.md) section 6.2.
 
-To start the hub without the Stream Deck and open the deck in a small Chrome window, run this command:
+In a browser that supports Document Picture-in-Picture, click **Keep on top** to open an always-on-top deck window. Keep the original page open. Click **Return to deck**, or close the floating window, to return the deck to the original page.
+
+To start the hub without the Stream Deck and open the deck in a small Chrome or Chromium app window, run this command:
 
 ```sh
 npm run deck:app
 ```
+
+The command detects macOS or Linux. On macOS, it opens Google Chrome through the system app launcher. On Linux, it looks for `google-chrome`, `google-chrome-stable`, `chromium`, or `chromium-browser` on `PATH`. It reports an error if it cannot find a supported browser or operating system.
+
+The startup check connects directly to the local hub. It ignores curl configuration and proxy settings. Each request has a one-second limit.
 
 Push Ctrl+C to stop the hub. Set `AI_AI_CAPTAIN_DECK_WINDOW_SIZE` (default `420,140`) to change the window size. The hub uses port 43682, so it does not conflict with the Stream Deck hub. Set `AI_AI_CAPTAIN_DECK_PORT` to change the port.
 

@@ -18,6 +18,16 @@ const largestUserKeySize = 160;
 const keySizeStep = 8;
 const settingsStorageKey = "ai-ai-captain.deck";
 
+interface DocumentPictureInPicture {
+  requestWindow(options: { width: number; height: number }): Promise<Window>;
+}
+
+declare global {
+  interface Window {
+    documentPictureInPicture?: DocumentPictureInPicture;
+  }
+}
+
 interface DeckViewSettings {
   keySize: number | undefined;
   singleRow: boolean;
@@ -46,16 +56,104 @@ class DeckPanel extends HTMLElement {
   #timer?: number;
   #motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   #lastKeySize = minimumKeySize;
+  #shell?: HTMLElement;
+  #pictureInPictureWindow?: Window;
+  #openingPictureInPicture = false;
 
   connectedCallback(): void {
-    this.innerHTML = `<div class="deck-shell"><div id="deck-grid" class="deck-grid" ></div><p id="deck-status" class="deck-status" role="status">Connecting…</p><div class="deck-toolbar" role="toolbar" aria-label="Deck size"><button type="button" data-control="smaller" aria-label="Smaller keys" title="Smaller keys">−</button><button type="button" data-control="auto" aria-label="Automatic key size" title="Automatic key size">Auto</button><button type="button" data-control="bigger" aria-label="Bigger keys" title="Bigger keys">+</button><button type="button" data-control="row" aria-pressed="false" title="Show all keys in a single row">Single row</button></div></div>`;
+    this.innerHTML = `<div class="deck-shell"><div id="deck-grid" class="deck-grid" ></div><p id="deck-status" class="deck-status" role="status">Connecting…</p><div class="deck-toolbar" role="toolbar" aria-label="Deck controls"><button type="button" data-control="smaller" aria-label="Smaller keys" title="Smaller keys">−</button><button type="button" data-control="auto" aria-label="Automatic key size" title="Automatic key size">Auto</button><button type="button" data-control="bigger" aria-label="Bigger keys" title="Bigger keys">+</button><button type="button" data-control="row" aria-pressed="false" title="Show all keys in a single row">Single row</button><button type="button" data-window="picture-in-picture" aria-pressed="false" title="Open the deck in an always-on-top window">Keep on top</button></div><p id="deck-window-message" class="deck-status deck-window-message" role="status" hidden></p></div><div id="deck-window-placeholder" hidden><p class="deck-status">The deck is in Picture-in-Picture. Keep this window open.</p><div class="deck-toolbar"><button type="button" data-window="return">Return to deck</button></div></div>`;
+    this.#shell = this.querySelector<HTMLElement>(".deck-shell") ?? undefined;
     this.querySelectorAll<HTMLButtonElement>("button[data-control]").forEach((button) => button.addEventListener("click", () => this.#control(button.dataset.control ?? "")));
+    this.querySelector<HTMLButtonElement>('button[data-window="picture-in-picture"]')?.addEventListener("click", () => void this.#togglePictureInPicture());
+    this.querySelector<HTMLButtonElement>('button[data-window="return"]')?.addEventListener("click", () => this.#pictureInPictureWindow?.close());
+    if (!window.documentPictureInPicture) {
+      const button = this.querySelector<HTMLButtonElement>('button[data-window="picture-in-picture"]');
+      if (button) {
+        button.disabled = true;
+        button.setAttribute("aria-describedby", "deck-window-message");
+      }
+      this.#windowMessage("Keep on top is not available in this browser.");
+    }
     this.#connect();
     window.addEventListener("resize", this.#onResize);
     this.#timer = window.setInterval(() => this.#render(), attentionRefreshMilliseconds);
   }
 
   #onResize = (): void => this.#render();
+
+  #viewWindow(): Window {
+    return this.#pictureInPictureWindow ?? window;
+  }
+
+  #windowMessage(message: string): void {
+    const element = this.#shell?.querySelector<HTMLElement>("#deck-window-message");
+    if (!element) return;
+    element.textContent = message;
+    element.hidden = message.length === 0;
+  }
+
+  async #togglePictureInPicture(): Promise<void> {
+    if (this.#pictureInPictureWindow) {
+      this.#pictureInPictureWindow.close();
+      return;
+    }
+    const api = window.documentPictureInPicture;
+    const shell = this.#shell;
+    const button = shell?.querySelector<HTMLButtonElement>('button[data-window="picture-in-picture"]');
+    if (!api || !shell || !button || this.#openingPictureInPicture) return;
+    this.#openingPictureInPicture = true;
+    button.disabled = true;
+    this.#windowMessage("");
+    try {
+      const floatingWindow = await api.requestWindow({ width: window.innerWidth, height: window.innerHeight });
+      if (!this.isConnected) {
+        floatingWindow.close();
+        return;
+      }
+      this.#pictureInPictureWindow = floatingWindow;
+      floatingWindow.addEventListener("pagehide", () => this.#restoreDeck(floatingWindow), { once: true });
+      floatingWindow.addEventListener("resize", this.#onResize);
+      floatingWindow.document.title = document.title;
+      floatingWindow.document.body.className = "deck-page";
+      const stylesheet = floatingWindow.document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = new URL("/styles.css", window.location.href).href;
+      stylesheet.addEventListener("load", this.#onResize, { once: true });
+      floatingWindow.document.head.append(stylesheet);
+      // Move the shell, not the custom element, to keep its session stream and controls active.
+      floatingWindow.document.body.append(shell);
+      const placeholder = this.querySelector<HTMLElement>("#deck-window-placeholder");
+      if (placeholder) placeholder.hidden = false;
+      button.textContent = "Return to deck";
+      button.title = "Return the deck to its original window";
+      button.setAttribute("aria-pressed", "true");
+      this.#render();
+      button.focus();
+    } catch {
+      this.#pictureInPictureWindow?.close();
+      this.#windowMessage("Could not open Picture-in-Picture (PICTURE_IN_PICTURE_FAILED). Try again.");
+    } finally {
+      this.#openingPictureInPicture = false;
+      button.disabled = false;
+    }
+  }
+
+  #restoreDeck(floatingWindow: Window): void {
+    if (this.#pictureInPictureWindow !== floatingWindow) return;
+    floatingWindow.removeEventListener("resize", this.#onResize);
+    this.#pictureInPictureWindow = undefined;
+    if (this.#shell) this.append(this.#shell);
+    const placeholder = this.querySelector<HTMLElement>("#deck-window-placeholder");
+    if (placeholder) placeholder.hidden = true;
+    const button = this.#shell?.querySelector<HTMLButtonElement>('button[data-window="picture-in-picture"]');
+    if (button) {
+      button.textContent = "Keep on top";
+      button.title = "Open the deck in an always-on-top window";
+      button.setAttribute("aria-pressed", "false");
+      if (this.isConnected) button.focus();
+    }
+    this.#render();
+  }
 
   #control(control: string): void {
     const current = this.#view.keySize ?? this.#lastKeySize;
@@ -69,6 +167,7 @@ class DeckPanel extends HTMLElement {
   }
 
   disconnectedCallback(): void {
+    this.#pictureInPictureWindow?.close();
     window.removeEventListener("resize", this.#onResize);
     this.#events?.close();
     if (this.#timer !== undefined) window.clearInterval(this.#timer);
@@ -106,8 +205,9 @@ class DeckPanel extends HTMLElement {
 
   // Space that the key grid can use: the window minus the padding of the shell and the status line.
   #availableSpace(sideControls: boolean): { width: number; height: number } {
-    if (sideControls) return { width: window.innerWidth - shellPadding - sideControlsWidth, height: window.innerHeight - shellPadding };
-    return { width: window.innerWidth - shellPadding, height: window.innerHeight - shellPadding - statusLineHeight - toolbarHeight };
+    const viewWindow = this.#viewWindow();
+    if (sideControls) return { width: viewWindow.innerWidth - shellPadding - sideControlsWidth, height: viewWindow.innerHeight - shellPadding };
+    return { width: viewWindow.innerWidth - shellPadding, height: viewWindow.innerHeight - shellPadding - statusLineHeight - toolbarHeight };
   }
 
   #keyButton(image: string, label: string, action: string, argument = ""): string {
@@ -124,14 +224,13 @@ class DeckPanel extends HTMLElement {
   // The controls go to the side of the keys when the stacked layout is taller than the window.
   #render(): void {
     this.#layout(false);
-    const shell = this.querySelector<HTMLElement>(".deck-shell");
-    if (shell && shell.offsetHeight > window.innerHeight) this.#layout(true);
+    if (this.#shell && this.#shell.offsetHeight > this.#viewWindow().innerHeight) this.#layout(true);
   }
 
   #layout(sideControls: boolean): void {
-    this.querySelector(".deck-shell")?.classList.toggle("deck-side-controls", sideControls);
-    const grid = this.querySelector<HTMLElement>("#deck-grid");
-    const status = this.querySelector<HTMLElement>("#deck-status");
+    this.#shell?.classList.toggle("deck-side-controls", sideControls);
+    const grid = this.#shell?.querySelector<HTMLElement>("#deck-grid");
+    const status = this.#shell?.querySelector<HTMLElement>("#deck-status");
     if (!grid || !status) return;
     const now = Date.now();
     const reducedMotion = this.#motion.matches;
@@ -153,7 +252,7 @@ class DeckPanel extends HTMLElement {
     this.#lastKeySize = keySize;
     grid.style.setProperty("--columns", String(page.columns));
     grid.style.setProperty("--key-size", `${keySize}px`);
-    this.querySelector("button[data-control=row]")?.setAttribute("aria-pressed", String(this.#view.singleRow));
+    this.#shell?.querySelector("button[data-control=row]")?.setAttribute("aria-pressed", String(this.#view.singleRow));
     const pagerCount = page.hasPager ? 2 : 0;
     const cells = page.items.map((item) => this.#itemButton(item, options));
     while (cells.length < page.columns * page.rows - pagerCount) cells.push(`<div class="deck-key deck-key-empty" aria-hidden="true">${emptyImage(this.#palette)}</div>`);

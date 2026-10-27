@@ -214,6 +214,7 @@ The response distinguishes application/project focus where available and reports
 - Separate app-presence entries for clients without conversation telemetry.
 - A visible connection/reconnection indication. A cached shell or retained last snapshot is not proof of current work.
 - An **Icon palette** selector for Fjord (default), Nocturne, Ember & Ice, Signal, and Porcelain. One saved hub-wide choice applies to every browser preview and all session, empty, INFO, and paging keys, survives restarts, and requires no profile reimport/reload after the initial upgrade. Browser changes arrive by SSE; hardware changes arrive on the next normal poll. Saving errors retain the prior choice; palette changes must not restart attention timers or alter session/layout state.
+- The standalone deck has a **Keep on top** button for an always-on-top Document Picture-in-Picture window. The user must click the button. The floating window keeps live updates, key actions, paging, and size controls. **Return to deck**, or closing the floating window, restores the existing deck. The original page must stay open. Unsupported browsers show an explanation. Failed requests allow another attempt without showing private browser errors.
 
 Diagnostics must not display transcripts, prompts, tool arguments/results, registry authentication tokens, or private harness error messages. Missing, unreadable, unrecognized, and discovery-unavailable telemetry are distinguishable conditions.
 
@@ -234,6 +235,9 @@ Implemented behavior must retain regression coverage for:
 5. A custom INFO key staying fixed while session keys fill around it, including paging and focus without gaps.
 6. WAITING and DONE animation timers not increasing HTTP polling or resetting completion age.
 7. INFO reusing a verified dashboard tab when possible and opening through the default browser when reuse fails. Denied permissions, unsupported browsers, inspection errors, and invalid responses must use the fallback. A successful hub fallback must not cause another plugin open request.
+8. The optional `deck:app` command detecting macOS or Linux, starting Chrome or Chromium in app mode, and reporting unsupported operating systems or missing Linux browsers.
+9. The `deck:app` readiness check bypassing proxies and limiting each request to one second before it opens Chrome.
+10. The deck entering and leaving Picture-in-Picture without replacing its session stream or losing its controls and settings. Resize handling must use the active window. Unsupported browsers and rejected requests must show safe, accessible messages.
 
 Claude regression coverage verifies independent registrations, process identity, closure, recovery, completion age, and metadata filtering. Desktop tests verify exposed-chat identity, control-based state, denied permissions, removal, and restricted deep links. App presence and sidebar history must never create session keys.
 
