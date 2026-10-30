@@ -55,7 +55,7 @@ export class CopilotSessionState {
       this.#setState("failed", type);
     } else if (["assistant.turn_end", "session.idle", "session.task_complete", "session.cancelled"].includes(type)) {
       this.#setState(this.#permissions.size ? "waiting" : "done", type);
-    } else if (type === "tool.execution_start" && data.toolName === "ask_user") {
+    } else if (type === "tool.execution_start" && (data.toolName === "ask_user" || data.toolName === "exit_plan_mode")) {
       this.#permissions.add(`input:${stringField(data.toolCallId) ?? "ask_user"}`);
       this.#setState("waiting", type);
     } else if (type === "tool.execution_complete" && this.#permissions.delete(`input:${stringField(data.toolCallId) ?? "ask_user"}`)) {

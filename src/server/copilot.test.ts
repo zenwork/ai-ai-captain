@@ -167,6 +167,34 @@ describe("Copilot session tracking", () => {
     expect(state).toMatchObject({ state: "starting", ended: false });
   });
 
+  it("keeps plan approval waiting until the matching tool completes", () => {
+    const state = new CopilotSessionState();
+    state.apply({ type: "assistant.turn_start" });
+    state.apply({ type: "tool.execution_start", data: { toolName: "exit_plan_mode", toolCallId: "plan" } });
+    expect(state.state).toBe("waiting");
+    state.apply({ type: "assistant.message" });
+    expect(state.state).toBe("waiting");
+    state.apply({ type: "assistant.turn_start" });
+    expect(state.state).toBe("waiting");
+    state.apply({ type: "tool.execution_start", data: { toolName: "read_file", toolCallId: "read" } });
+    state.apply({ type: "tool.execution_complete", data: { toolCallId: "read" } });
+    expect(state.state).toBe("waiting");
+    state.apply({ type: "assistant.turn_end" });
+    expect(state.state).toBe("waiting");
+    state.apply({ type: "tool.execution_complete", data: { toolCallId: "plan" } });
+    expect(state.state).toBe("working");
+    state.apply({ type: "assistant.turn_end" });
+    expect(state.state).toBe("done");
+  });
+
+  it("clears plan approval waiting when the user responds", () => {
+    const state = new CopilotSessionState();
+    state.apply({ type: "assistant.turn_start" });
+    state.apply({ type: "tool.execution_start", data: { toolName: "exit_plan_mode", toolCallId: "plan" } });
+    state.apply({ type: "user.message" });
+    expect(state.state).toBe("working");
+  });
+
   it("timestamps completion separately from later metadata or repeated idle notifications", () => {
     const state = new CopilotSessionState();
     state.apply({ type: "assistant.turn_start", timestamp });
