@@ -43,8 +43,8 @@ describe("project-aware focus", () => {
     expect(await focus(target, paths[0])).toEqual({ focused: true, scope: "project" });
     expect(await focus(target, paths[1])).toEqual({ focused: true, scope: "project" });
     expect(run.mock.calls).toEqual([
-      ["/usr/bin/open", ["-n", "-a", application, "--args", paths[0]]],
-      ["/usr/bin/open", ["-n", "-a", application, "--args", paths[1]]],
+      ["/usr/bin/open", ["-a", application, paths[0]]],
+      ["/usr/bin/open", ["-a", application, paths[1]]],
     ]);
   });
 
@@ -53,7 +53,7 @@ describe("project-aware focus", () => {
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: false, run });
     await focus({ appName: "IntelliJ IDEA", bundleId: "com.jetbrains.intellij" }, project);
-    expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-n", "-b", "com.jetbrains.intellij", "--args", project]);
+    expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-b", "com.jetbrains.intellij", project]);
   });
 
   it("uses the named IntelliJ launcher for bridge sessions without installation metadata", async () => {
@@ -61,7 +61,7 @@ describe("project-aware focus", () => {
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", run });
     expect(await focus({ appName: "IntelliJ IDEA" }, project)).toEqual({ focused: true, scope: "project" });
-    expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-n", "-a", "IntelliJ IDEA", "--args", project]);
+    expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-a", "IntelliJ IDEA", project]);
   });
 
   it("rejects unavailable or relative project paths instead of reporting an app-only success", async () => {

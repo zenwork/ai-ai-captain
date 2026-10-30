@@ -12,6 +12,10 @@ const projectDirectory = "/projects/example";
 const processes: ProcessInfo[] = [
   { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea", startedAt: "2026-10-26T08:00:00.000Z" },
 ];
+const versionedProcesses: ProcessInfo[] = [
+  { pid: 30, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.3.app/Contents/MacOS/idea", startedAt: "2026-10-26T10:00:00.000Z" },
+  { pid: 20, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.2.3.app/Contents/MacOS/idea", startedAt: "2026-10-26T08:00:00.000Z" },
+];
 const directories: string[] = [];
 const stores: SessionStore[] = [];
 
@@ -62,6 +66,21 @@ describe("Junie tracking", () => {
     expect(session?.label).toBe("example · ofk2");
     expect(session?.focusTarget).toEqual({ pid: 10, appName: "IntelliJ IDEA", appPath: "/Applications/IntelliJ IDEA.app" });
     expect(JSON.stringify(session)).not.toContain("Private task");
+  });
+
+  it("targets the IDEA installation that has the Junie project open", async () => {
+    const { store, tracker } = await fixture("IN_PROGRESS");
+    const owningProject: LifetimeInspector = async ({ pid }) => pid === 20
+      ? { status: "open", evidence: "JetBrains project registration", openedAt: Date.now() - 120_000 }
+      : { status: "closed", evidence: "JetBrains project unregistered" };
+
+    await tracker.scan(versionedProcesses, owningProject);
+
+    expect(store.get(`junie:${sessionIdentifier}`)?.focusTarget).toEqual({
+      pid: 20,
+      appName: "IntelliJ IDEA",
+      appPath: "/Applications/IntelliJ IDEA 2026.2.3.app",
+    });
   });
 
   it.each([["COMPLETED", "done"], ["FAILED", "failed"]])("shows %s as %s", async (status, expected) => {

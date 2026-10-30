@@ -52,7 +52,7 @@ export function createFocusHandler(options: { platform?: NodeJS.Platform; precis
       const application = target.appPath ?? target.bundleId ?? target.appName;
       if (!application) return { focused: false, reason: "The IntelliJ installation could not be identified" };
       const selector = target.appPath || !target.bundleId ? "-a" : "-b";
-      const result = await run("/usr/bin/open", ["-n", selector, application, "--args", path]);
+      const result = await run("/usr/bin/open", [selector, application, path]);
       return result.focused ? { focused: true, scope: "project" } : { focused: false, reason: "IntelliJ could not open or activate the session's project" };
     }
     let preciseResult: FocusResult | undefined;

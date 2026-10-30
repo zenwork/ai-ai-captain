@@ -54,7 +54,8 @@ export class JunieTracker {
       const directory = join(this.root, entry.sessionId);
       const events = await this.#readEvents(directory);
       if (!events) continue;
-      const lifetime = await this.#projectLifetime(entry, hosts, processes, lifetimes);
+      const project = await this.#projectLifetime(entry, hosts, processes, lifetimes);
+      const lifetime = project.lifetime;
       const state = junieEventState(events.status);
       const activityAt = Math.max(entry.updatedAt, events.modifiedAt);
       const previousTrigger = this.#triggers.get(identifier);
@@ -75,7 +76,7 @@ export class JunieTracker {
         state,
         ended: false,
         project: entry.projectDir,
-        focusTarget: hosts.length > 0 ? hostApplication(hosts[0].pid, processes) : undefined,
+        focusTarget: project.focusTarget,
         metadata: {
           sessionId: entry.sessionId,
           host: "IntelliJ IDEA",
@@ -163,16 +164,28 @@ export class JunieTracker {
     }
   }
 
-  async #projectLifetime(entry: IndexEntry, hosts: ProcessInfo[], processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<HostLifetime> {
-    if (!lifetimes) return { status: "unverified", evidence: "Junie session files" };
-    if (hosts.length === 0) return { status: "closed", evidence: "IntelliJ IDEA not running" };
+  async #projectLifetime(entry: IndexEntry, hosts: ProcessInfo[], processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<{ lifetime: HostLifetime; focusTarget?: ReturnType<typeof hostApplication> }> {
+    if (!lifetimes) {
+      return {
+        lifetime: { status: "unverified", evidence: "Junie session files" },
+        focusTarget: hosts[0] ? hostApplication(hosts[0].pid, processes) : undefined,
+      };
+    }
+    if (hosts.length === 0) return { lifetime: { status: "closed", evidence: "IntelliJ IDEA not running" } };
     let fallback: HostLifetime | undefined;
+    let fallbackFocusTarget: ReturnType<typeof hostApplication>;
     for (const host of hosts) {
       const focusTarget = hostApplication(host.pid, processes);
       const lifetime = await lifetimes({ pid: host.pid, focusTarget }, entry.projectDir);
-      if (lifetime.status === "open") return lifetime;
-      if (!fallback || lifetime.status === "unverified") fallback = lifetime;
+      if (lifetime.status === "open") return { lifetime, focusTarget };
+      if (!fallback || lifetime.status === "unverified") {
+        fallback = lifetime;
+        fallbackFocusTarget = focusTarget;
+      }
     }
-    return fallback ?? { status: "unverified", evidence: "Junie session files" };
+    return {
+      lifetime: fallback ?? { status: "unverified", evidence: "Junie session files" },
+      focusTarget: fallbackFocusTarget,
+    };
   }
 }
