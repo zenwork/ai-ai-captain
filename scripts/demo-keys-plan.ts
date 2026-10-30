@@ -1,10 +1,13 @@
 import type { SessionInput, SessionState } from "../src/shared/session.js";
 import { cardIdentities } from "../src/shared/card-design.js";
+import type { FlashIntensity } from "../src/shared/settings.js";
 import type { SessionType } from "../streamdeck/src/cards.js";
 
 export const demoKeyCount = 24;
+export const demoBrightnessKeyCount = 10;
 export const demoSessionIdPrefix = "demo-keys-";
 export const demoSource = "captain-demo";
+export const demoFlashIntensityLevels: readonly FlashIntensity[] = [0, 1, 2, 3, 4];
 
 // The sequence shows each state that the hub API can set. The DONE flash and its aging run in the plugin.
 export const demoStateSequence: readonly SessionState[] = ["starting", "working", "waiting", "done", "failed", "unknown"];
@@ -51,4 +54,35 @@ export function demoSessions(step: number): SessionInput[] {
 
 export function demoSessionIdentifiers(): string[] {
   return demoSessions(0).map((session) => session.id);
+}
+
+export function demoBrightnessSessions(): SessionInput[] {
+  const sessions: SessionInput[] = [];
+  for (const intensity of demoFlashIntensityLevels) {
+    sessions.push(demoBrightnessSession("waiting", intensity));
+  }
+  for (const intensity of demoFlashIntensityLevels) {
+    sessions.push(demoBrightnessSession("done", intensity));
+  }
+  return sessions;
+}
+
+export function demoBrightnessSessionIdentifiers(): string[] {
+  return demoBrightnessSessions().map((session) => session.id);
+}
+
+export function allDemoSessionIdentifiers(): string[] {
+  return [...demoSessionIdentifiers(), ...demoBrightnessSessionIdentifiers()];
+}
+
+function demoBrightnessSession(state: "waiting" | "done", intensity: FlashIntensity): SessionInput {
+  return {
+    id: `${demoSessionIdPrefix}${state}-${intensity}`,
+    source: demoSource,
+    harness: demoHarnessByIdentity["copilot-cli"],
+    label: `${state} intensity ${intensity}`,
+    state,
+    ended: false,
+    metadata: { flashIntensity: String(intensity) },
+  };
 }

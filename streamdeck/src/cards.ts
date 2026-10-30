@@ -1,11 +1,14 @@
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
-import { cardIdentities, cardStates, escapeXml, renderCard, renderControl, type CardPhase } from "../../src/shared/card-design.js";
+import { cardIdentities, cardStates, escapeXml, renderCard, renderControl, type CardColors, type CardPalette, type CardPhase } from "../../src/shared/card-design.js";
 import { cardIcons } from "../../src/shared/card-assets.js";
+import { applyFlashIntensity, resolveFlashIntensity } from "../../src/shared/flash-intensity.js";
 import { getPalette, type PaletteId } from "../../src/shared/palette.js";
+import type { FlashIntensity } from "../../src/shared/settings.js";
 
 export interface CardOptions {
   palette?: PaletteId;
+  flashIntensity?: number;
   waitingDimmed?: boolean;
   now?: number;
   reducedMotion?: boolean;
@@ -42,8 +45,10 @@ export function sessionPhase(session: Session, options: CardOptions = {}): CardP
   return session.state;
 }
 
-export function sessionColors(session: Session, options: CardOptions = {}) {
-  return getPalette(options.palette).states[sessionPhase(session, options)];
+export function sessionColors(session: Session, options: CardOptions = {}): CardColors {
+  const palette = getPalette(options.palette);
+  const phase = sessionPhase(session, options);
+  return boostedPhaseColors(palette, phase, resolveFlashIntensity(session.metadata, options.flashIntensity));
 }
 
 function svg(content: string, title: string): string {
@@ -53,9 +58,11 @@ function svg(content: string, title: string): string {
 export function sessionImage(session: Session, keyNumber?: number, options: CardOptions = {}): string {
   const type = sessionType(session);
   const identity = cardIdentities.find((entry) => entry.id === type)!;
-  const state = cardStates.find((entry) => entry.id === sessionPhase(session, options))!;
+  const phase = sessionPhase(session, options);
+  const state = cardStates.find((entry) => entry.id === phase)!;
   const number = keyNumber !== undefined && Number.isFinite(keyNumber) ? Math.trunc(keyNumber) : undefined;
-  return svg(renderCard(identity, state, getPalette(options.palette), number, cardIcons), `${sessionTypeLabels[type]}: ${state.label}`);
+  const palette = paletteForSession(session, options);
+  return svg(renderCard(identity, state, palette, number, cardIcons), `${sessionTypeLabels[type]}: ${state.label}`);
 }
 
 export function emptyImage(palette?: PaletteId): string {
@@ -88,5 +95,24 @@ export function pagerImage(direction: "previous" | "next", page: string, palette
 }
 
 export function sessionSignature(session: Session, keyNumber?: number, options: CardOptions = {}): string {
-  return JSON.stringify([session.id, sessionType(session), keyNumber, getPalette(options.palette).id, sessionPhase(session, options)]);
+  return JSON.stringify([
+    session.id,
+    sessionType(session),
+    keyNumber,
+    getPalette(options.palette).id,
+    sessionPhase(session, options),
+    resolveFlashIntensity(session.metadata, options.flashIntensity),
+  ]);
+}
+
+function paletteForSession(session: Session, options: CardOptions): CardPalette {
+  const palette = getPalette(options.palette);
+  const phase = sessionPhase(session, options);
+  const colors = boostedPhaseColors(palette, phase, resolveFlashIntensity(session.metadata, options.flashIntensity));
+  if (colors === palette.states[phase]) return palette;
+  return { ...palette, states: { ...palette.states, [phase]: colors } };
+}
+
+function boostedPhaseColors(palette: CardPalette, phase: CardPhase, intensity: FlashIntensity): CardColors {
+  return applyFlashIntensity(palette.states[phase], palette, intensity, phase);
 }

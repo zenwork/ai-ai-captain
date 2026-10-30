@@ -1,5 +1,6 @@
 import type { Client, Session } from "../src/shared/session.js";
-import type { HubSettings } from "../src/shared/settings.js";
+import { defaultFlashIntensity, type HubSettings } from "../src/shared/settings.js";
+import { isFlashIntensity } from "../src/shared/flash-intensity.js";
 import { defaultPaletteId, isPaletteId, type PaletteId } from "../src/shared/palette.js";
 import { deckColumns, deckPage, deckRows, type DeckItem } from "../src/shared/deck-layout.js";
 import { appImage, emptyImage, pagerImage, sessionImage, sessionTypeLabels, sessionType, waitingPulseIntervalMs } from "../streamdeck/src/cards.js";
@@ -49,6 +50,7 @@ class DeckPanel extends HTMLElement {
   #sessions: Session[] = [];
   #clients: Client[] = [];
   #palette: PaletteId = defaultPaletteId;
+  #flashIntensity = defaultFlashIntensity;
   #page = 0;
   #view = readViewSettings();
   #connected = false;
@@ -192,7 +194,11 @@ class DeckPanel extends HTMLElement {
         this.#sessions = event.sessions ?? [];
         this.#clients = event.clients ?? [];
       }
-      if ((event.type === "snapshot" || event.type === "settings") && event.settings && isPaletteId(event.settings.palette)) this.#palette = event.settings.palette;
+      if ((event.type === "snapshot" || event.type === "settings") && event.settings && isPaletteId(event.settings.palette)) {
+        this.#palette = event.settings.palette;
+        const nextFlashIntensity = event.settings.flashIntensity;
+        this.#flashIntensity = isFlashIntensity(nextFlashIntensity) ? nextFlashIntensity : defaultFlashIntensity;
+      }
       if (event.type === "clients") this.#clients = event.clients ?? [];
       if (event.type === "upsert" && event.session) {
         const updated = event.session;
@@ -234,7 +240,7 @@ class DeckPanel extends HTMLElement {
     if (!grid || !status) return;
     const now = Date.now();
     const reducedMotion = this.#motion.matches;
-    const options = { palette: this.#palette, now, reducedMotion, waitingDimmed: Math.floor(now / waitingPulseIntervalMs) % 2 === 1 };
+    const options = { palette: this.#palette, flashIntensity: this.#flashIntensity, now, reducedMotion, waitingDimmed: Math.floor(now / waitingPulseIntervalMs) % 2 === 1 };
     const available = this.#availableSpace(sideControls);
     const userKeySize = this.#view.keySize;
     const slotSize = (userKeySize ?? minimumKeySize) + keyGap;

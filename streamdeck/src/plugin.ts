@@ -5,7 +5,8 @@ import { z } from "zod";
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
 import { defaultPaletteId, getPalette, type PaletteId } from "../../src/shared/palette.js";
-import type { HubSettings } from "../../src/shared/settings.js";
+import { defaultFlashIntensity, type HubSettings } from "../../src/shared/settings.js";
+import { isFlashIntensity } from "../../src/shared/flash-intensity.js";
 import { appImage, appSignature, dashboardImage, emptyImage, pagerImage, sessionImage, sessionSignature, waitingPulseIntervalMs } from "./cards.js";
 import { svgDataUri } from "./images.js";
 import { HubSupervisor, isHubHealthy, localHubPort, spawnHubProcess } from "./hub-supervisor.js";
@@ -20,6 +21,7 @@ const renderedCards = new Map<string, string>();
 const dashboardActions = new Map<string, KeyAction<SessionSettings>>();
 const renderedControls = new Map<string, string>();
 let palette: PaletteId = defaultPaletteId;
+let flashIntensity = defaultFlashIntensity;
 let sessions: Session[] = [];
 let clients: Client[] = [];
 const pages = new Map<string, number>();
@@ -83,6 +85,8 @@ async function readSessions(): Promise<void> {
     const payload = await response.json() as { sessions: Session[]; clients?: Client[]; settings?: HubSettings };
     sessions = payload.sessions;
     palette = getPalette(payload.settings?.palette).id;
+    const nextFlashIntensity = payload.settings?.flashIntensity;
+    if (isFlashIntensity(nextFlashIntensity)) flashIntensity = nextFlashIntensity;
     clients = payload.clients ?? [];
   } catch {
     sessions = sessions.map((session) => ({ ...session, state: "unknown" }));
@@ -150,7 +154,7 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
   let updatedKeys = 0;
   let hasWaiting = false;
   let nextDoneAt: number | undefined;
-  const options = { palette, waitingDimmed, now: Date.now() };
+  const options = { palette, flashIntensity, waitingDimmed, now: Date.now() };
   for (const key of visibleKeys.values()) {
     if (!key.coordinates) continue;
     const index = sessionIndex(key);

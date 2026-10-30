@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { defaultSettings, settingsSchema, type HubSettings } from "../shared/settings.js";
+import { defaultSettings, parseStoredSettings, settingsWriteSchema, type HubSettings, type HubSettingsWrite } from "../shared/settings.js";
 
 export class SettingsStore {
   readonly #events = new EventEmitter();
@@ -13,7 +13,7 @@ export class SettingsStore {
   async load(): Promise<void> {
     if (!this.persistencePath) return;
     try {
-      this.#settings = settingsSchema.parse(JSON.parse(await readFile(this.persistencePath, "utf8")));
+      this.#settings = parseStoredSettings(JSON.parse(await readFile(this.persistencePath, "utf8")));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
@@ -23,10 +23,14 @@ export class SettingsStore {
     return { ...this.#settings };
   }
 
-  update(input: HubSettings): Promise<HubSettings> {
-    const next = settingsSchema.parse(input);
+  update(input: HubSettingsWrite): Promise<HubSettings> {
+    const patch = settingsWriteSchema.parse(input);
     const operation = this.#queue.then(async () => {
-      if (next.palette === this.#settings.palette) return this.get();
+      const next: HubSettings = {
+        palette: patch.palette,
+        flashIntensity: patch.flashIntensity ?? this.#settings.flashIntensity,
+      };
+      if (settingsEqual(next, this.#settings)) return this.get();
       if (this.persistencePath) {
         await mkdir(dirname(this.persistencePath), { recursive: true });
         const temporary = `${this.persistencePath}.tmp`;
@@ -50,4 +54,8 @@ export class SettingsStore {
     await this.#queue;
     this.#events.removeAllListeners();
   }
+}
+
+function settingsEqual(left: HubSettings, right: HubSettings): boolean {
+  return left.palette === right.palette && left.flashIntensity === right.flashIntensity;
 }
