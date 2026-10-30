@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/zenwork/ai-ai-captain/compare/v0.2.1...v0.3.0) (2026-10-30)
+
+
+### Features
+
+* **appearance:** add configurable flash intensity ([4381bca](https://github.com/zenwork/ai-ai-captain/commit/4381bca8d31e9f2620fd1061f2c89d66749ccd0b))
+
+
+### Bug Fixes
+
+* **copilot:** keep plan approvals waiting ([5761d2f](https://github.com/zenwork/ai-ai-captain/commit/5761d2fd6e52e6871b3ad1ec4d61956a72755122))
+* **junie:** focus the owning IntelliJ project ([cfa60ff](https://github.com/zenwork/ai-ai-captain/commit/cfa60ffaba0c9819aac5e14a9129ca760edaedae))
+
 ## [0.2.1](https://github.com/zenwork/ai-ai-captain/compare/v0.2.0...v0.2.1) (2026-10-27)
 
 
