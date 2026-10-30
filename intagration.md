@@ -37,7 +37,7 @@ Reduce supported records as follows:
 |--------------------------------------------------------------------|---------------------------------------------------------------------|
 | `session.start` / `session.resume`                                 | starting; refresh project/model metadata                            |
 | User message, assistant turn start/message, ordinary tool activity | working, unless an input/permission request remains outstanding     |
-| Permission request or `ask_user` tool                              | waiting until outstanding requests resolve                          |
+| Permission request, `ask_user`, or `exit_plan_mode` tool           | waiting until outstanding requests resolve                          |
 | Turn end, idle, task completion, cancellation                      | done with conversation open, unless user action remains outstanding |
 | `session.error`                                                    | failed                                                              |
 | `session.shutdown`                                                 | ended completion; normal closing grace period                       |
@@ -69,7 +69,7 @@ Registry errors/unsupported formats or unavailable terminal evidence fail open f
 
 Read `index.jsonl` and each session's `events.jsonl` under `AI_AI_CAPTAIN_JUNIE_HOME`, or `~/.junie/sessions`. Read only the session identifier, the project folder, and the status field of the last status event. Never read prompts, task names, or responses.
 
-Map `IN_PROGRESS` to WORKING, `COMPLETED` to DONE, and `FAILED` to FAILED. Map other values to UNKNOWN. Show a session only when its project is open in a running IntelliJ IDEA process. Report the session with the JetBrains AI identity.
+Map `IN_PROGRESS` to WORKING, `COMPLETED` to DONE, and `FAILED` to FAILED. Map other values to UNKNOWN. Show a session only when its project is open in a running IntelliJ IDEA process. When multiple IDEA processes run, bind focus to the process whose project registration is open. Report the session with the JetBrains AI identity.
 
 ### Claude adapters
 
@@ -96,19 +96,19 @@ Successful navigation returns `scope: "session"`; it does not set assessed DONE.
 
 The default base URL is `http://127.0.0.1:43681`.
 
-| Method and path                | Contract                                                                                                                                                                                  |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /health`                  | Hub process health, not proof that every adapter is operational                                                                                                                           |
-| `GET /api/sessions`            | `{ "sessions": [...], "settings": { "palette": "fjord" } }` current inventory and appearance                                                                                              |
-| `GET /api/settings`            | Current settings and supported palette IDs/names                                                                                                                                          |
-| `GET /api/dashboard/browser`   | Current macOS default browser, tab adapter, and Accessibility trust status                                                                                                                |
-| `POST /api/dashboard/open`     | Reuse the configured dashboard tab, or open through the default browser if reuse fails; returns `opened`, `reused`, browser metadata, or a safe reason; arbitrary caller URLs are ignored |
-| `PUT /api/settings`            | Validated `{ "palette": "fjord" \| "nocturne" \| "ember-ice" \| "signal" \| "porcelain" }`; saves hub-wide appearance                                                                     |
-| `GET /api/clients`             | `{ "clients": [...] }` detected app presence with session tracking unavailable                                                                                                            |
-| `PUT /api/sessions/:id`        | Validated session upsert; body `id` must match URL-decoded path ID                                                                                                                        |
-| `POST /api/sessions/:id/end`   | `{ "state": "done" }` or `{ "state": "failed" }`; explicitly closes one record                                                                                                            |
-| `POST /api/sessions/:id/focus` | Navigation result with `focused` and optional scope/reason                                                                                                                                |
-| `GET /api/events`              | SSE snapshot, then session/client/settings changes                                                                                                                                        |
+| Method and path                | Contract                                                                                                                                                                                               |
+|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `GET /health`                  | Hub process health, not proof that every adapter is operational                                                                                                                                        |
+| `GET /api/sessions`            | `{ "sessions": [...], "settings": { "palette": "fjord", "flashIntensity": 2 } }` current inventory and appearance                                                                                      |
+| `GET /api/settings`            | Current settings and supported palette IDs/names; flash intensity is an integer from 0 to 4                                                                                                            |
+| `GET /api/dashboard/browser`   | Current macOS default browser, tab adapter, and Accessibility trust status                                                                                                                             |
+| `POST /api/dashboard/open`     | Reuse the configured dashboard tab, or open through the default browser if reuse fails; returns `opened`, `reused`, browser metadata, or a safe reason; arbitrary caller URLs are ignored              |
+| `PUT /api/settings`            | Validated `{ "palette": "fjord" \| "nocturne" \| "ember-ice" \| "signal" \| "porcelain", "flashIntensity": 0 }`; optional intensity is 0–4 and stays unchanged when omitted; saves hub-wide appearance |
+| `GET /api/clients`             | `{ "clients": [...] }` detected app presence with session tracking unavailable                                                                                                                         |
+| `PUT /api/sessions/:id`        | Validated session upsert; body `id` must match URL-decoded path ID                                                                                                                                     |
+| `POST /api/sessions/:id/end`   | `{ "state": "done" }` or `{ "state": "failed" }`; explicitly closes one record                                                                                                                         |
+| `POST /api/sessions/:id/focus` | Navigation result with `focused` and optional scope/reason                                                                                                                                             |
+| `GET /api/events`              | SSE snapshot, then session/client/settings changes                                                                                                                                                     |
 
 The API accepts metadata, not transcripts. Request bodies are limited to 32 KiB, with field lengths constrained by `src/shared/session.ts`. Encode session IDs when constructing URLs. Invalid input returns 400; nonexistent end/focus targets return 404. A focus operation can return HTTP 200 with `focused: false`, so clients must check the result as well as the HTTP status.
 
@@ -132,7 +132,7 @@ Messages are JSON in SSE `data:` records:
 - `upsert`: one `session` record.
 - `remove`: one session `id`.
 - `clients`: replacement `clients` inventory.
-- `settings`: saved hub-wide `settings`, including the icon `palette`.
+- `settings`: saved hub-wide `settings`, including the icon `palette` and `flashIntensity`.
 
 The hub emits comment heartbeats every 15 seconds. Consumers must handle reconnection through a new full snapshot; there are no durable event IDs/replay guarantees. The browser uses SSE; Stream Deck currently polls snapshots every 1.5 seconds.
 
@@ -164,13 +164,14 @@ The reporter normalizes lifecycle names and retains selected metadata only. Star
 
 ## INT-05 — Focus integration
 
-The macOS adapter validates IntelliJ's absolute project directory and uses its launcher:
+The macOS adapter validates IntelliJ's absolute project directory and opens it as a document with the owning installation:
 
 ```text
-open -n -a <owning IDEA.app> --args <absolute project directory>
+open -a <owning IDEA.app> <absolute project directory>
+open -b <IDEA bundle ID> <absolute project directory>
 ```
 
-It reports project scope when that command succeeds. Other sessions use supported app-path/name, bundle-ID, optional PID, or HTTP(S) URL navigation. `AI_AI_CAPTAIN_PRECISE_FOCUS=1` enables an attempted PID-based app focus, which may need Accessibility permission; project targeting takes precedence.
+Do not use `-n` or `--args`; these options start a new IDEA process or pass the project path as an application argument. Opening the project as a document lets macOS reuse the selected running installation. The adapter reports project scope when the command succeeds. Other sessions use supported app-path/name, bundle-ID, optional PID, or HTTP(S) URL navigation. `AI_AI_CAPTAIN_PRECISE_FOCUS=1` enables an attempted PID-based app focus, which may need Accessibility permission; project targeting takes precedence.
 
 Focus scopes are application, project, and session. Only an identified Claude desktop chat uses session scope through its restricted deep link. A successful navigation command does not prove that the user read the result. Assessed DONE remains unimplemented.
 
@@ -201,11 +202,11 @@ For a later linked update, use `npm run reload:streamdeck`. This rebuilds the pl
 
 Available actions are:
 
-| Action                 | UUID                              |
-|------------------------|-----------------------------------|
-| AI Session             | `com.local.ai-ai-captain.session`       |
-| Previous Session Page  | `com.local.ai-ai-captain.previous-page` |
-| Next Session Page      | `com.local.ai-ai-captain.next-page`     |
+| Action                       | UUID                                    |
+|------------------------------|-----------------------------------------|
+| AI Session                   | `com.local.ai-ai-captain.session`       |
+| Previous Session Page        | `com.local.ai-ai-captain.previous-page` |
+| Next Session Page            | `com.local.ai-ai-captain.next-page`     |
 | Open AI AI Captain Dashboard | `com.local.ai-ai-captain.dashboard`     |
 
 Drag **Open AI AI Captain Dashboard** onto any preferred key. INFO is not automatically appended. Other controls may replace session slots; remaining session keys compact and paging adjusts, up to 30 per device.
@@ -220,12 +221,12 @@ Use **Tools → AI AI Captain** to start/update a task, mark it waiting, or end 
 
 ## INT-08 — Configuration and operational data
 
-Use **Icon palette** in the dashboard to save the shared palette in `settings.json` in the data directory. It defaults to Fjord, survives restarts, and is broadcast to browsers and included in the Stream Deck's normal session poll. The initial renderer upgrade needs a hub rebuild/restart and plugin reload; later palette changes need no restart or reinstall. Artwork notices ship with the plugin and static web client.
+Use **Icon palette** and **Flash intensity** in the dashboard to save shared appearance settings in `settings.json` in the data directory. The palette defaults to Fjord; flash intensity defaults to 2 and accepts levels 0 to 4. Both settings survive restarts, reach browsers through SSE, and reach Stream Deck through its normal session poll. The initial renderer upgrade needs a hub rebuild/restart and plugin reload; later appearance changes need no restart or reinstall. Artwork notices ship with the plugin and static web client.
 
 | Variable                            | Consumer                     | Default / meaning                                                                                                                                     |
-| ----------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AI_AI_CAPTAIN_DECK_PORT`           | `deck:app` hub                | `43682`; separate from the Stream Deck hub                                                                                                             |
-| `AI_AI_CAPTAIN_DECK_WINDOW_SIZE`    | `deck:app` browser            | `420,140`; Chrome or Chromium app window size                                                                                                          |
+|-------------------------------------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AI_AI_CAPTAIN_DECK_PORT`           | `deck:app` hub               | `43682`; separate from the Stream Deck hub                                                                                                            |
+| `AI_AI_CAPTAIN_DECK_WINDOW_SIZE`    | `deck:app` browser           | `420,140`; Chrome or Chromium app window size                                                                                                         |
 | `AI_AI_CAPTAIN_PORT`                | Hub                          | `43681`; hub remains bound to `127.0.0.1`                                                                                                             |
 | `AI_AI_CAPTAIN_URL`                 | CLI, Stream Deck, IDE bridge | `http://127.0.0.1:43681`; set consistently when changing ports                                                                                        |
 | `AI_AI_CAPTAIN_DATA_DIR`            | Hub                          | `~/Library/Application Support/ai-ai-captain`; an earlier `ai-deck` directory moves here at first start                                               |
@@ -283,10 +284,10 @@ Findings from a local check on macOS:
 
 Options:
 
- Option                             | Coverage                                  | Risk                                                          |
- ---------------------------------- | ----------------------------------------- | ------------------------------------------------------------- |
- Use the Codex adapter for threads  | Codex threads in the ChatGPT app          | Check that the app server holds the locks for each thread     |
- Add a `hooks.json` reporter        | Codex threads, with WAITING events        | The user must change `~/.codex/hooks.json`; AGENTS.md forbids the hub to do it |
- Use Accessibility like Claude      | Plain chat, if the UI exposes identity    | Fragile; needs a stable chat identifier first                 |
+| Option                            | Coverage                               | Risk                                                                           |
+|-----------------------------------|----------------------------------------|--------------------------------------------------------------------------------|
+| Use the Codex adapter for threads | Codex threads in the ChatGPT app       | Check that the app server holds the locks for each thread                      |
+| Add a `hooks.json` reporter       | Codex threads, with WAITING events     | The user must change `~/.codex/hooks.json`; AGENTS.md forbids the hub to do it |
+| Use Accessibility like Claude     | Plain chat, if the UI exposes identity | Fragile; needs a stable chat identifier first                                  |
 
 Next step: run a Codex thread in the ChatGPT app. Check if the Codex adapter shows it. Report the result before any new code.

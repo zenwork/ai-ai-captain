@@ -314,9 +314,13 @@ Use the demo to test the keys. It shows 24 keys: each of the 12 key types two ti
 1. Make sure that the hub runs.
 2. Type `npm run demo:keys`.
 3. Look at keys 1 to 24 on the Stream Deck.
-4. To stop the demo, push Ctrl+C. The demo removes its keys.
+4. To stop the demo, push Ctrl+C. The demo removes every demo key, including leftover keys from the brightness demo.
 
 To change the time between steps, type `npm run demo:keys -- --interval 8`. The unit is seconds.
+
+To compare flash intensity, type `npm run demo:keys -- --brightness`. Keys 1 to 5 show WAITING. Keys 6 to 10 show DONE. Intensity 0 to 4 goes from left to right. Higher levels make bright phases brighter and dim phases darker. The Terminal names each key. Push Ctrl+C to remove every demo key, including leftover keys from the 24-key demo. This demo does not change the saved hub setting.
+
+Use **Flash intensity** in the dashboard to change the saved setting. You do not need to rebuild or reload the Stream Deck plugin.
 
 NOTE: The demo cannot show the aged and assessed DONE keys. These keys need real session age. The demo keys go before other session keys on the first page.
 
@@ -324,21 +328,32 @@ NOTE: The demo cannot show the aged and assessed DONE keys. These keys need real
 
 ## 8. Configure AI AI Captain
 
-### 8.1 Change the colors of the keys
+### 8.1 Change the appearance of the keys
 
 1. Open the dashboard.
 2. Find **Icon palette** near the top of the page.
 3. Select a palette:
 
-   | Palette         | Description                         |
-   | --------------- | ----------------------------------- |
-   | Fjord (default) | The standard colors                 |
-   | Nocturne        | Dark colors                         |
-   | Ember & Ice     | Warm and cold colors                |
-   | Signal          | High contrast on a dark background  |
-   | Porcelain       | High contrast on a light background |
+| Palette         | Description                         |
+| --------------- | ----------------------------------- |
+| Fjord (default) | The standard colors                 |
+| Nocturne        | Dark colors                         |
+| Ember & Ice     | Warm and cold colors                |
+| Signal          | High contrast on a dark background  |
+| Porcelain       | High contrast on a light background |
 
-The dashboard changes immediately. The Stream Deck keys change in approximately 2 seconds. AI AI Captain keeps your selection after a restart.
+4. Find **Flash intensity** near the top of the page.
+5. Select a level:
+
+   | Level | Meaning                |
+   | ----- | ---------------------- |
+   | 0     | Palette colors         |
+   | 1     | Increased contrast     |
+   | 2     | Default stronger flash |
+   | 3     | High contrast          |
+   | 4     | Full color range       |
+
+The dashboard preview changes at once. Stream Deck keys change in about two seconds. AI AI Captain keeps both settings after a restart.
 
 NOTE: Use **Signal** or **Porcelain** if it is difficult for you to see the colors.
 

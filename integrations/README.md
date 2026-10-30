@@ -6,15 +6,15 @@ On macOS the hub automatically follows the existing local event files of live Co
 
 The reader uses `~/.copilot/session-state` by default; set `AI_AI_CAPTAIN_COPILOT_HOME` to the directory containing `session-state` for another location. It parses existing event records locally and discards message content, tool arguments/results, and other transcript data. Only session ID, project, model, event timestamps, state, and process/host metadata enter the hub store and API. Initial state is replayed once, then only appended bytes are read. Unsupported or unavailable telemetry produces `unknown`, and ended sessions disappear after ten seconds.
 
-| Copilot event | Session state | Key |
-| --- | --- | --- |
-| `session.start`, `session.resume` | starting | Purple hourglass `STARTING` |
-| User message, assistant turn start, tool activity | working | Green `WORKING` |
-| Assistant turn end, session idle/task completion | done; conversation remains open | Blue `DONE` |
-| Permission requested or `ask_user` tool, until outstanding requests complete | waiting | Amber `WAITING` |
-| `session.error` | failed | Red `FAILED` |
-| `session.shutdown` or live ownership released | done | Blue check mark `DONE` |
-| Event file or process telemetry unavailable | unknown | Gray `UNK` |
+| Copilot event                                                                    | Session state                   | Key                           |
+| -------------------------------------------------------------------------------- | ------------------------------- | ----------------------------- |
+| `session.start`, `session.resume`                                                | starting                        | Purple hourglass `STARTING`   |
+| User message, assistant turn start, tool activity                                | working                         | Green `WORKING`               |
+| Assistant turn end, session idle/task completion                                 | done; conversation remains open | Blue `DONE`                   |
+| Permission request or `ask_user` / `exit_plan_mode` until complete               | waiting                         | Amber `WAITING`               |
+| `session.error`                                                                  | failed                          | Red `FAILED`                  |
+| `session.shutdown` or live ownership released                                    | done                            | Blue check mark `DONE`        |
+| Event file or process telemetry unavailable                                      | unknown                         | Gray `UNK`                    |
 
 This adapter follows Copilot's installed local event/lock format, which may change between versions. It supports runtimes that write those files; Copilot ACP agents without these files still need lifecycle reporting. IntelliJ session keys use the absolute project path and the owning application bundle's command-line launcher to select the matching project window, rather than only activating the application. A closed project may be reopened. Other hosts retain application-level activation; selecting a specific conversation tab is not implemented.
 
