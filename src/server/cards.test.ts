@@ -86,10 +86,11 @@ describe("Stream Deck design implementation", () => {
     const waiting = { ...session, state: "waiting" as const };
     expect(waitingPulseIntervalMs).toBe(1200);
     for (const palette of palettes) {
-      expect(sessionColors(waiting, { palette: palette.id }).accent).toBe(palette.states["waiting-bright"].accent);
-      expect(sessionColors(waiting, { palette: palette.id, waitingDimmed: true }).accent).toBe(palette.states["waiting-dim"].accent);
-      expect(sessionSignature(waiting, 1, { palette: palette.id })).not.toBe(sessionSignature(waiting, 1, { palette: palette.id, waitingDimmed: true }));
-      expect(sessionColors(waiting, { palette: palette.id, waitingDimmed: true, reducedMotion: true }).accent).toBe(palette.states["waiting-bright"].accent);
+      expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 0 }).accent).toBe(palette.states["waiting-bright"].accent);
+      expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 0, waitingDimmed: true }).accent).toBe(palette.states["waiting-dim"].accent);
+      expect(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0 })).not.toBe(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0, waitingDimmed: true }));
+      expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 0, waitingDimmed: true, reducedMotion: true }).accent).toBe(palette.states["waiting-bright"].accent);
+      expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 4, waitingDimmed: true, reducedMotion: true })).toEqual(sessionColors(waiting, { palette: palette.id, flashIntensity: 4 }));
     }
     for (const state of ["starting", "working", "done", "failed", "unknown"] as const) {
       expect(sessionImage({ ...session, state }, 1, { waitingDimmed: true })).toBe(sessionImage({ ...session, state }, 1, { waitingDimmed: false }));
@@ -100,7 +101,7 @@ describe("Stream Deck design implementation", () => {
     const completedAt = Date.parse(session.lastActivityAt);
     const completed = { ...session, state: "done" as const, stateChangedAt: session.lastActivityAt };
     for (const palette of palettes) {
-      const frames = [0, 250, 600_000].map((age) => ({ palette: palette.id, now: completedAt + age }));
+      const frames = [0, 250, 600_000].map((age) => ({ palette: palette.id, flashIntensity: 0, now: completedAt + age }));
       const colors = frames.map((options) => sessionColors(completed, options));
       expect(colors.map((color) => color.accent)).toEqual([palette.states["done-bright"].accent, palette.states["done-dim"].accent, palette.states["done-aged"].accent]);
       expect(luminance(colors[0].accent)).toBeGreaterThan(luminance(colors[1].accent));
@@ -109,6 +110,70 @@ describe("Stream Deck design implementation", () => {
       for (const options of frames) expect(sessionImage(completed, 1, options)).toContain(">DONE<");
     }
     expect(completed.stateChangedAt).toBe(session.lastActivityAt);
+  });
+
+  it("increases the contrast between WAITING and DONE bright and dim phases", () => {
+    const waiting = { ...session, state: "waiting" as const };
+    const completed = { ...session, state: "done" as const, stateChangedAt: session.lastActivityAt };
+    const completedAt = Date.parse(session.lastActivityAt);
+    for (const palette of palettes) {
+      const waitingZero = sessionColors(waiting, { palette: palette.id, flashIntensity: 0 });
+      const waitingTwo = sessionColors(waiting, { palette: palette.id, flashIntensity: 2 });
+      const waitingFour = sessionColors(waiting, { palette: palette.id, flashIntensity: 4 });
+      const waitingDimZero = sessionColors(waiting, { palette: palette.id, flashIntensity: 0, waitingDimmed: true });
+      const waitingDimTwo = sessionColors(waiting, { palette: palette.id, flashIntensity: 2, waitingDimmed: true });
+      const waitingDim = sessionColors(waiting, { palette: palette.id, flashIntensity: 4, waitingDimmed: true });
+      const doneZero = sessionColors(completed, { palette: palette.id, flashIntensity: 0, now: completedAt });
+      const doneFour = sessionColors(completed, { palette: palette.id, flashIntensity: 4, now: completedAt });
+      const doneDimZero = sessionColors(completed, { palette: palette.id, flashIntensity: 0, now: completedAt + 250 });
+      const doneDimTwo = sessionColors(completed, { palette: palette.id, flashIntensity: 2, now: completedAt + 250 });
+      const doneDim = sessionColors(completed, { palette: palette.id, flashIntensity: 4, now: completedAt + 250 });
+      const doneAged = sessionColors(completed, { palette: palette.id, flashIntensity: 4, now: completedAt + 600_000 });
+      const waitingBrightFill = luminance(waitingZero.background) >= luminance(waitingZero.accent) ? waitingZero.background : waitingZero.accent;
+      const doneBrightFill = luminance(doneZero.background) >= luminance(doneZero.accent) ? doneZero.background : doneZero.accent;
+      const waitingDimTarget = luminance(palette.states["waiting-dim"].background) <= luminance(palette.canvas)
+        ? palette.states["waiting-dim"].background
+        : palette.canvas;
+      const doneDimTarget = luminance(palette.states["done-dim"].background) <= luminance(palette.states["done-aged"].background)
+        ? palette.states["done-dim"].background
+        : palette.states["done-aged"].background;
+      expect(waitingZero).toEqual(palette.states["waiting-bright"]);
+      expect(doneZero).toEqual(palette.states["done-bright"]);
+      expect(waitingDimZero).toEqual(palette.states["waiting-dim"]);
+      expect(doneDimZero).toEqual(palette.states["done-dim"]);
+      expect(doneAged).toEqual(palette.states["done-aged"]);
+      expect(waitingFour.foreground).toBe(waitingZero.foreground);
+      expect(waitingFour.ink).toBe(waitingZero.ink);
+      expect(waitingDim.background).toBe(waitingDimTarget);
+      expect(waitingDim.accent).toBe(waitingDimZero.accent);
+      expect(waitingDim.foreground).toBe(waitingDimZero.foreground);
+      expect(waitingDim.ink).toBe(waitingDimZero.ink);
+      expect(doneFour.foreground).toBe(doneZero.foreground);
+      expect(doneFour.ink).toBe(doneZero.ink);
+      expect(doneDim.background).toBe(doneDimTarget);
+      expect(doneDim.accent).toBe(doneDimZero.accent);
+      expect(doneDim.foreground).toBe(doneDimZero.foreground);
+      expect(doneDim.ink).toBe(doneDimZero.ink);
+      expect(waitingFour.background).toBe(waitingBrightFill);
+      expect(doneFour.background).toBe(doneBrightFill);
+      expect(luminance(waitingFour.background)).toBeGreaterThanOrEqual(luminance(waitingZero.background));
+      expect(luminance(waitingFour.accent)).toBeGreaterThanOrEqual(luminance(waitingZero.accent));
+      expect(luminance(doneFour.background)).toBeGreaterThanOrEqual(luminance(doneZero.background));
+      expect(luminance(doneFour.accent)).toBeGreaterThanOrEqual(luminance(doneZero.accent));
+      if (waitingBrightFill !== waitingZero.background) {
+        expect(luminance(waitingTwo.background)).toBeGreaterThan(luminance(waitingZero.background));
+      }
+      if (luminance(waitingDimTarget) < luminance(waitingDimZero.background)) {
+        expect(luminance(waitingDimTwo.background)).toBeLessThan(luminance(waitingDimZero.background));
+      }
+      if (luminance(doneDimTarget) < luminance(doneDimZero.background)) {
+        expect(luminance(doneDimTwo.background)).toBeLessThan(luminance(doneDimZero.background));
+      }
+      expect(waitingFour.background === waitingZero.background && waitingFour.accent === waitingZero.accent).toBe(false);
+      expect(doneFour.background === doneZero.background && doneFour.accent === doneZero.accent).toBe(false);
+      expect(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0 })).not.toBe(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 4 }));
+    }
+    expect(sessionColors({ ...waiting, metadata: { ...waiting.metadata, flashIntensity: "4" } }, { flashIntensity: 0 })).toEqual(sessionColors(waiting, { flashIntensity: 4 }));
   });
 
   it("changes every key type with the palette and caches metadata-only updates", () => {

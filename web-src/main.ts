@@ -2,11 +2,13 @@ import "@awesome.me/webawesome/dist/components/badge/badge.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import "@awesome.me/webawesome/dist/components/icon/icon.js";
 import type { Client, Session } from "../src/shared/session.js";
-import type { HubSettings } from "../src/shared/settings.js";
+import { defaultFlashIntensity, settingsSchema, type HubSettings } from "../src/shared/settings.js";
+import { isFlashIntensity, parseFlashIntensity } from "../src/shared/flash-intensity.js";
 import { defaultPaletteId, isPaletteId, palettes, type PaletteId } from "../src/shared/palette.js";
 import { doneAttention } from "../src/shared/attention.js";
 import { sessionColors, sessionImage, sessionSignature, sessionType, sessionTypeLabels, waitingPulseIntervalMs } from "../streamdeck/src/cards.js";
 import { escapeHtml, sessionDetails } from "./session-details.js";
+import { createSettingsPayload, flashIntensityChoices } from "./settings-controls.js";
 
 class SessionPanel extends HTMLElement {
   #sessions: Session[] = [];
@@ -14,6 +16,7 @@ class SessionPanel extends HTMLElement {
   #connected = false;
   #attentionTimer?: number;
   #palette: PaletteId = defaultPaletteId;
+  #flashIntensity = defaultFlashIntensity;
   #settingsReady = false;
   #savingPalette = false;
   #events?: EventSource;
@@ -22,9 +25,11 @@ class SessionPanel extends HTMLElement {
   #expandedDetails = new Map<string, boolean>();
 
   connectedCallback(): void {
-    this.innerHTML = `<header class="topbar"><div><p class="eyebrow">LOCAL SESSION MONITOR</p><h1>AI AI Captain</h1></div><nav class="topbar-links"><a class="deck-link" href="/deck.html" target="_blank" rel="noopener">Open deck only</a></nav><span id="connection" class="connection">Connecting…</span></header><main><section class="summary"><div><strong id="count">0</strong><span>tracked sessions</span></div><p>Session monitoring stays on this Mac.</p></section><section class="appearance" aria-label="Appearance settings"><div><label for="palette">Icon palette</label><select id="palette" aria-describedby="palette-status" disabled>${palettes.map((palette) => `<option value="${palette.id}">${escapeHtml(palette.name)}${palette.id === defaultPaletteId ? " (default)" : ""}${palette.contrast === "high" ? ` · high-contrast ${palette.mode}` : ""}</option>`).join("")}</select></div><p id="palette-status" role="status">Waiting for hub settings…</p></section><section id="deck-preview" class="deck-preview" aria-label="Session key preview"></section><p class="deck-guide">WORKING: work in progress · raised hand / WAITING: action required · check / DONE: finished, no action needed · IJ: IntelliJ · &gt;_: CLI · window: app. Key numbers match the session details below.</p><section id="sessions" class="sessions" aria-live="polite"></section><section id="clients" class="clients"></section><footer>Listening on this machine · <code>127.0.0.1:43681</code> · <a href="/THIRD_PARTY_NOTICES.txt">Artwork notices</a></footer></main>`;
+    this.innerHTML = `<header class="topbar"><div><p class="eyebrow">LOCAL SESSION MONITOR</p><h1>AI AI Captain</h1></div><nav class="topbar-links"><a class="deck-link" href="/deck.html" target="_blank" rel="noopener">Open deck only</a></nav><span id="connection" class="connection">Connecting…</span></header><main><section class="summary"><div><strong id="count">0</strong><span>tracked sessions</span></div><p>Session monitoring stays on this Mac.</p></section><section class="appearance" aria-label="Appearance settings"><div><label for="palette">Icon palette</label><select id="palette" aria-describedby="palette-status" disabled>${palettes.map((palette) => `<option value="${palette.id}">${escapeHtml(palette.name)}${palette.id === defaultPaletteId ? " (default)" : ""}${palette.contrast === "high" ? ` · high-contrast ${palette.mode}` : ""}</option>`).join("")}</select></div><div><label for="flash-intensity">Flash intensity</label><select id="flash-intensity" aria-describedby="palette-status" disabled>${flashIntensityChoices.map((choice) => `<option value="${choice.value}">${choice.value} · ${choice.label}</option>`).join("")}</select></div><p id="palette-status" role="status">Waiting for hub settings…</p></section><section id="deck-preview" class="deck-preview" aria-label="Session key preview"></section><p class="deck-guide">WORKING: work in progress · raised hand / WAITING: action required · check / DONE: finished, no action needed · IJ: IntelliJ · &gt;_: CLI · window: app. Key numbers match the session details below.</p><section id="sessions" class="sessions" aria-live="polite"></section><section id="clients" class="clients"></section><footer>Listening on this machine · <code>127.0.0.1:43681</code> · <a href="/THIRD_PARTY_NOTICES.txt">Artwork notices</a></footer></main>`;
     this.querySelector<HTMLSelectElement>("#palette")!.value = this.#palette;
     this.querySelector<HTMLSelectElement>("#palette")!.addEventListener("change", () => void this.#savePalette());
+    this.querySelector<HTMLSelectElement>("#flash-intensity")!.value = String(this.#flashIntensity);
+    this.querySelector<HTMLSelectElement>("#flash-intensity")!.addEventListener("change", () => void this.#savePalette());
     this.#motion.addEventListener("change", this.#onMotionChange);
     this.#connect();
   }
@@ -54,6 +59,8 @@ class SessionPanel extends HTMLElement {
       }
       if ((event.type === "snapshot" || event.type === "settings") && event.settings && isPaletteId(event.settings.palette)) {
         this.#palette = event.settings.palette;
+        const nextFlashIntensity = event.settings.flashIntensity;
+        this.#flashIntensity = isFlashIntensity(nextFlashIntensity) ? nextFlashIntensity : defaultFlashIntensity;
         this.#settingsReady = true;
         this.#syncPaletteControl();
       }
@@ -76,31 +83,40 @@ class SessionPanel extends HTMLElement {
   }
 
   #syncPaletteControl(): void {
-    const select = this.querySelector<HTMLSelectElement>("#palette");
-    if (!select) return;
-    select.value = this.#palette;
-    select.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
+    const paletteSelect = this.querySelector<HTMLSelectElement>("#palette");
+    const intensitySelect = this.querySelector<HTMLSelectElement>("#flash-intensity");
+    if (!paletteSelect || !intensitySelect) return;
+    paletteSelect.value = this.#palette;
+    intensitySelect.value = String(this.#flashIntensity);
+    paletteSelect.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
+    intensitySelect.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
     if (this.#settingsReady && !this.#savingPalette) this.querySelector<HTMLElement>("#palette-status")!.textContent = "Saved on this Mac · applies to all Stream Decks and previews.";
   }
 
   async #savePalette(): Promise<void> {
-    const select = this.querySelector<HTMLSelectElement>("#palette")!;
+    const paletteSelect = this.querySelector<HTMLSelectElement>("#palette")!;
+    const intensitySelect = this.querySelector<HTMLSelectElement>("#flash-intensity")!;
     const status = this.querySelector<HTMLElement>("#palette-status")!;
-    if (!isPaletteId(select.value)) return;
-    const palette = select.value;
+    const flashIntensity = parseFlashIntensity(intensitySelect.value);
+    if (!isPaletteId(paletteSelect.value) || flashIntensity === undefined) return;
+    const palette = paletteSelect.value;
     this.#savingPalette = true;
-    select.disabled = true;
-    status.textContent = "Saving palette…";
+    paletteSelect.disabled = true;
+    intensitySelect.disabled = true;
+    status.textContent = "Saving appearance…";
     let failure: string | undefined;
     try {
-      const response = await fetch("/api/settings", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ palette }), signal: AbortSignal.timeout(8000) });
+      const response = await fetch("/api/settings", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(createSettingsPayload(palette, flashIntensity)), signal: AbortSignal.timeout(8000) });
       if (!response.ok) throw new Error("Settings could not be saved");
-      const result = await response.json() as { settings?: HubSettings };
-      if (!isPaletteId(result.settings?.palette)) throw new Error("Invalid settings response");
-      this.#palette = result.settings!.palette;
+      const body: unknown = await response.json();
+      if (typeof body !== "object" || body === null || !("settings" in body)) throw new Error("Invalid settings response");
+      const result = settingsSchema.safeParse(body.settings);
+      if (!result.success) throw new Error("Invalid settings response");
+      this.#palette = result.data.palette;
+      this.#flashIntensity = result.data.flashIntensity;
       this.#render();
     } catch {
-      failure = "Could not confirm the palette change. Showing the last confirmed choice; check the connection and try again.";
+      failure = "Could not confirm the appearance change. Showing the last confirmed choices; check the connection and try again.";
     } finally {
       this.#savingPalette = false;
       this.#syncPaletteControl();
@@ -116,7 +132,7 @@ class SessionPanel extends HTMLElement {
     const keyNumbers = new Map(slotOrder.map((session, index) => [session.id, index + 1]));
     const preview = this.querySelector<HTMLElement>("#deck-preview");
     if (preview) {
-      preview.innerHTML = slotOrder.map((session, index) => `<button class="deck-key" data-focus="${escapeHtml(session.id)}" title="${escapeHtml(`${index + 1}: ${session.label} · ${sessionTypeLabels[sessionType(session)]} · ${session.model ?? "model unknown"}`)}" aria-label="${escapeHtml(`Key ${index + 1}: ${session.label}, ${session.state}`)}">${sessionImage(session, index + 1, { palette: this.#palette, reducedMotion: this.#motion.matches })}</button>`).join("");
+      preview.innerHTML = slotOrder.map((session, index) => `<button class="deck-key" data-focus="${escapeHtml(session.id)}" title="${escapeHtml(`${index + 1}: ${session.label} · ${sessionTypeLabels[sessionType(session)]} · ${session.model ?? "model unknown"}`)}" aria-label="${escapeHtml(`Key ${index + 1}: ${session.label}, ${session.state}`)}">${sessionImage(session, index + 1, { palette: this.#palette, flashIntensity: this.#flashIntensity, reducedMotion: this.#motion.matches })}</button>`).join("");
       preview.querySelectorAll<HTMLElement>("[data-focus]").forEach((button) => button.addEventListener("click", () => void this.#focus(button.dataset.focus!)));
     }
     const clients = this.querySelector<HTMLElement>("#clients");
@@ -146,7 +162,7 @@ class SessionPanel extends HTMLElement {
     if (this.#attentionTimer !== undefined) window.clearTimeout(this.#attentionTimer);
     this.#attentionTimer = undefined;
     const now = Date.now();
-    const options = { palette: this.#palette, now, reducedMotion: this.#motion.matches, waitingDimmed: Math.floor(now / waitingPulseIntervalMs) % 2 === 1 };
+    const options = { palette: this.#palette, flashIntensity: this.#flashIntensity, now, reducedMotion: this.#motion.matches, waitingDimmed: Math.floor(now / waitingPulseIntervalMs) % 2 === 1 };
     const ordered = [...this.#sessions].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
     const sessions = new Map(ordered.map((session, index) => [session.id, { session, keyNumber: index + 1 }]));
     let nextChangeAt: number | undefined;

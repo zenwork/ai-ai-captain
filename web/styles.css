@@ -14,13 +14,13 @@ main { width: min(920px, calc(100vw - 40px)); margin: 54px auto 30px; }
 .summary strong { font-size: 30px; font-weight: 600; letter-spacing: -.05em; }
 .summary span, .summary p { color: #929cad; font-size: 12px; }
 .summary p { margin: 0 0 3px; }
-.appearance { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; padding: 16px; border: 1px solid #ffffff20; border-radius: 12px; background: #141820; }
+.appearance { display: flex; align-items: center; justify-content: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; padding: 16px; border: 1px solid #ffffff20; border-radius: 12px; background: #141820; }
 .appearance > div { display: flex; align-items: center; gap: 12px; }
 .appearance label { font-size: 13px; font-weight: 600; }
 .appearance select { max-width: 100%; border: 1px solid #74839a; border-radius: 6px; padding: 8px; background: #0e1621; color: #f2f6fa; font: inherit; font-size: 13px; }
 .appearance select:focus-visible { outline: 2px solid #b0d4ee; outline-offset: 3px; }
 .appearance select:disabled { opacity: .6; }
-.appearance p { margin: 0; color: #aeb8c7; font-size: 12px; line-height: 1.6; }
+.appearance p { margin: 0 0 0 auto; color: #aeb8c7; font-size: 12px; line-height: 1.6; }
 .sessions { display: grid; gap: 10px; }
 .deck-preview { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; max-width: 720px; }
 .deck-key { aspect-ratio: 1; padding: 3px; border: 1px solid #ffffff24; border-radius: 12px; background: #0c0f14; cursor: pointer; }

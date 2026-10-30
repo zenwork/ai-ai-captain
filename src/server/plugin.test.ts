@@ -85,7 +85,7 @@ describe("Stream Deck waiting animation", () => {
   it("pulses only waiting keys without increasing hub polling or logging every animation frame", async () => {
     vi.setSystemTime(1100);
     const completed = { ...waiting, id: "completed", state: "done", stateChangedAt: new Date(-600_000).toISOString() };
-    const fetchSessions = vi.fn(async () => new Response(JSON.stringify({ sessions: [waiting, completed] })));
+    const fetchSessions = vi.fn(async () => new Response(JSON.stringify({ sessions: [waiting, completed], settings: { flashIntensity: 0 } })));
     vi.stubGlobal("fetch", fetchSessions);
     loadPlugin();
     const action = sdk.actions[0];
@@ -131,7 +131,7 @@ describe("Stream Deck waiting animation", () => {
 
   it("replaces the WAIT pulse with a fresh blue completion alert", async () => {
     let sessions = [waiting];
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions }))));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions, settings: { flashIntensity: 0 } }))));
     loadPlugin();
     const sessionKey = key("session", 0);
     await sdk.actions[0].onWillAppear({ action: sessionKey });
@@ -146,7 +146,7 @@ describe("Stream Deck waiting animation", () => {
 
   it("slows completion flashes, ages after ten minutes, and does not restart on polling or reappearance", async () => {
     const completed = { ...waiting, state: "done", stateChangedAt: new Date(0).toISOString() };
-    const fetchSessions = vi.fn(async () => new Response(JSON.stringify({ sessions: [{ ...completed, updatedAt: new Date().toISOString() }] })));
+    const fetchSessions = vi.fn(async () => new Response(JSON.stringify({ sessions: [{ ...completed, updatedAt: new Date().toISOString() }], settings: { flashIntensity: 0 } })));
     vi.stubGlobal("fetch", fetchSessions);
     loadPlugin();
     const action = sdk.actions[0];
@@ -220,7 +220,7 @@ describe("Stream Deck waiting animation", () => {
 describe("live palette configuration", () => {
   it("updates session, empty, INFO, and paging keys on the existing poll without reappearance", async () => {
     let palette: PaletteId = "signal";
-    const fetchSessions = vi.fn(async () => new Response(JSON.stringify({ sessions: [waiting], settings: { palette } })));
+    const fetchSessions = vi.fn(async () => new Response(JSON.stringify({ sessions: [waiting], settings: { palette, flashIntensity: 0 } })));
     vi.stubGlobal("fetch", fetchSessions);
     loadPlugin();
     const sessionKey = key("session", 0);
@@ -277,7 +277,7 @@ describe("live palette configuration", () => {
   });
 
   it("falls back to default artwork for an unsupported palette from an incompatible hub", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ sessions: [waiting], settings: { palette: "not-installed" } }))));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ sessions: [waiting], settings: { palette: "not-installed", flashIntensity: 0 } }))));
     loadPlugin();
     const sessionKey = key("session", 0);
     await sdk.actions[0].onWillAppear({ action: sessionKey });

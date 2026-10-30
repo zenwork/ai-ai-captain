@@ -8,7 +8,7 @@ import { focusTarget as defaultFocusHandler } from "./focus.js";
 import { SessionStore } from "./store.js";
 import { ClientRegistry } from "./clients.js";
 import { SettingsStore } from "./settings.js";
-import { settingsSchema } from "../shared/settings.js";
+import { settingsWriteSchema } from "../shared/settings.js";
 import { palettes } from "../shared/palette.js";
 import { canonicalDashboardUrl, createDashboardController } from "./dashboard.js";
 
@@ -48,8 +48,8 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
   app.get("/api/clients", async () => ({ clients: clients.list() }));
   app.get("/api/settings", async () => ({ settings: settings.get(), palettes: palettes.map(({ id, name, mode, contrast }) => ({ id, name, mode, contrast })) }));
   app.put("/api/settings", async (request, reply) => {
-    const parsed = settingsSchema.safeParse(request.body);
-    if (!parsed.success) return reply.code(400).send({ error: "Choose a supported palette" });
+    const parsed = settingsWriteSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: "Choose supported appearance settings" });
     return { settings: await settings.update(parsed.data) };
   });
   app.put("/api/sessions/:id", async (request, reply) => {
