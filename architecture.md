@@ -78,7 +78,7 @@ Automatic OS discovery and navigation are currently macOS integrations. The gene
 | `src/server/copilot.ts`, `codex.ts`, `events.ts`                           | Harness-specific ownership and event reducers; incremental JSONL reading                                                 |
 | `src/server/claude.ts`                                                     | Live Claude Code registrations, process identity, and host-lifetime filtering                                            |
 | `src/server/claude-desktop.ts`                                             | Experimental exposed-chat Accessibility inspection; only conversation IDs and state leave the inspector                  |
-| `src/server/store.ts`, `clients.ts`, `settings.ts`                         | Canonical session store, separate app-presence registry, and persisted hub-wide palette settings                         |
+| `src/server/store.ts`, `clients.ts`, `settings.ts`                         | Canonical session store, separate app-presence registry, and persisted hub-wide palette and flash-intensity settings     |
 | `src/server/app.ts`, `main.ts`, `focus.ts`                                 | Static/API hosting, startup/configuration, macOS navigation                                                              |
 | `src/server/parent-process.ts`                                             | Supervised-hub shutdown when the parent plugin process stops                                                             |
 | `src/server/dashboard.ts`                                                  | Default-browser detection, dashboard-tab reuse, and system URL-opening fallback; separate from session focus/assessment  |
@@ -125,6 +125,8 @@ The JSONL cursor replays a file initially, then reads appended bytes. It handles
 
 Ownership is necessary but insufficient. Host-lifetime filtering additionally considers revoked terminal descriptors, known app ownership, and supported JetBrains project registrations. It suppresses history from previous project openings until a fresh session/turn trigger occurs. Lack of lifetime evidence is `unverified`, not proof of closure. Detection details and coverage limits belong to [intagration.md](intagration.md).
 
+When multiple IntelliJ IDEA processes run, Junie navigation targets the process whose project registration is open.
+
 ## ARCH-06 — Transport and rendering
 
 The implemented hub listens on `127.0.0.1:43681` by default. Consumers use:
@@ -133,7 +135,7 @@ The implemented hub listens on `127.0.0.1:43681` by default. Consumers use:
 - SSE for browser inventory changes, with a complete snapshot on each new connection and 15-second comment heartbeats. It is not a durable replay log.
 - A 1.5-second HTTP snapshot poll in the Stream Deck plugin; the plugin does not currently consume SSE.
 
-Key animations are local presentation timers, not extra discovery or HTTP requests. Hardware images use base64-encoded SVG data URIs. State/type changes, palette selection, and attention phases drive image signatures, avoiding unnecessary redraws and animation-frame logs.
+Key animations are local presentation timers, not extra discovery or HTTP requests. Hardware images use base64-encoded SVG data URIs. State/type changes, palette selection, flash intensity, and attention phases drive image signatures, avoiding unnecessary redraws and animation-frame logs.
 
 Shared icons are flattened into transformed path groups with explicit fill/stroke colors. Each key image has one root SVG viewport: nested SVG elements and inherited `currentColor` must not be used for hardware artwork. Browser rendering alone is not sufficient compatibility verification; inspect the Stream Deck application preview after renderer changes.
 
@@ -151,7 +153,7 @@ The service worker caches the static shell and explicitly excludes `/api/` reque
 
 `SessionStore` is the canonical owner of displayed session records. It publishes `upsert` and `remove` changes and serializes metadata to `sessions.json`. Client presence remains separate and cannot create a session key by itself.
 
-The default data directory is `~/Library/Application Support/ai-ai-captain`. When only the directory of an earlier installation (`~/Library/Application Support/ai-deck`) exists, the hub moves it to the default directory at start. A configured `AI_AI_CAPTAIN_DATA_DIR` disables this move. Session and host-lifetime files use owner-only file creation permissions and temporary-file/rename persistence. `settings.json` persists the shared icon palette. Settings writes are serialized and atomically renamed before notification; failed saves retain the prior value. Browser SSE snapshots/changes and the plugin's existing session snapshots carry settings without new animation-driven requests. `host-lifetimes.json` remembers registration coverage and runtime-to-host identity, including process start identity rather than trusting a PID alone.
+The default data directory is `~/Library/Application Support/ai-ai-captain`. When only the directory of an earlier installation (`~/Library/Application Support/ai-deck`) exists, the hub moves it to the default directory at start. A configured `AI_AI_CAPTAIN_DATA_DIR` disables this move. Session and host-lifetime files use owner-only file creation permissions and temporary-file/rename persistence. `settings.json` persists the shared icon palette and flash intensity. Settings writes are serialized and atomically renamed before notification; failed saves retain the prior values. Browser SSE snapshots/changes and the plugin's existing session snapshots carry settings without new animation-driven requests. `host-lifetimes.json` remembers registration coverage and runtime-to-host identity, including process start identity rather than trusting a PID alone.
 
 Restored sessions remain hidden until a live adapter/reporter confirms them. Persisting a `working` value must not resurrect a running session after restart. Automatic adapters remove confirmed closed hosts/projects promptly; ordinary session closure uses the ten-second grace period described in [functionality.md](functionality.md).
 

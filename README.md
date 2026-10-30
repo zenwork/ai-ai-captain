@@ -36,16 +36,16 @@ AI AI Captain shows the status of your AI assistant sessions on a Stream Deck XL
 
 ## Documentation
 
- Document                                         | Content                                                  |
- ------------------------------------------------ | -------------------------------------------------------- |
- [USER_GUIDE.md](USER_GUIDE.md)                   | Build, install, run, configure, and troubleshoot         |
- [architecture.md](architecture.md)               | Component boundaries, technology, privacy constraints    |
- [functionality.md](functionality.md)             | Session behavior, lifecycle states, acceptance scenarios |
- [design.md](design.md)                           | Visual language, state wording, palettes                 |
- [intagration.md](intagration.md)                 | Supported tools, API, hooks, configuration               |
- [docs/design/README.md](docs/design/README.md)   | Palette gallery and design artifact regeneration         |
- [integrations/README.md](integrations/README.md) | Reporters for other harnesses                            |
- [streamdeck/README.md](streamdeck/README.md)     | Stream Deck plugin, layout, key states                   |
+| Document                                         | Content                                                  |
+| ------------------------------------------------ | -------------------------------------------------------- |
+| [USER_GUIDE.md](USER_GUIDE.md)                   | Build, install, run, configure, and troubleshoot         |
+| [architecture.md](architecture.md)               | Component boundaries, technology, privacy constraints    |
+| [functionality.md](functionality.md)             | Session behavior, lifecycle states, acceptance scenarios |
+| [design.md](design.md)                           | Visual language, state wording, palettes                 |
+| [intagration.md](intagration.md)                 | Supported tools, API, hooks, configuration               |
+| [docs/design/README.md](docs/design/README.md)   | Palette gallery and design artifact regeneration         |
+| [integrations/README.md](integrations/README.md) | Reporters for other harnesses                            |
+| [streamdeck/README.md](streamdeck/README.md)     | Stream Deck plugin, layout, key states                   |
 
 ## Quick start
 
@@ -104,7 +104,7 @@ Push Ctrl+C to stop the hub. Set `AI_AI_CAPTAIN_DECK_WINDOW_SIZE` (default `420,
 npm run demo:keys
 ```
 
-The command shows 24 demo keys and cycles their states. Push Ctrl+C to remove them. Refer to [USER_GUIDE.md](USER_GUIDE.md) section 7.7.
+The command shows 24 demo keys and cycles their states. Push Ctrl+C to remove every demo key, including leftover keys from a previous demo. Use `npm run demo:keys -- --brightness` to compare WAITING and DONE flash intensity 0 through 4. Higher levels make bright phases brighter and dim phases darker. Refer to [USER_GUIDE.md](USER_GUIDE.md) section 7.7.
 
 ## Report a session
 
@@ -116,7 +116,7 @@ npm run report -- end --id SESSION_ID --state done
 ## Session API
 
 - `GET /api/sessions` returns the current snapshot, detected apps, and settings.
-- `GET /api/settings` and `PUT /api/settings` read and save the icon palette.
+- `GET /api/settings` and `PUT /api/settings` read and save the icon palette and flash intensity.
 - `GET /api/clients` lists detected apps without session tracking.
 - `POST /api/clients/:id/focus` focuses a detected app.
 - `PUT /api/sessions/:id` creates or updates a session.

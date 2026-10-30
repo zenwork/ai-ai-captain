@@ -96,15 +96,25 @@ WAITING alternates bright/dim every 1.2 seconds, giving a 2.4-second cycle. Neit
 
 Unassessed DONE uses a 250 ms bright flash and the following periods:
 
-| Age since actual completion | Period |
-| --- | --- |
-| 0–10 seconds | 0.5 seconds |
-| 10–30 seconds | 1 second |
-| 30–60 seconds | 2 seconds |
-| 1–2 minutes | 5 seconds |
-| 2–5 minutes | 10 seconds |
-| 5–10 minutes | 30 seconds |
-| Ten minutes or older | No flashing; steady aged blue |
+| Age since actual completion | Period                         |
+| --------------------------- | ------------------------------ |
+| 0–10 seconds                | 0.5 seconds                    |
+| 10–30 seconds               | 1 second                       |
+| 30–60 seconds               | 2 seconds                      |
+| 1–2 minutes                 | 5 seconds                      |
+| 2–5 minutes                 | 10 seconds                     |
+| 5–10 minutes                | 30 seconds                     |
+| Ten minutes or older        | No flashing; steady aged blue  |
+
+The hub setting `flashIntensity` is an integer from 0 to 4. The default is 2. Level 0 uses the palette colors. Higher levels make WAITING and DONE bright phases brighter and dim phases darker. Bright backgrounds mix toward the lighter of that state's background and accent. Bright accents mix toward the lighter of the palette `foreground` and `canvas` tokens. WAITING dim backgrounds mix toward the darker of their token and `canvas`. Recent DONE dim backgrounds mix toward the darker of their token and aged DONE background. Dim accents, aged DONE, foreground, ink, and identity colors do not mix. Session metadata `flashIntensity` can override the hub setting for demo keys.
+
+| Level | Mix amount | Meaning                |
+| ----- | ---------- | ---------------------- |
+| 0     | none       | Palette colors         |
+| 1     | 45%        | Increased contrast     |
+| 2     | 70%        | Default stronger flash |
+| 3     | 85%        | High contrast          |
+| 4     | 100%       | Full color range       |
 
 Both recent DONE phases must remain visibly brighter than aged DONE. Metadata updates, polling, page changes, and restarts cannot restart a completion's clock. Assessed DONE must cancel its attention timer immediately once implemented.
 
@@ -128,7 +138,7 @@ All alternatives preserve amber WAITING and blue-family DONE, with distinct fres
 
 Signal and Porcelain target at least 7:1 foreground/background contrast for state labels, identity marks, badges, controls, and captions, including dim and assessed phases. Standard palettes target at least 4.5:1. Measurements are in `docs/design/palette-contrast.json`; these targets do not imply complete accessibility certification.
 
-**Implemented configuration:** the dashboard's **Icon palette** selector saves one hub-wide choice in `settings.json`. All browser previews and Stream Deck session, empty, INFO, and paging keys follow it. Browser SSE carries changes immediately; hardware reads settings in the existing 1.5-second session poll. Palette changes must not reset attention clocks, move sessions, or add animation-driven hub requests. Save failures retain the prior choice. New settings use validated palette IDs; unsupported values fall back safely when rendering.
+**Implemented configuration:** the dashboard's **Icon palette** selector saves one hub-wide palette in `settings.json`. Its **Flash intensity** selector saves a level from 0 to 4 with the palette. All browser previews and Stream Deck session, empty, INFO, and paging keys use both settings. Browser SSE carries changes immediately; hardware reads settings in the existing 1.5-second session poll. Appearance changes must not reset attention clocks, move sessions, or add animation-driven hub requests. Save failures retain the prior settings. New settings use validated palette IDs and intensity values; unsupported values fall back safely when rendering.
 
 ## DSN-07 — Layout, fixed controls, and browser
 

@@ -151,6 +151,12 @@ Legacy `done`/`failed` API reports without an explicit `ended` value retain thei
 
 - WAITING alternates between bright and dim amber every 1.2 seconds, a 2.4-second cycle.
 - Fresh DONE flashes quickly, then less frequently over ten minutes. After ten minutes it remains steady dark blue.
+- The hub setting `flashIntensity` is an integer from 0 to 4. The default is 2. It increases contrast between WAITING and DONE bright and dim phases.
+- Higher intensity levels mix the WAITING and DONE bright background toward the lighter of that state's background and accent. The bright accent mixes toward the lighter of the palette `foreground` and `canvas` tokens.
+- Higher intensity levels mix the WAITING dim background toward the darker of its palette token and `canvas`. They mix the recent DONE dim background toward the darker of its token and aged DONE background.
+- Intensity 0 keeps all palette colors. Higher levels do not change dim accents, aged DONE, foreground, ink, or identity colors.
+- `npm run demo:keys -- --brightness` shows five WAITING keys and five DONE keys, one for each intensity.
+- Ctrl+C during `demo:keys` removes every demo key, including leftover keys from the other demo mode.
 - DONE age derives from the actual completion/state transition, not `updatedAt`, polling, token counts, or model changes.
 - A later working turn followed by completion starts a fresh completion alert.
 - Browser reduced-motion settings suppress flashing while retaining meaningful state and completion aging.
@@ -177,7 +183,7 @@ The exact assessment API, persistence fields, and supported visit-detection mech
 
 ## FUNC-06 — Navigation
 
-**Implemented:** pressing a populated session key or browser focus control asks the hub to activate the recorded target. IntelliJ sessions with valid absolute project paths use project-specific navigation and the exact owning installation when known. Other targets may only support application-level activation.
+**Implemented:** pressing a populated session key or browser focus control asks the hub to activate the recorded target. IntelliJ sessions with valid absolute project paths use project-specific navigation and the exact owning installation when known. macOS opens the project as a document so it can reuse that running installation. Other targets may only support application-level activation.
 
 The response distinguishes application/project focus where available and reports failures. Stream Deck shows an alert on a failed request. After a failed press, a second press on the same key within ten seconds asks the hub to remove that stale session. Invalid/unavailable project paths must not silently fall back to generic app focus. IntelliJ navigation may reopen an available closed project if the record still exists during a closing interval or comes from a reporter.
 
@@ -213,7 +219,7 @@ The response distinguishes application/project focus where available and reports
 - Explicit **Not observed**/unavailable descriptions instead of fabricated model, project, or state data.
 - Separate app-presence entries for clients without conversation telemetry.
 - A visible connection/reconnection indication. A cached shell or retained last snapshot is not proof of current work.
-- An **Icon palette** selector for Fjord (default), Nocturne, Ember & Ice, Signal, and Porcelain. One saved hub-wide choice applies to every browser preview and all session, empty, INFO, and paging keys, survives restarts, and requires no profile reimport/reload after the initial upgrade. Browser changes arrive by SSE; hardware changes arrive on the next normal poll. Saving errors retain the prior choice; palette changes must not restart attention timers or alter session/layout state.
+- An **Icon palette** selector for Fjord (default), Nocturne, Ember & Ice, Signal, and Porcelain, and a **Flash intensity** selector for levels 0–4. Both settings apply to browser previews and all session, empty, INFO, and paging keys. They survive restarts and require no profile reimport/reload after the initial upgrade. Browser changes arrive by SSE; hardware changes arrive on the next normal poll. Saving errors retain the prior settings; appearance changes must not restart attention timers or alter session/layout state.
 - The standalone deck has a **Keep on top** button for an always-on-top Document Picture-in-Picture window. The user must click the button. The floating window keeps live updates, key actions, paging, and size controls. **Return to deck**, or closing the floating window, restores the existing deck. The original page must stay open. Unsupported browsers show an explanation. Failed requests allow another attempt without showing private browser errors.
 
 Diagnostics must not display transcripts, prompts, tool arguments/results, registry authentication tokens, or private harness error messages. Missing, unreadable, unrecognized, and discovery-unavailable telemetry are distinguishable conditions.
@@ -238,6 +244,12 @@ Implemented behavior must retain regression coverage for:
 8. The optional `deck:app` command detecting macOS or Linux, starting Chrome or Chromium in app mode, and reporting unsupported operating systems or missing Linux browsers.
 9. The `deck:app` readiness check bypassing proxies and limiting each request to one second before it opens Chrome.
 10. The deck entering and leaving Picture-in-Picture without replacing its session stream or losing its controls and settings. Resize handling must use the active window. Unsupported browsers and rejected requests must show safe, accessible messages.
+11. Copilot `exit_plan_mode` requests remaining WAITING until the matching tool completes.
+12. The brightness demo showing WAITING and DONE keys at flash intensity 0 through 4 without changing the saved hub setting.
+13. Ctrl+C during `demo:keys` removing every demo key, including leftover keys from the other demo mode.
+14. Flash intensity increasing the contrast of WAITING and DONE bright/dim phases while aged DONE and reduced-motion behavior remain unchanged.
+15. The dashboard saving flash intensity 0–4 with the selected palette, applying it to previews and Stream Deck keys, and retaining confirmed values after a failed save.
+16. Two IDEA versions running with a Junie project open in one: focus targets the owning installation and reuses its running process.
 
 Claude regression coverage verifies independent registrations, process identity, closure, recovery, completion age, and metadata filtering. Desktop tests verify exposed-chat identity, control-based state, denied permissions, removal, and restricted deep links. App presence and sidebar history must never create session keys.
 
