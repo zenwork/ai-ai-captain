@@ -3,6 +3,12 @@ name: Release Please
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Existing release tag, for example v1.0.0
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -10,6 +16,7 @@ permissions:
 
 jobs:
   release-please:
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
@@ -49,3 +56,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: gh release edit "${{ needs.release-please.outputs.tag_name }}" --draft=false
+
+  # Manual run. Published releases are immutable, so this job saves the files as a workflow artifact.
+  marketplace-pack-manual:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag_name }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm install --global @elgato/cli
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run pack:streamdeck
+      - uses: actions/upload-artifact@v4
+        with:
+          name: marketplace-pack-${{ inputs.tag_name }}
+          path: |
+            dist/marketplace/*.streamDeckPlugin
+            dist/marketplace/listing.md
