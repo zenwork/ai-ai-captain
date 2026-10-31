@@ -85,6 +85,18 @@ Reload a linked plugin with `npm run reload:streamdeck` from the repository root
 
 Linked development installs do not need reinstalling after a build. When using individual commands, run `streamdeck dev` once before `streamdeck restart com.local.ai-ai-captain`. The restart CLI may print success while Stream Deck ignores the request if developer mode is off; its app log will report `Feature only enabled in developer mode`. A key showing only the static star is the manifest fallback icon; populated session keys should instead show their type and colored state. Generated SVG images are sent as base64 image data URIs so Stream Deck recognizes them as images.
 
+## Setting keys
+
+Three optional actions change hub settings from the physical deck. They are not in the virtual deck. Place them by hand, as for INFO.
+
+ Action           | Function                                                     |
+ ---------------- | ------------------------------------------------------------ |
+ Toggle Info Keys | Turn **Show info keys** on or off. The key shows ON or OFF.  |
+ Cycle Theme      | Select the next icon palette. The key shows the palette.     |
+ Cycle Brightness | Select the next flash intensity level, 0 to 4, then 0 again. |
+
+Each key sends the new value to the hub. The hub saves it in `settings.json`, as for the dashboard.
+
 ## Session info key
 
 The **AI Session Info** action shows the model, the tokens used, the context used, the freedom mode, and the approval mode. Place it directly below an **AI Session** key. It shows the session of the key above it. If no session key is above it, the key stays empty. See [the design notes](../docs/design/README.md#session-info-key) for the symbols.

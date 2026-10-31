@@ -371,6 +371,16 @@ On macOS, INFO first tries to select the existing dashboard tab in your default 
 
 For Zen or Firefox tab reuse, give Accessibility permission to the application that runs the hub. Refer to [8.4](#84-give-accessibility-permission). Zen must show the dashboard tab in a browser window. Tabs in inactive workspaces can cause a new tab to open.
 
+### 8.2.1 Add keys that change the settings
+
+You can add three keys to the Stream Deck. They are not on the virtual deck.
+
+1. Open the Stream Deck app.
+2. In the action list, find **AI AI Captain**.
+3. Drag **Toggle Info Keys**, **Cycle Theme**, or **Cycle Brightness** onto a key of your choice.
+
+Push **Toggle Info Keys** to turn the info keys on or off. Push **Cycle Theme** to select the next palette. Push **Cycle Brightness** to select the next flash intensity level. The dashboard shows the same settings.
+
 ### 8.3 Change the settings of the hub
 
 You can change these settings only when you start the hub manually. Refer to [6.4](#64-start-the-hub-manually-optional). Put the setting before `npm start` on the same line.

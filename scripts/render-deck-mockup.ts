@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
 import type { Session } from "../src/shared/session.js";
 import { getPalette } from "../src/shared/palette.js";
-import { dashboardImage, emptyImage, pagerImage, sessionImage, sessionSignature, waitingPulseIntervalMs } from "../streamdeck/src/cards.js";
+import { dashboardImage, emptyImage, infoImage, infoSignature, sessionImage, sessionSignature, settingControlImage, waitingPulseIntervalMs, type SettingControlKind, type SettingControlState } from "../streamdeck/src/cards.js";
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const loopOutputPath = join(repositoryRoot, "docs", "images", "stream-deck-xl-mockup.gif");
@@ -24,9 +24,28 @@ const workflowOutputPath = join(repositoryRoot, "docs", "images", "stream-deck-x
 // Stream Deck XL geometry.
 const columnCount = 8;
 const rowCount = 4;
-const sessionKeyCount = 30;
-const nextPageKeyNumber = 31;
-const dashboardKeyNumber = 32;
+// Columns 0 to 6 hold session keys in rows 0 and 2. Each info key sits directly below its session key.
+// Column 7 holds the setting keys and the INFO key.
+const sessionColumnCount = 7;
+const sessionKeyCount = 14;
+const controlColumn = 7;
+const controlKeys: readonly { row: number; kind: SettingControlKind | "dashboard" }[] = [
+  { row: 0, kind: "info-keys" },
+  { row: 1, kind: "theme" },
+  { row: 2, kind: "brightness" },
+  { row: 3, kind: "dashboard" },
+];
+const settingState: SettingControlState = { palette: "fjord", flashIntensity: 2, showInfoKeys: true };
+
+// Sample model and usage data for each assistant. The data is not real.
+const sampleInfo: Record<string, Pick<Session, "model" | "tokensUsed" | "contextUsedPercent" | "freedom" | "approval">> = {
+  "copilot-cli": { model: "gpt-5.5", tokensUsed: 42_000, contextUsedPercent: 21, freedom: "limited", approval: "asks" },
+  "copilot-ide": { model: "gpt-5.5", tokensUsed: 96_000, contextUsedPercent: 48, freedom: "limited", approval: "asks" },
+  "claude-ide": { model: "claude-sonnet-5-5", tokensUsed: 120_000, contextUsedPercent: 60 },
+  "claude-cli": { model: "claude-opus-4", tokensUsed: 172_000, contextUsedPercent: 86 },
+  "codex-cli": { model: "gpt-5.5", tokensUsed: 88_000, contextUsedPercent: 44, freedom: "full", approval: "never" },
+  "codex-ide": { model: "gpt-5.5", tokensUsed: 31_000, contextUsedPercent: 15, freedom: "limited", approval: "never" },
+};
 
 // Mockup geometry in pixels.
 const keySize = 96;
@@ -72,6 +91,7 @@ function toSession(mock: MockSession, identifier: string, stateChangedAtMillisec
     harness: mock.harness,
     label: mock.label,
     state: mock.state,
+    ...sampleInfo[mock.harness],
     metadata: {},
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -95,33 +115,35 @@ function loopPhaseAt(timeMilliseconds: number): AnimationPhase {
   return { waitingDimmed, nowMilliseconds: completedAt + doneAgeMilliseconds };
 }
 
-function keyImage(sessions: Session[], keyNumber: number, phase: AnimationPhase): string {
-  if (keyNumber === dashboardKeyNumber) return dashboardImage(palette.id);
-  if (keyNumber === nextPageKeyNumber) return pagerImage("next", "1/1", palette.id);
-
-  const session = sessions[keyNumber - 1];
-  if (session === undefined || keyNumber > sessionKeyCount) return emptyImage(palette.id);
-
-  return sessionImage(session, keyNumber, {
+function sessionKeyImage(session: Session | undefined, slot: number, phase: AnimationPhase): string {
+  if (session === undefined) return emptyImage(palette.id);
+  return sessionImage(session, slot + 1, {
     palette: palette.id,
     waitingDimmed: phase.waitingDimmed,
     now: phase.nowMilliseconds,
   });
 }
 
-function keyPosition(keyNumber: number): { x: number; y: number } {
-  const index = keyNumber - 1;
-  const column = index % columnCount;
-  const row = Math.floor(index / columnCount);
+function infoKeyImage(session: Session | undefined): string {
+  if (session === undefined) return emptyImage(palette.id);
+  return infoImage(session, palette.id);
+}
+
+function controlKeyImage(kind: SettingControlKind | "dashboard"): string {
+  if (kind === "dashboard") return dashboardImage(palette.id);
+  return settingControlImage(kind, settingState);
+}
+
+function cellPosition(row: number, column: number): { x: number; y: number } {
   return {
     x: pagePadding + bezelPadding + column * (keySize + keyGap),
     y: pagePadding + bezelPadding + row * (keySize + keyGap),
   };
 }
 
-function placeKey(sessions: Session[], keyNumber: number, phase: AnimationPhase): string {
-  const { x, y } = keyPosition(keyNumber);
-  const image = keyImage(sessions, keyNumber, phase).replace('width="144" height="144"', `x="${String(x)}" y="${String(y)}" width="${String(keySize)}" height="${String(keySize)}"`);
+function placeKey(keyImageSvg: string, row: number, column: number): string {
+  const { x, y } = cellPosition(row, column);
+  const image = keyImageSvg.replace('width="144" height="144"', `x="${String(x)}" y="${String(y)}" width="${String(keySize)}" height="${String(keySize)}"`);
   const wellInset = 4;
   const well = `<rect x="${String(x - wellInset)}" y="${String(y - wellInset)}" width="${String(keySize + wellInset * 2)}" height="${String(keySize + wellInset * 2)}" rx="14" fill="${palette.canvas}" stroke="${palette.badge.border}" stroke-width="1.5"/>`;
   return well + image;
@@ -129,8 +151,14 @@ function placeKey(sessions: Session[], keyNumber: number, phase: AnimationPhase)
 
 /** Device colors come from the palette tokens. AGENTS.md does not allow new color values outside the tokens. */
 function deckSvg(sessions: Session[], phase: AnimationPhase): string {
-  const keyCount = columnCount * rowCount;
-  const keys = Array.from({ length: keyCount }, (_, index) => placeKey(sessions, index + 1, phase)).join("");
+  const sessionCells = Array.from({ length: sessionKeyCount }, (_, slot) => {
+    const session = sessions[slot];
+    const row = Math.floor(slot / sessionColumnCount) * 2;
+    const column = slot % sessionColumnCount;
+    return placeKey(sessionKeyImage(session, slot, phase), row, column) + placeKey(infoKeyImage(session), row + 1, column);
+  });
+  const controlCells = controlKeys.map(({ row, kind }) => placeKey(controlKeyImage(kind), row, controlColumn));
+  const keys = [...sessionCells, ...controlCells].join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${String(imageWidth)}" height="${String(imageHeight)}" viewBox="0 0 ${String(imageWidth)} ${String(imageHeight)}">
 <rect width="${String(imageWidth)}" height="${String(imageHeight)}" fill="${palette.canvas}"/>
 <rect x="${String(pagePadding)}" y="${String(pagePadding)}" width="${String(deviceWidth)}" height="${String(deviceHeight)}" rx="30" fill="${palette.badge.background}" stroke="${palette.badge.border}" stroke-width="3"/>
@@ -490,7 +518,7 @@ interface TimelineState {
 /** The key is the list of visible key images. Equal keys give equal frames. */
 function visiblePhaseKey(sessions: Session[], phase: AnimationPhase): string {
   const options = { palette: palette.id, waitingDimmed: phase.waitingDimmed, now: phase.nowMilliseconds };
-  return JSON.stringify(sessions.map((session, index) => sessionSignature(session, index + 1, options)));
+  return JSON.stringify(sessions.map((session, index) => [sessionSignature(session, index + 1, options), infoSignature(session, palette.id)]));
 }
 
 /** Joins the frame steps that show the same key images into one step. */

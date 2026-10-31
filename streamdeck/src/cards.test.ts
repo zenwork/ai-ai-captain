@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Client, Session } from "../../src/shared/session.js";
-import { appIconName, appImage, appSignature, infoImage, infoSignature } from "./cards.js";
+import { appIconName, appImage, appSignature, infoImage, infoSignature, settingControlImage, settingControlSignature } from "./cards.js";
 
 function client(id: string, name: string, bundleId?: string): Client {
   return { id, name, focusTarget: { appName: name, ...(bundleId ? { bundleId } : {}) }, sessionTracking: "unavailable" };
@@ -31,12 +31,13 @@ function session(overrides: Partial<Session>): Session {
 }
 
 describe("info keys", () => {
-  it("shows model, tokens, padlock, and AUTO symbols with labels", () => {
+  it("shows model and tokens, and describes the padlock and AUTO symbols", () => {
     const image = infoImage(session({ model: "gpt-5.5", tokensUsed: 148_000, contextUsedPercent: 62, freedom: "full", approval: "never" }));
     expect(image).toContain(">gpt-5.5<");
     expect(image).toContain(">148K<");
-    expect(image).toContain(">FULL<");
-    expect(image).toContain(">AUTO<");
+    expect(image).toContain("full freedom, never asks");
+    expect(image).not.toContain(">FULL<");
+    expect(image).not.toContain(">AUTO<");
   });
 
   it("abbreviates long model names", () => {
@@ -44,9 +45,10 @@ describe("info keys", () => {
     expect(infoImage(session({ model: "claude-opus-4-1-20250805" }))).toContain(">opus-4.1<");
   });
 
-  it("shows LIMIT and no AUTO symbol when the host asks", () => {
+  it("shows no words for the freedom and approval symbols", () => {
     const image = infoImage(session({ model: "opus", contextUsedPercent: 38, freedom: "limited", approval: "asks" }));
-    expect(image).toContain(">LIMIT<");
+    expect(image).toContain("limited freedom, asks for decisions");
+    expect(image).not.toContain(">LIMIT<");
     expect(image).not.toContain(">AUTO<");
   });
 
@@ -54,10 +56,28 @@ describe("info keys", () => {
     const image = infoImage(session({}));
     expect(image).toContain("model not reported");
     expect(image).toContain("context not reported");
-    expect(image).toContain(">?<");
+    expect(image).toContain("freedom not reported");
   });
 
   it("changes the signature when a value changes", () => {
     expect(infoSignature(session({ contextUsedPercent: 10 }))).not.toBe(infoSignature(session({ contextUsedPercent: 11 })));
+  });
+});
+
+describe("setting keys", () => {
+  const state = { palette: "fjord", flashIntensity: 2, showInfoKeys: true } as const;
+
+  it("shows the info key state", () => {
+    expect(settingControlImage("info-keys", state)).toContain(">ON<");
+    expect(settingControlImage("info-keys", { ...state, showInfoKeys: false })).toContain(">OFF<");
+  });
+
+  it("shows the palette name and the brightness level", () => {
+    expect(settingControlImage("theme", { ...state, palette: "nocturne" })).toContain(">Nocturne<");
+    expect(settingControlImage("brightness", state)).toContain(">BRIGHT 2/4<");
+  });
+
+  it("changes the signature when a setting changes", () => {
+    expect(settingControlSignature("theme", state)).not.toBe(settingControlSignature("theme", { ...state, palette: "signal" }));
   });
 });

@@ -159,13 +159,12 @@ function abbreviateModelName(model: string): string {
 
 function infoPadlock(freedom: InfoCardData["freedom"], palette: CardPalette): string {
   const dashed = freedom === undefined ? ' stroke-dasharray="2 2"' : "";
-  const color = freedom === "full" ? palette.states["waiting-bright"].accent : freedom === "limited" ? palette.states.working.accent : palette.muted;
+  const color = freedom === "full" ? palette.states.working.accent : freedom === "limited" ? palette.states["waiting-bright"].accent : palette.muted;
   const shackle = freedom === "full" ? "M2,6 V4 a4,4 0 0 1 8,0" : "M2,6 V4 a4,4 0 0 1 8,0 V6";
   const body = freedom === undefined
     ? `<rect x="0" y="6" width="12" height="9" rx="2" fill="none" stroke="${color}" stroke-width="1.5"${dashed}/>`
     : `<rect x="0" y="6" width="12" height="9" rx="2" fill="${color}" stroke="${color}" stroke-width="1.5"/>`;
-  const label = freedom === "full" ? "FULL" : freedom === "limited" ? "LIMIT" : "?";
-  return `<g transform="translate(45 45)"><path d="${shackle}" fill="none" stroke="${color}" stroke-width="1.8"${dashed}/>${body}</g>${text(label, 51, 68, color, 8, 'text-anchor="middle" font-weight="700"')}`;
+  return `<g transform="translate(44 44) scale(1.4)"><path d="${shackle}" fill="none" stroke="${color}" stroke-width="1.8"${dashed}/>${body}</g>`;
 }
 
 function infoAutoSymbol(approval: InfoCardData["approval"], freedomKnown: boolean, palette: CardPalette): string {
@@ -173,9 +172,9 @@ function infoAutoSymbol(approval: InfoCardData["approval"], freedomKnown: boolea
   const unknown = approval === undefined;
   // A host that reports no mode at all shows one dashed padlock. Do not add a second unknown symbol.
   if (unknown && !freedomKnown) return "";
-  const color = unknown ? palette.muted : palette.states["waiting-bright"].accent;
+  const color = unknown ? palette.muted : palette.states.working.accent;
   const style = unknown ? ' stroke-width="1.8" stroke-dasharray="2 2"' : ' stroke-width="2.2"';
-  return `<g transform="translate(15.5 46) scale(0.85)"><path d="M1,1 L6,7.5 L1,14 M7,1 L12,7.5 L7,14" fill="none" stroke="${color}"${style} stroke-linecap="round" stroke-linejoin="round"/></g>${text(unknown ? "?" : "AUTO", 21, 68, color, 8, 'text-anchor="middle" font-weight="700"')}`;
+  return `<g transform="translate(8 45) scale(1.4)"><path d="M1,1 L6,7.5 L1,14 M7,1 L12,7.5 L7,14" fill="none" stroke="${color}"${style} stroke-linecap="round" stroke-linejoin="round"/></g>`;
 }
 
 export function describeInfoCard(data: InfoCardData): string {
@@ -191,8 +190,8 @@ export function renderInfoCard(data: InfoCardData, palette: CardPalette): string
   const barColor = reported && percent >= contextWarningPercent ? palette.states["waiting-bright"].accent : palette.states.working.accent;
   const fillWidth = reported ? Math.round((infoBarWidth - 2 * infoBarInset) * percent) / 100 : 0;
   const markHorizontal = infoBarLeft + (infoBarWidth * contextWarningPercent) / 100 - infoBarInset;
-  const outline = `<rect x="${infoBarLeft}" y="23" width="${infoBarWidth}" height="16" rx="4" fill="none" stroke="${palette.badge.border}" stroke-width="1.5"${reported ? "" : ' stroke-dasharray="3 3"'}/>`;
-  const fill = reported ? `<rect x="${infoBarLeft + infoBarInset}" y="24.5" width="${fillWidth}" height="13" rx="3" fill="${barColor}"/>` : "";
+  const outline = `<rect x="${infoBarLeft}" y="22" width="${infoBarWidth}" height="18" rx="4" fill="none" stroke="${palette.badge.border}" stroke-width="1.5"${reported ? "" : ' stroke-dasharray="3 3"'}/>`;
+  const fill = reported ? `<rect x="${infoBarLeft + infoBarInset}" y="23.5" width="${fillWidth}" height="15" rx="3" fill="${barColor}"/>` : "";
   const tokenColor = data.tokensUsed === undefined ? palette.muted : palette.foreground;
   return `<g aria-label="${escapeXml(describeInfoCard(data))}">
 <rect width="72" height="72" rx="8" fill="${palette.canvas}" stroke="${palette.badge.border}" stroke-width="1.5"/>

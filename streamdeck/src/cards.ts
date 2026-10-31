@@ -103,6 +103,29 @@ export function dashboardImage(palette?: PaletteId): string {
   return svg(renderControl("layout-dashboard", "INFO", getPalette(palette), cardIcons), "Open AI AI Captain dashboard and state details");
 }
 
+export type SettingControlKind = "info-keys" | "theme" | "brightness";
+
+export interface SettingControlState {
+  palette: PaletteId;
+  flashIntensity: number;
+  showInfoKeys: boolean;
+}
+
+function settingControlParts(kind: SettingControlKind, state: SettingControlState): { symbol: string; label: string; caption: string } {
+  if (kind === "info-keys") return { symbol: "square-code", label: state.showInfoKeys ? "ON" : "OFF", caption: "INFO" };
+  if (kind === "theme") return { symbol: "app-window", label: "THEME", caption: getPalette(state.palette).name };
+  return { symbol: "sparkles", label: "LEVEL", caption: `BRIGHT ${state.flashIntensity}/4` };
+}
+
+export function settingControlImage(kind: SettingControlKind, state: SettingControlState): string {
+  const { symbol, label, caption } = settingControlParts(kind, state);
+  return svg(renderControl(symbol, label, getPalette(state.palette), cardIcons, caption), `${caption}: ${label}`);
+}
+
+export function settingControlSignature(kind: SettingControlKind, state: SettingControlState): string {
+  return JSON.stringify(["setting", kind, state.palette, state.flashIntensity, state.showInfoKeys]);
+}
+
 export function pagerImage(direction: "previous" | "next", page: string, palette?: PaletteId): string {
   return svg(renderControl(direction === "previous" ? "chevron-left" : "chevron-right", direction === "previous" ? "PREV" : "NEXT", getPalette(palette), cardIcons, page), `${direction === "previous" ? "Previous" : "Next"} session page: ${page}`);
 }
