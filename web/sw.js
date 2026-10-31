@@ -1,4 +1,4 @@
-const cacheName = "ai-ai-captain-shell-v4";
+const cacheName = "ai-ai-captain-shell-v5";
 const shell = ["/", "/styles.css", "/app.js", "/manifest.webmanifest", "/deck.html", "/deck.js", "/deck.webmanifest", "/ai-ai-captain.svg", "/THIRD_PARTY_NOTICES.txt"];
 
 self.addEventListener("install", (event) => {

@@ -14,6 +14,7 @@
     "design:preview": "node scripts/render-design-proposals.mjs --write --png",
     "design:check": "node scripts/render-design-proposals.mjs --check",
     "design:mockup": "tsx scripts/render-deck-mockup.ts",
+    "design:marketplace": "tsx scripts/render-marketplace-assets.ts",
     "demo:keys": "tsx scripts/demo-keys.ts",
     "deck:app": "sh scripts/deck-app.sh",
     "pack:streamdeck": "npm run build:streamdeck && node scripts/pack-streamdeck.mjs",
