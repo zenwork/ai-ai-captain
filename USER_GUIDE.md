@@ -29,7 +29,7 @@ AI AI Captain has three parts:
 | Dashboard          | A web page. It shows all sessions with their full names and details.                                                       |
 | Stream Deck plugin | It shows one session on each key of the Stream Deck XL.                                                                    |
 
-AI AI Captain finds these sessions automatically on macOS:
+AI AI Captain finds these sessions automatically on macOS, Linux, and Windows:
 
 - GitHub Copilot CLI and GitHub Copilot in IntelliJ IDEA.
 - Codex CLI, Codex in the ChatGPT desktop app, and Codex in JetBrains AI Assistant.
@@ -47,7 +47,10 @@ AI AI Captain keeps all data on your computer. It does not keep your prompts or 
 
 ### 2.1 Equipment
 
-- A Mac computer with macOS.
+- A computer with macOS, Linux, or Windows 10 or later.
+- Linux only: install `xdotool` for window focus. Window focus works in X11 sessions only, not in Wayland.
+- Windows only: PowerShell (`powershell.exe`) must be available. Windows cannot list open files, so Codex and Copilot sessions use lock files only.
+- Claude desktop chats, dashboard tab reuse, and the IntelliJ project focus work on macOS only.
 - An Elgato Stream Deck XL (32 keys), connected with USB.
 
 NOTE: You can use the dashboard without a Stream Deck.
@@ -380,6 +383,15 @@ You can add three keys to the Stream Deck. They are not on the virtual deck.
 3. Drag **Toggle Info Keys**, **Cycle Theme**, or **Cycle Brightness** onto a key of your choice.
 
 Push **Toggle Info Keys** to turn the info keys on or off. Push **Cycle Theme** to select the next palette. Push **Cycle Brightness** to select the next flash intensity level. The dashboard shows the same settings.
+
+### 8.2.2 Make the plugin file for the Elgato Marketplace
+
+1. Edit `streamdeck/marketplace.json`. Set the author, description, and tags.
+2. Run `npm run pack:streamdeck`.
+3. Find the pack file and `listing.md` in `dist/marketplace/`.
+4. Upload the pack file in Maker Console. Copy the text from `listing.md`.
+
+The release workflow does these steps for each release made by Release Please. It builds the plugin and runs `npm run pack:streamdeck`. It attaches the pack file and `listing.md` to the GitHub release. Download them from the release page. Upload the pack file in Maker Console by hand, because Elgato has no upload API.
 
 ### 8.3 Change the settings of the hub
 

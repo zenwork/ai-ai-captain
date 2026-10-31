@@ -94,3 +94,35 @@ describe("project-aware focus", () => {
     expect(focusTargetSchema.safeParse({ appPath: "/tmp/executable" }).success).toBe(false);
   });
 });
+
+describe("focus on Linux and Windows", () => {
+  it("activates the window of a process with xdotool on Linux", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "linux", run });
+    expect(await focus({ appName: "GNOME Terminal", pid: 42 })).toEqual({ focused: true, scope: "application" });
+    expect(run).toHaveBeenCalledWith("xdotool", ["search", "--pid", "42", "windowactivate"]);
+  });
+
+  it("activates the window of a process with PowerShell on Windows", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "win32", run });
+    expect(await focus({ appName: "Windows Terminal", pid: 42 })).toEqual({ focused: true, scope: "application" });
+    expect(run.mock.calls[0][0]).toBe("powershell.exe");
+    expect(run.mock.calls[0][1].join(" ")).toContain("AppActivate(42)");
+  });
+
+  it("opens the Claude chat link with xdg-open on Linux", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "linux", run });
+    const result = await focus({ claudeConversationId: "6ef2c5c7-a520-49a1-b6fb-5b3831863a22" });
+    expect(result).toEqual({ focused: true, scope: "session" });
+    expect(run.mock.calls[0][0]).toBe("xdg-open");
+  });
+
+  it("reports a safe reason when no window can be focused", async () => {
+    const run = vi.fn(async (): Promise<FocusResult> => ({ focused: false, reason: "failed" }));
+    const focus = createFocusHandler({ platform: "linux", run });
+    const result = await focus({ appName: "Terminal" });
+    expect(result.focused).toBe(false);
+  });
+});

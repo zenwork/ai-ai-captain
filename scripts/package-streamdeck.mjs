@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
@@ -7,7 +8,7 @@ import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 
-const root = new URL("../", import.meta.url).pathname;
+const root = fileURLToPath(new URL("../", import.meta.url));
 const source = join(root, "streamdeck");
 const destination = join(source, "com.local.ai-ai-captain.sdPlugin");
 await mkdir(destination, { recursive: true });

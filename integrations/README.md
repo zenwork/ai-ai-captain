@@ -2,7 +2,7 @@
 
 ## Automatic Copilot sessions
 
-On macOS the hub automatically follows the existing local event files of live Copilot CLI and IntelliJ Copilot runtime sessions. No hook configuration or IntelliJ bridge is needed for this adapter. Live ownership comes from open `inuse.<pid>.hold` files, rather than file age or process presence alone; abandoned lock files are excluded. Because a background runtime can retain those files after a terminal/project closes, host-lifetime checks also filter the inventory. Process ancestry associates each session with its hosting application. Multiple sessions owned by one IDE runtime remain separate.
+On macOS, Linux, and Windows the hub automatically follows the existing local event files of live Copilot CLI and IntelliJ Copilot runtime sessions. No hook configuration or IntelliJ bridge is needed for this adapter. Live ownership comes from open `inuse.<pid>.hold` files, rather than file age or process presence alone; abandoned lock files are excluded. Because a background runtime can retain those files after a terminal/project closes, host-lifetime checks also filter the inventory. Process ancestry associates each session with its hosting application. Multiple sessions owned by one IDE runtime remain separate.
 
 The reader uses `~/.copilot/session-state` by default; set `AI_AI_CAPTAIN_COPILOT_HOME` to the directory containing `session-state` for another location. It parses existing event records locally and discards message content, tool arguments/results, and other transcript data. Only session ID, project, model, event timestamps, state, and process/host metadata enter the hub store and API. Initial state is replayed once, then only appended bytes are read. Unsupported or unavailable telemetry produces `unknown`, and ended sessions disappear after ten seconds.
 
@@ -20,7 +20,7 @@ This adapter follows Copilot's installed local event/lock format, which may chan
 
 ## Automatic Codex sessions
 
-On macOS the hub follows individual Codex CLI sessions and Codex sessions hosted by JetBrains AI Assistant through Codex ACP. No bridge installation, hook configuration, or change to Codex settings is required. It identifies live session ownership from files held open by Codex processes: `thread-writer-locks/<session-id>.lock` and `sessions/**/rollout-*-<session-id>.jsonl`. A stale lock file or historical rollout on disk does not create a session. Process ancestry supplies the owning application and exact IDEA installation for project focus.
+On macOS, Linux, and Windows the hub follows individual Codex CLI sessions and Codex sessions hosted by JetBrains AI Assistant through Codex ACP. No bridge installation, hook configuration, or change to Codex settings is required. It identifies live session ownership from files held open by Codex processes: `thread-writer-locks/<session-id>.lock` and `sessions/**/rollout-*-<session-id>.jsonl`. A stale lock file or historical rollout on disk does not create a session. Process ancestry supplies the owning application and exact IDEA installation for project focus.
 
 The root is `AI_AI_CAPTAIN_CODEX_HOME`, then `CODEX_HOME`, then `~/.codex`. Rollouts are replayed once and then read incrementally, sharing the same bounded JSONL reader as Copilot. The hub retains only session ID, project, model, state, timestamps, and host metadata. It discards instructions, prompts, responses, questions/answers, tool arguments/results, and error messages rather than storing or serving them.
 

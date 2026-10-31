@@ -1,0 +1,5 @@
+{
+  "author": "AI AI Captain",
+  "description": "Monitor and focus local AI coding sessions from your Stream Deck. Each key shows the state of one session. Optional info keys show model, tokens, and context use. The plugin needs the AI AI Captain hub on the same computer.",
+  "tags": ["AI", "Copilot", "Codex", "Claude", "Junie", "Jetbrains","Intellij","Pycharm","Webstorm","Rider","Phpstorm"]
+}

@@ -63,7 +63,7 @@ The dashboard and reporters are available only while a hub runs. With supervisio
 
 **No server-side rendering is permitted.** Serving static files from Fastify does not make the UI server-rendered. No cloud account, database service, React runtime, or external rendering server is required.
 
-Automatic OS discovery and navigation are currently macOS integrations. The generic HTTP API, reporters, and static dashboard can operate without macOS discovery; that does not imply cross-platform window focusing.
+Automatic discovery and window focus run on macOS, Linux, and Windows. macOS uses `ps`, `lsof`, and `osascript`. Linux uses `ps`, `/proc`, and `xdotool` (X11 only). Windows uses PowerShell. Claude desktop chats, dashboard tab reuse, and IntelliJ project focus are macOS only. Windows cannot list the open files of a process.
 
 ## ARCH-03 — Component map
 

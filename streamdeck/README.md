@@ -102,3 +102,20 @@ Each key sends the new value to the hub. The hub saves it in `settings.json`, as
 The **AI Session Info** action shows the model, the tokens used, the context used, the freedom mode, and the approval mode. Place it directly below an **AI Session** key. It shows the session of the key above it. If no session key is above it, the key stays empty. See [the design notes](../docs/design/README.md#session-info-key) for the symbols.
 
 Turn the **Show info keys** option on or off in the dashboard. The hub saves it in `settings.json`. When it is off, the info key stays empty on the Stream Deck and the dashboard and the virtual deck do not show it.
+
+## Marketplace pack
+
+Run `npm run pack:streamdeck` to make the file for the Elgato Marketplace. The command builds the plugin and writes the author, description, and version into the generated manifest. It runs `streamdeck validate` and `streamdeck pack`.
+
+Edit `marketplace.json` to change the author, the description, and the tags. The description can have a maximum of 1,500 characters. The version comes from `package.json`. The release notes come from `CHANGELOG.md`.
+
+The command writes these files to `dist/marketplace/`:
+
+ File                                    | Content                                           |
+ --------------------------------------- | ------------------------------------------------- |
+ `com.local.ai-ai-captain.streamDeckPlugin` | The pack file to upload in Maker Console       |
+ `listing.md`                            | The description, tags, and release notes to copy  |
+
+The command does not change the plugin UUID. A new UUID breaks existing installs and profiles.
+
+The release workflow in `.github/workflows/release-please.yml` runs this command when Release Please makes a release. It attaches both files to the GitHub release.
