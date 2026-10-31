@@ -9,7 +9,7 @@ function option(args: string[], name: string): string | undefined {
 }
 
 function usage(): never {
-  console.error("Usage: npm run report -- upsert --source codex --state working --label 'Code review' [--id ID --model MODEL --project PATH --app APP --bundle-id ID --pid PID]");
+  console.error("Usage: npm run report -- upsert --source codex --state working --label 'Code review' [--id ID --model MODEL --tokens-used N --context-percent N --freedom limited|full --approval asks|never --project PATH --app APP --bundle-id ID --pid PID]");
   console.error("       npm run report -- end --id ID [--state done|failed]");
   console.error("       npm run report -- hook claude-code|codex-cli|copilot-cli EVENT");
   process.exit(2);
@@ -26,6 +26,10 @@ async function main(): Promise<void> {
       source: option(args, "--source") ?? "cli",
       harness: option(args, "--harness"),
       model: option(args, "--model"),
+      ...(option(args, "--tokens-used") ? { tokensUsed: Number(option(args, "--tokens-used")) } : {}),
+      ...(option(args, "--context-percent") ? { contextUsedPercent: Number(option(args, "--context-percent")) } : {}),
+      freedom: option(args, "--freedom"),
+      approval: option(args, "--approval"),
       label: option(args, "--label") ?? "AI session",
       state: state as SessionState,
       ended: false,

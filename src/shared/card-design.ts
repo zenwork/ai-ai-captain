@@ -110,3 +110,96 @@ ${page ? text(page, 36, 10, colors.foreground, 8, 'text-anchor="middle" font-wei
 <rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
 ${text(label, 36, 64, colors.ink, 12, 'text-anchor="middle" font-weight="800"')}`;
 }
+
+export interface InfoCardData {
+  model?: string;
+  tokensUsed?: number;
+  contextUsedPercent?: number;
+  freedom?: "limited" | "full";
+  approval?: "asks" | "never";
+}
+
+// The mark sits at 80% of the bar width. At or above it, the bar uses the warning color.
+export const contextWarningPercent = 80;
+const infoBarLeft = 6;
+const infoBarWidth = 60;
+const infoBarInset = 1.5;
+const infoModelMaximumLength = 8;
+const thousand = 1000;
+const million = 1_000_000;
+
+export function formatTokenCount(tokens: number | undefined): string {
+  if (tokens === undefined) return "—";
+  if (tokens >= million) return `${(tokens / million).toFixed(1).replace(/\.0$/, "")}M`;
+  if (tokens >= thousand) return `${Math.round(tokens / thousand)}K`;
+  return String(tokens);
+}
+
+export function infoModelName(model: string | undefined): string {
+  if (!model) return "?";
+  const abbreviated = abbreviateModelName(model);
+  return abbreviated.length > infoModelMaximumLength ? abbreviated.slice(0, infoModelMaximumLength) : abbreviated;
+}
+
+const modelFamilyAbbreviations: readonly (readonly [RegExp, string])[] = [
+  [/^claude-/, ""],
+  [/-\d{8}$/, ""],
+  [/sonnet/, "son"],
+  [/haiku/, "hai"],
+  [/gemini/, "gem"],
+  [/-?preview/, ""],
+  [/(\d)-(\d)/g, "$1.$2"],
+];
+
+function abbreviateModelName(model: string): string {
+  let result = model.trim().toLowerCase();
+  for (const [pattern, replacement] of modelFamilyAbbreviations) result = result.replace(pattern, replacement);
+  return result.replace(/^-+|-+$/g, "");
+}
+
+function infoPadlock(freedom: InfoCardData["freedom"], palette: CardPalette): string {
+  const dashed = freedom === undefined ? ' stroke-dasharray="2 2"' : "";
+  const color = freedom === "full" ? palette.states["waiting-bright"].accent : freedom === "limited" ? palette.states.working.accent : palette.muted;
+  const shackle = freedom === "full" ? "M2,6 V4 a4,4 0 0 1 8,0" : "M2,6 V4 a4,4 0 0 1 8,0 V6";
+  const body = freedom === undefined
+    ? `<rect x="0" y="6" width="12" height="9" rx="2" fill="none" stroke="${color}" stroke-width="1.5"${dashed}/>`
+    : `<rect x="0" y="6" width="12" height="9" rx="2" fill="${color}" stroke="${color}" stroke-width="1.5"/>`;
+  const label = freedom === "full" ? "FULL" : freedom === "limited" ? "LIMIT" : "?";
+  return `<g transform="translate(45 45)"><path d="${shackle}" fill="none" stroke="${color}" stroke-width="1.8"${dashed}/>${body}</g>${text(label, 51, 68, color, 8, 'text-anchor="middle" font-weight="700"')}`;
+}
+
+function infoAutoSymbol(approval: InfoCardData["approval"], freedomKnown: boolean, palette: CardPalette): string {
+  if (approval === "asks") return "";
+  const unknown = approval === undefined;
+  // A host that reports no mode at all shows one dashed padlock. Do not add a second unknown symbol.
+  if (unknown && !freedomKnown) return "";
+  const color = unknown ? palette.muted : palette.states["waiting-bright"].accent;
+  const style = unknown ? ' stroke-width="1.8" stroke-dasharray="2 2"' : ' stroke-width="2.2"';
+  return `<g transform="translate(15.5 46) scale(0.85)"><path d="M1,1 L6,7.5 L1,14 M7,1 L12,7.5 L7,14" fill="none" stroke="${color}"${style} stroke-linecap="round" stroke-linejoin="round"/></g>${text(unknown ? "?" : "AUTO", 21, 68, color, 8, 'text-anchor="middle" font-weight="700"')}`;
+}
+
+export function describeInfoCard(data: InfoCardData): string {
+  const context = data.contextUsedPercent === undefined ? "context not reported" : `context ${Math.round(data.contextUsedPercent)} percent`;
+  const freedom = data.freedom === "full" ? "full freedom" : data.freedom === "limited" ? "limited freedom" : "freedom not reported";
+  const approval = data.approval === "never" ? "never asks" : data.approval === "asks" ? "asks for decisions" : "approval not reported";
+  return `${data.model ?? "model not reported"}, ${formatTokenCount(data.tokensUsed)} tokens, ${context}, ${freedom}, ${approval}`;
+}
+
+export function renderInfoCard(data: InfoCardData, palette: CardPalette): string {
+  const percent = data.contextUsedPercent;
+  const reported = percent !== undefined;
+  const barColor = reported && percent >= contextWarningPercent ? palette.states["waiting-bright"].accent : palette.states.working.accent;
+  const fillWidth = reported ? Math.round((infoBarWidth - 2 * infoBarInset) * percent) / 100 : 0;
+  const markHorizontal = infoBarLeft + (infoBarWidth * contextWarningPercent) / 100 - infoBarInset;
+  const outline = `<rect x="${infoBarLeft}" y="23" width="${infoBarWidth}" height="16" rx="4" fill="none" stroke="${palette.badge.border}" stroke-width="1.5"${reported ? "" : ' stroke-dasharray="3 3"'}/>`;
+  const fill = reported ? `<rect x="${infoBarLeft + infoBarInset}" y="24.5" width="${fillWidth}" height="13" rx="3" fill="${barColor}"/>` : "";
+  const tokenColor = data.tokensUsed === undefined ? palette.muted : palette.foreground;
+  return `<g aria-label="${escapeXml(describeInfoCard(data))}">
+<rect width="72" height="72" rx="8" fill="${palette.canvas}" stroke="${palette.badge.border}" stroke-width="1.5"/>
+${text(infoModelName(data.model), 6, 15, palette.muted, 10)}
+${text(formatTokenCount(data.tokensUsed), 66, 15, tokenColor, 10, 'text-anchor="end"')}
+${outline}${fill}
+<line x1="${markHorizontal}" y1="21" x2="${markHorizontal}" y2="41" stroke="${palette.muted}" stroke-width="1"/>
+${infoAutoSymbol(data.approval, data.freedom !== undefined, palette)}${infoPadlock(data.freedom, palette)}
+</g>`;
+}

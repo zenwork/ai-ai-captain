@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from "node:fs/promises";
+import { open, readFile, readdir, stat } from "node:fs/promises";
 import { basename, isAbsolute, join } from "node:path";
 import { z } from "zod";
 import type { SessionInput, SessionState } from "../shared/session.js";
@@ -20,6 +20,69 @@ const registrationSchema = z.object({
   model: z.string().max(120).optional(),
 });
 type Registration = z.infer<typeof registrationSchema>;
+
+const transcriptTailBytes = 512 * 1024;
+const assumedContextWindowTokens = 200_000;
+const syntheticModelName = "<synthetic>";
+const transcriptLineSchema = z.object({
+  type: z.literal("assistant"),
+  message: z.object({
+    model: z.string().max(120).optional(),
+    usage: z.object({
+      input_tokens: z.number().nonnegative().optional(),
+      cache_creation_input_tokens: z.number().nonnegative().optional(),
+      cache_read_input_tokens: z.number().nonnegative().optional(),
+    }).optional(),
+  }),
+});
+
+export interface ClaudeUsage {
+  model?: string;
+  tokensUsed?: number;
+  contextUsedPercent?: number;
+}
+
+// Keep only the model name and token counts. Never keep message text.
+export function parseClaudeTranscriptTail(tail: string): ClaudeUsage {
+  const result: ClaudeUsage = {};
+  for (const line of tail.split("\n")) {
+    if (!line.includes('"type":"assistant"')) continue;
+    let json: unknown;
+    try {
+      json = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const parsed = transcriptLineSchema.safeParse(json);
+    if (!parsed.success) continue;
+    const { model, usage } = parsed.data.message;
+    if (model && model !== syntheticModelName) result.model = model;
+    if (!usage) continue;
+    const contextTokens = Math.round((usage.input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0));
+    if (contextTokens <= 0) continue;
+    result.tokensUsed = contextTokens;
+    result.contextUsedPercent = Math.min(100, Math.round((contextTokens / assumedContextWindowTokens) * 100));
+  }
+  return result;
+}
+
+async function readClaudeUsage(root: string, registration: Registration): Promise<ClaudeUsage> {
+  const projectDirectory = registration.cwd.replace(/[^a-zA-Z0-9]/g, "-");
+  try {
+    const handle = await open(join(root, "projects", projectDirectory, `${registration.sessionId}.jsonl`), "r");
+    try {
+      const { size } = await handle.stat();
+      const length = Math.min(size, transcriptTailBytes);
+      const buffer = Buffer.alloc(length);
+      await handle.read(buffer, 0, length, size - length);
+      return parseClaudeTranscriptTail(buffer.toString("utf8"));
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return {};
+  }
+}
 
 export function claudeRegistryState(status: string | undefined): SessionState {
   if (status === "busy" || status === "running" || status === "working") return "working";
@@ -76,6 +139,7 @@ export class ClaudeTracker {
         const owner = { pid: process.pid, focusTarget };
         const lifetime = await lifetimes?.(owner, registration.cwd) ?? { status: "unverified", evidence: "Live Claude registration" };
         const state = claudeRegistryState(registration.status);
+        const usage = await readClaudeUsage(this.root, registration);
         const statusTimestamp = registration.statusUpdatedAt;
         const observedAt = statusTimestamp && Number.isFinite(new Date(statusTimestamp).getTime()) && statusTimestamp >= registration.startedAt
           ? statusTimestamp : registration.startedAt;
@@ -99,7 +163,9 @@ export class ClaudeTracker {
           label: `${basename(registration.cwd) || "Claude Code"} · ${registration.sessionId.slice(-6)}`,
           state,
           ended: false,
-          model: registration.model,
+          model: registration.model ?? usage.model,
+          tokensUsed: usage.tokensUsed,
+          contextUsedPercent: usage.contextUsedPercent,
           project: registration.cwd,
           focusTarget,
           metadata: {

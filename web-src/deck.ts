@@ -1,9 +1,10 @@
 import type { Client, Session } from "../src/shared/session.js";
-import { defaultFlashIntensity, type HubSettings } from "../src/shared/settings.js";
+import { defaultFlashIntensity, defaultShowInfoKeys, type HubSettings } from "../src/shared/settings.js";
 import { isFlashIntensity } from "../src/shared/flash-intensity.js";
 import { defaultPaletteId, isPaletteId, type PaletteId } from "../src/shared/palette.js";
 import { deckColumns, deckPage, deckRows, type DeckItem } from "../src/shared/deck-layout.js";
-import { appImage, emptyImage, pagerImage, sessionImage, sessionTypeLabels, sessionType, waitingPulseIntervalMs } from "../streamdeck/src/cards.js";
+import { escapeHtml } from "./session-details.js";
+import { appImage, emptyImage, infoImage, pagerImage, sessionImage, sessionTypeLabels, sessionType, waitingPulseIntervalMs } from "../streamdeck/src/cards.js";
 
 const reconnectDelayMilliseconds = 3000;
 const attentionRefreshMilliseconds = 1000;
@@ -50,6 +51,8 @@ class DeckPanel extends HTMLElement {
   #sessions: Session[] = [];
   #clients: Client[] = [];
   #palette: PaletteId = defaultPaletteId;
+  // Hidden until the hub reports the setting, so the deck never shows info keys by mistake.
+  #showInfoKeys = false;
   #flashIntensity = defaultFlashIntensity;
   #page = 0;
   #view = readViewSettings();
@@ -196,6 +199,7 @@ class DeckPanel extends HTMLElement {
       }
       if ((event.type === "snapshot" || event.type === "settings") && event.settings && isPaletteId(event.settings.palette)) {
         this.#palette = event.settings.palette;
+        this.#showInfoKeys = event.settings.showInfoKeys ?? defaultShowInfoKeys;
         const nextFlashIntensity = event.settings.flashIntensity;
         this.#flashIntensity = isFlashIntensity(nextFlashIntensity) ? nextFlashIntensity : defaultFlashIntensity;
       }
@@ -249,22 +253,39 @@ class DeckPanel extends HTMLElement {
     const rowCeiling = userKeySize === undefined ? deckRows : Number.MAX_SAFE_INTEGER;
     const maxColumns = Math.min(columnCeiling, Math.max(2, Math.floor(available.width / slotSize)));
     const fittingRows = Math.min(rowCeiling, Math.max(userKeySize === undefined ? 2 : 1, Math.floor(available.height / slotSize)));
-    const maxRows = this.#view.singleRow ? 1 : fittingRows;
-    const page = deckPage(this.#sessions, this.#clients, this.#page, maxColumns, maxRows);
+    // In the single row, each item takes two slots side by side: the key and its info key.
+    const alternating = this.#showInfoKeys && this.#view.singleRow;
+    const rowsPerKey = this.#showInfoKeys && !alternating ? 2 : 1;
+    const slotsPerItem = alternating ? 2 : 1;
+    const maxRows = this.#view.singleRow ? 1 : Math.max(1, Math.floor(fittingRows / rowsPerKey));
+    const page = deckPage(this.#sessions, this.#clients, this.#page, alternating ? Math.floor(maxColumns / slotsPerItem) : maxColumns, maxRows);
     this.#page = page.page;
     const pageLabel = `${page.page + 1}/${page.totalPages}`;
-    const automaticKeySize = Math.min(maximumKeySize, Math.floor(Math.min(available.width / page.columns, available.height / page.rows)) - keyGap);
+    const automaticKeySize = Math.min(maximumKeySize, Math.floor(Math.min(available.width / (page.columns * slotsPerItem), available.height / (page.rows * rowsPerKey))) - keyGap);
     const keySize = userKeySize ?? Math.max(minimumKeySize, automaticKeySize);
     this.#lastKeySize = keySize;
-    grid.style.setProperty("--columns", String(page.columns));
+    grid.style.setProperty("--columns", String(page.columns * slotsPerItem));
     grid.style.setProperty("--key-size", `${keySize}px`);
     this.#shell?.querySelector("button[data-control=row]")?.setAttribute("aria-pressed", String(this.#view.singleRow));
     const pagerCount = page.hasPager ? 2 : 0;
-    const cells = page.items.map((item) => this.#itemButton(item, options));
-    while (cells.length < page.columns * page.rows - pagerCount) cells.push(`<div class="deck-key deck-key-empty" aria-hidden="true">${emptyImage(this.#palette)}</div>`);
+    const emptyKey = `<div class="deck-key deck-key-empty" aria-hidden="true">${emptyImage(this.#palette)}</div>`;
+    // The info key sits below its session key. Other keys get an empty key below, so the rows stay aligned.
+    // In the single row, the info key sits directly after its session key, so the row alternates.
+    const pair = (key: string, below: string): string => {
+      if (!this.#showInfoKeys) return key;
+      // Only session keys have an info key, so the single row adds no blank info keys.
+      if (alternating) return below === emptyKey ? key : `${key}${below}`;
+      return `<div class="deck-key-pair">${key}${below}</div>`;
+    };
+    const infoKey = (item: DeckItem): string => {
+      if (item.kind !== "session") return emptyKey;
+      return `<div class="deck-key deck-info-key" role="img" aria-label="${escapeHtml(`Info for ${item.session.label}`)}">${infoImage(item.session, this.#palette)}</div>`;
+    };
+    const cells = page.items.map((item) => pair(this.#itemButton(item, options), infoKey(item)));
+    while (cells.length < page.columns * page.rows - pagerCount) cells.push(pair(emptyKey, emptyKey));
     if (page.hasPager) {
-      cells.push(this.#keyButton(pagerImage("previous", pageLabel, this.#palette), "Previous page", "page", "-1"));
-      cells.push(this.#keyButton(pagerImage("next", pageLabel, this.#palette), "Next page", "page", "1"));
+      cells.push(pair(this.#keyButton(pagerImage("previous", pageLabel, this.#palette), "Previous page", "page", "-1"), emptyKey));
+      cells.push(pair(this.#keyButton(pagerImage("next", pageLabel, this.#palette), "Next page", "page", "1"), emptyKey));
     }
     const markup = cells.join("");
     if (grid.dataset.markup !== markup) {

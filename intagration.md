@@ -78,7 +78,7 @@ The file must match a live `claude` executable, PID, process-start identity, and
 The installed 2.1.309 registration uses UTC for its unzoned `procStart` value. Stale registrations never create sessions.
 Reads reject registrations above 64 KiB. Invalid or incomplete live registrations make previously confirmed sessions UNKNOWN.
 Only session ID, project, optional model, status, and timestamps enter the hub. Names, socket paths, keys, and authentication fields are discarded.
-The adapter does not open transcript files, install hooks, or change Claude settings.
+The adapter reads only the end of the session transcript (`projects/<project>/<sessionId>.jsonl`). It keeps the model name and token counts from the latest assistant line. It never keeps message text. The context percent assumes a 200,000-token window. The adapter does not install hooks or change Claude settings.
 Generic hooks remain an alternative for versions without the required registration or state fields.
 
 Claude desktop chat inspection uses macOS Accessibility. Enable access for the application that runs the hub, then restart it.
@@ -119,6 +119,8 @@ curl -X PUT http://127.0.0.1:43681/api/sessions/example%3Areview-42 \
   -H 'Content-Type: application/json' \
   -d '{"id":"example:review-42","source":"example","harness":"example-cli","label":"Code review","state":"working","ended":false,"project":"/absolute/project/path","focusTarget":{"appName":"Terminal"}}'
 ```
+
+Optional fields `tokensUsed` (integer), `contextUsedPercent` (0–100), `freedom` (`limited` or `full`), and `approval` (`asks` or `never`) feed the **AI Session Info** key. The Codex adapter fills them from `turn_context` and `token_count` events. The Junie adapter fills them from `settings.json` (`model`, `braveMode`) and from `ContextWindowReportEvent` events. For Junie, `tokensUsed` is the context tokens in use. Brave mode `ON` maps to `full` and `never`. The adapters store mode names and numbers only.
 
 Reuse that ID for every update. For a completed turn, send `state: "done", ended: false`; use the end route for closure. The public upsert schema does not accept reporter-supplied store timestamps as lifecycle clock fields. Built-in adapters pass observed times internally; generic HTTP reports normally use receipt-time behavior.
 
@@ -208,6 +210,7 @@ Available actions are:
 | Previous Session Page        | `com.local.ai-ai-captain.previous-page` |
 | Next Session Page            | `com.local.ai-ai-captain.next-page`     |
 | Open AI AI Captain Dashboard | `com.local.ai-ai-captain.dashboard`     |
+| AI Session Info              | `com.local.ai-ai-captain.session-info`  |
 
 Drag **Open AI AI Captain Dashboard** onto any preferred key. INFO is not automatically appended. Other controls may replace session slots; remaining session keys compact and paging adjusts, up to 30 per device.
 

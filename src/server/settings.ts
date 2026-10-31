@@ -29,6 +29,7 @@ export class SettingsStore {
       const next: HubSettings = {
         palette: patch.palette,
         flashIntensity: patch.flashIntensity ?? this.#settings.flashIntensity,
+        showInfoKeys: patch.showInfoKeys ?? this.#settings.showInfoKeys,
       };
       if (settingsEqual(next, this.#settings)) return this.get();
       if (this.persistencePath) {
@@ -57,5 +58,5 @@ export class SettingsStore {
 }
 
 function settingsEqual(left: HubSettings, right: HubSettings): boolean {
-  return left.palette === right.palette && left.flashIntensity === right.flashIntensity;
+  return left.palette === right.palette && left.flashIntensity === right.flashIntensity && left.showInfoKeys === right.showInfoKeys;
 }

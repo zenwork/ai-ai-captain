@@ -131,6 +131,24 @@ describe("Codex session tracking", () => {
     expect(state).toMatchObject({ state: "done", stateChangedAt: completed, lastActivityAt: later });
   });
 
+  it("reads token totals, context use, freedom, and approval without keeping paths", () => {
+    const state = new CodexSessionState();
+    state.apply({ type: "turn_context", timestamp, payload: { model: "gpt-5.5", approval_policy: "never", sandbox_policy: { type: "danger-full-access", writable_roots: ["/private/path"] } } });
+    state.apply({ type: "event_msg", timestamp, payload: { type: "token_count", info: { total_token_usage: { total_tokens: 148_000 }, last_token_usage: { total_tokens: 64_600 }, model_context_window: 258_400 } } });
+    expect(state).toMatchObject({ freedom: "full", approval: "never", tokensUsed: 148_000, contextUsedPercent: 25 });
+    expect(JSON.stringify(state)).not.toContain("private");
+    state.apply({ type: "turn_context", timestamp, payload: { approval_policy: "on-request", sandbox_policy: { type: "workspace-write" } } });
+    expect(state).toMatchObject({ freedom: "limited", approval: "asks" });
+  });
+
+  it("ignores token events without usable numbers", () => {
+    const state = new CodexSessionState();
+    state.apply({ type: "event_msg", timestamp, payload: { type: "token_count", info: null } });
+    state.apply({ type: "event_msg", timestamp, payload: { type: "token_count", info: { last_token_usage: { total_tokens: 10 }, model_context_window: 0 } } });
+    expect(state.tokensUsed).toBeUndefined();
+    expect(state.contextUsedPercent).toBeUndefined();
+  });
+
   it("handles partial writes, invalid JSON, truncation, and file replacement", async () => {
     const { store, tracker, owners } = await fixture();
     const path = owners[0].rolloutPath!;

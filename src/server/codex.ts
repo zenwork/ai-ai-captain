@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { basename, join, relative, sep } from "node:path";
-import type { FocusTarget, SessionInput, SessionState } from "../shared/session.js";
+import type { FocusTarget, SessionApproval, SessionFreedom, SessionInput, SessionState } from "../shared/session.js";
 import { EventCursor } from "./events.js";
 import { hostApplication, listOpenFiles, type ProcessInfo } from "./processes.js";
 import { SessionStore } from "./store.js";
@@ -14,6 +14,13 @@ function stringField(value: unknown, maximum = 240): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, maximum) : undefined;
 }
 
+function wholeNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.round(value) : undefined;
+}
+
+const fullAccessSandbox = "danger-full-access";
+const neverAskPolicy = "never";
+
 const sessionIdPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const lockPattern = new RegExp(`^thread-writer-locks/(${sessionIdPattern})\\.lock$`, "i");
 const rolloutPattern = new RegExp(`^rollout-.+-(${sessionIdPattern})\\.jsonl$`, "i");
@@ -21,6 +28,10 @@ const rolloutPattern = new RegExp(`^rollout-.+-(${sessionIdPattern})\\.jsonl$`, 
 export class CodexSessionState {
   state: SessionState = "unknown";
   model?: string;
+  tokensUsed?: number;
+  contextUsedPercent?: number;
+  freedom?: SessionFreedom;
+  approval?: SessionApproval;
   project?: string;
   lastActivityAt?: string;
   lastTriggeredAt?: string;
@@ -37,6 +48,7 @@ export class CodexSessionState {
     if (event.type === "session_meta" || event.type === "turn_context") {
       this.project = stringField(payload.cwd) ?? this.project;
       this.model = stringField(payload.model, 120) ?? this.model;
+      if (event.type === "turn_context") this.#applyModes(payload);
       if (event.type === "session_meta") {
         this.lastTriggeredAt = this.lastActivityAt;
         this.#setState("starting", "session_meta");
@@ -56,7 +68,9 @@ export class CodexSessionState {
     if (event.type !== "event_msg") return;
     const type = stringField(payload.type);
     if (!type) return;
-    if (type === "thread_settings_applied") {
+    if (type === "token_count") {
+      this.#applyTokenUsage(fields(payload.info));
+    } else if (type === "thread_settings_applied") {
       const settings = fields(payload.thread_settings);
       this.model = stringField(settings.model, 120) ?? this.model;
       this.project = stringField(settings.cwd) ?? this.project;
@@ -73,6 +87,24 @@ export class CodexSessionState {
     } else if (type === "error" || type === "turn_failed") {
       this.#setState("failed", type);
     }
+  }
+
+  // Read only the mode names. Never keep sandbox paths or commands.
+  #applyModes(payload: Record<string, unknown>): void {
+    const sandbox = payload.sandbox_policy;
+    const sandboxType = typeof sandbox === "string" ? sandbox : stringField(fields(sandbox).type);
+    if (sandboxType) this.freedom = sandboxType === fullAccessSandbox ? "full" : "limited";
+    const policy = stringField(payload.approval_policy);
+    if (policy) this.approval = policy === neverAskPolicy ? "never" : "asks";
+  }
+
+  #applyTokenUsage(info: Record<string, unknown>): void {
+    const total = wholeNumber(fields(info.total_token_usage).total_tokens);
+    if (total !== undefined) this.tokensUsed = total;
+    const contextTokens = wholeNumber(fields(info.last_token_usage).total_tokens);
+    const contextWindow = wholeNumber(info.model_context_window);
+    if (contextTokens === undefined || !contextWindow) return;
+    this.contextUsedPercent = Math.min(100, Math.round((contextTokens / contextWindow) * 100));
   }
 
   #setState(state: SessionState, event: string): void {
@@ -174,6 +206,10 @@ export class CodexTracker {
         state: available ? observed.state : "unknown",
         ended: false,
         model: observed.model,
+        tokensUsed: observed.tokensUsed,
+        contextUsedPercent: observed.contextUsedPercent,
+        freedom: observed.freedom,
+        approval: observed.approval,
         project: observed.project,
         focusTarget: owner.focusTarget,
         metadata: {

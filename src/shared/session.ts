@@ -14,11 +14,20 @@ export const focusTargetSchema = z.object({
 }).refine((value) => Object.keys(value).length > 0, "At least one focus target is required");
 export type FocusTarget = z.infer<typeof focusTargetSchema>;
 
+export const sessionFreedoms = ["limited", "full"] as const;
+export type SessionFreedom = (typeof sessionFreedoms)[number];
+export const sessionApprovals = ["asks", "never"] as const;
+export type SessionApproval = (typeof sessionApprovals)[number];
+
 export const sessionInputSchema = z.object({
   id: z.string().trim().min(1).max(200),
   source: z.string().trim().min(1).max(80),
   harness: z.string().trim().min(1).max(80).optional(),
   model: z.string().trim().max(120).optional(),
+  tokensUsed: z.number().int().nonnegative().optional(),
+  contextUsedPercent: z.number().min(0).max(100).optional(),
+  freedom: z.enum(sessionFreedoms).optional(),
+  approval: z.enum(sessionApprovals).optional(),
   label: z.string().trim().min(1).max(160),
   state: z.enum(sessionStates),
   ended: z.boolean().optional(),

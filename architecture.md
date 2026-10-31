@@ -117,7 +117,7 @@ Reports, model changes, token counts, and polling must not masquerade as a fresh
 
 ## ARCH-05 — Discovery and normalization
 
-The discovery loop starts immediately and then runs every 1.5 seconds, without overlapping scans. Copilot, Codex, and Claude Code share a process inventory and host-lifetime inspector. Claude Code reads live session registrations, not transcripts. A separate Claude desktop adapter reads exposed conversation URLs and known Accessibility control labels. Each adapter sends only session metadata to the store.
+The discovery loop starts immediately and then runs every 1.5 seconds, without overlapping scans. Copilot, Codex, and Claude Code share a process inventory and host-lifetime inspector. Claude Code reads live session registrations and the end of the transcript, only to keep the model name and token counts. A separate Claude desktop adapter reads exposed conversation URLs and known Accessibility control labels. Each adapter sends only session metadata to the store.
 
 Claude desktop inspection has a four-second timeout and a 6000-element limit. It does not read text-field values or message text. Hidden conversations and remote Code runtimes are not inferred from app presence. Desktop chat support is experimental until the installed app exposes the required URL and controls.
 

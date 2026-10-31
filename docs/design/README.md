@@ -47,6 +47,53 @@ The proposed behavior is:
 
 The full state wording, harness/host artwork, controls, and selectable palettes are implemented in the shared runtime renderer. Claude Desktop classification is supported for reported sessions, but automatic conversation tracking and assessed DONE visit detection remain unimplemented. These reference sheets do not change session detection or Stream Deck layout. Illustrating a product does not imply automatic conversation tracking is available for it.
 
+## Session info key
+
+The **AI Session Info** key is **Implemented**. It is a 72 × 72 key that you place directly below a session key. It shows the session of the key above it. The [info key study](session-freedom-key.svg) ([PNG](session-freedom-key.png)) is the design reference. The runtime renderer is `renderInfoCard` in `src/shared/card-design.ts`. It takes all colors from the selected palette.
+
+ Element        | Content                                                              |
+ -------------- | -------------------------------------------------------------------- |
+ Top row        | Model name on the left, tokens used on the right                     |
+ Bar            | Context used, with a mark at 80%. The bar uses the warning color from 80%. |
+ Lower left     | AUTO symbol and label. The host never asks for decisions.            |
+ Lower right    | Padlock and label. LIMIT, FULL, or "?" for freedom                   |
+
+The dashboard has a **Show info keys** option. It is on by default. It controls the info key on the Stream Deck, in the dashboard preview, and in the virtual deck. In the web views, each session key has its info key below it.
+
+A missing value shows a dashed shape or a dash. The symbol, the label, and the color carry the meaning together. Color is never the only signal.
+
+ Freedom | Symbol         | Label | Meaning                                  |
+ ------- | -------------- | ----- | ---------------------------------------- |
+ Limited | Closed padlock | LIMIT | The host restricts or asks for changes   |
+ Full    | Open padlock   | FULL  | The host can change without a barrier    |
+ Unknown | Dashed padlock | ?     | The host does not report the mode        |
+
+ Approval | Symbol                | Label | Meaning                                    |
+ -------- | --------------------- | ----- | ------------------------------------------ |
+ Asks     | None                  |       | The host asks for decisions                |
+ Never    | Double chevron        | AUTO  | The host never asks for decisions          |
+ Unknown  | Dashed double chevron | ?     | The host does not report the approval mode |
+
+The AUTO symbol shows only when the mode is on or unknown. A session that reports neither mode shows one dashed padlock only. The two indicators are independent. A session can have a sandbox and still never ask.
+
+### Data that each host supplies
+
+ Host        | Model, tokens, context                                              | Freedom and approval                                              | Status                                              |
+ ----------- | ------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------- |
+ Codex       | `turn_context.model`; `token_count` total, last turn, context window | `sandbox_policy.type` (`danger-full-access` is full); `approval_policy` (`never` is AUTO) | **Implemented**. Verified in local rollout files. The `never` value is not seen locally. |
+ Junie       | Not read yet                                                        | `brave` key is not read yet                                       | Not implemented. The meaning of `brave` is not verified. |
+ Claude Code | Not in `sessions/<pid>.json`                                        | Not in `sessions/<pid>.json`                                      | Not implemented. Needs a hook or a status line reporter. |
+ Copilot     | Model is read today; usage events are not verified                  | Allow-all flag is not verified                                    | Not implemented. No local Copilot data was available. |
+ Other hosts | Optional fields in the reporter or the HTTP API                     | Optional fields in the reporter or the HTTP API                   | **Implemented**                                     |
+
+Other hosts report the values with these session fields: `tokensUsed`, `contextUsedPercent`, `freedom` (`limited` or `full`), and `approval` (`asks` or `never`). The `report upsert` command has the options `--tokens-used`, `--context-percent`, `--freedom`, and `--approval`. The hub stores only numbers and mode names. It never stores prompts, responses, sandbox paths, or commands (`ARCH-08`).
+
+Open decisions:
+
+- Claude Code usage comes from the transcript end. The adapter keeps only the model name and token counts. The freedom and AUTO modes are still not reported.
+- Decide if a middle level, "asks first", is useful. Codex `on-request` is "asks" today.
+- Confirm Junie `brave` mode and the Copilot allow-all flag before you add them.
+
 ## Regenerating the visuals
 
 The source of truth is [palettes/tokens.json](palettes/tokens.json) plus the local [icon library](assets/icons.svg). All seven SVG outputs, their PNGs, the shared runtime assets in `src/shared/card-assets.ts`, browser artwork notices, and the contrast report are generated by [render-design-proposals.mjs](../../scripts/render-design-proposals.mjs). The token file's `previewPalette` selects the default study; `selectedPalette` identifies the shipped fallback (Fjord). A user's live choice is stored separately in the hub's `settings.json`, not in these source files. The shared geometry in `src/shared/card-design.ts` renders both the references and the live icons. Update the sources, not individual generated sheets, to keep the visuals aligned.

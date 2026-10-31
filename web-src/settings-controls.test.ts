@@ -13,6 +13,6 @@ describe("dashboard settings controls", () => {
   });
 
   it("keeps palette and flash intensity in the same save payload", () => {
-    expect(createSettingsPayload("signal", 4)).toEqual({ palette: "signal", flashIntensity: 4 });
+    expect(createSettingsPayload("signal", 4, false)).toEqual({ palette: "signal", flashIntensity: 4, showInfoKeys: false });
   });
 });
