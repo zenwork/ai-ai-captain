@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.0](https://github.com/zenwork/ai-ai-captain/compare/v0.3.0...v1.0.0) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* publish to Elgato Marketplace and support Linux and Windows ([#11](https://github.com/zenwork/ai-ai-captain/issues/11))
+
+### Features
+
+* **keys:** add information keys ([c9c1965](https://github.com/zenwork/ai-ai-captain/commit/c9c19656ee8a60c2bcb9f7b5ed54dfcfede0f2e1))
+* publish to Elgato Marketplace and support Linux and Windows ([#11](https://github.com/zenwork/ai-ai-captain/issues/11)) ([94f9c29](https://github.com/zenwork/ai-ai-captain/commit/94f9c29b5032f8bc5ae6ce0aa89083c051052e6a))
+* **settings:** added setting toggle keys; updated documentation ([335f20a](https://github.com/zenwork/ai-ai-captain/commit/335f20a3fbdd0386c9709e78c61d2d7a45d237f1))
+
 ## [0.3.0](https://github.com/zenwork/ai-ai-captain/compare/v0.2.1...v0.3.0) (2026-10-30)
 
 
