@@ -31,7 +31,7 @@ afterEach(async () => {
   await Promise.all(temporaryDirectoryPaths.splice(0).map((path) => rm(path, { force: true, recursive: true })));
 });
 
-describe("Stream Deck CLI helper", () => {
+describe.skipIf(process.platform === "win32")("Stream Deck CLI helper", () => {
   it("prints install instructions and stops when the CLI is missing", async () => {
     const pathDirectory = await createTemporaryDirectory();
 

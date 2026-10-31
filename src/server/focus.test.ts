@@ -36,7 +36,7 @@ describe("project-aware focus", () => {
     expect((await focus({ claudeConversationId: "../../new?q=private" })).focused).toBe(false);
     expect(run).toHaveBeenCalledTimes(1);
   });
-  it("targets different projects in the same IDEA installation before PID-only activation", async () => {
+  it.skipIf(process.platform === "win32")("targets different projects in the same IDEA installation before PID-only activation", async () => {
     const paths = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: true, run });
@@ -48,7 +48,7 @@ describe("project-aware focus", () => {
     ]);
   });
 
-  it("uses a bundle ID when an exact application path was not reported", async () => {
+  it.skipIf(process.platform === "win32")("uses a bundle ID when an exact application path was not reported", async () => {
     const [project] = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: false, run });
@@ -56,7 +56,7 @@ describe("project-aware focus", () => {
     expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-b", "com.jetbrains.intellij", project]);
   });
 
-  it("uses the named IntelliJ launcher for bridge sessions without installation metadata", async () => {
+  it.skipIf(process.platform === "win32")("uses the named IntelliJ launcher for bridge sessions without installation metadata", async () => {
     const [project] = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", run });
@@ -72,7 +72,7 @@ describe("project-aware focus", () => {
     expect(run).not.toHaveBeenCalled();
   });
 
-  it("returns a project failure without falling back to activating every IDEA window", async () => {
+  it.skipIf(process.platform === "win32")("returns a project failure without falling back to activating every IDEA window", async () => {
     const [project] = await projects();
     const run = vi.fn(async (_command: string, _args: string[]): Promise<FocusResult> => ({ focused: false, reason: "Command failed" }));
     const focus = createFocusHandler({ platform: "darwin", run });
@@ -80,7 +80,7 @@ describe("project-aware focus", () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps non-IDE targets at application scope even when a session has a working directory", async () => {
+  it.skipIf(process.platform === "win32")("keeps non-IDE targets at application scope even when a session has a working directory", async () => {
     const [project] = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: false, run });

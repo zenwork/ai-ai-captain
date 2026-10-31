@@ -6,7 +6,7 @@ describe("host application lookup", () => {
     const processes: ProcessInfo[] = [
       { pid: 20, parentPid: 1, name: "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/CodexCLI" },
     ];
-    expect(hostApplication(20, processes)).toEqual({ pid: 20, appName: "ChatGPT", appPath: "/Applications/ChatGPT.app" });
+    expect(hostApplication(20, processes, "darwin")).toEqual({ pid: 20, appName: "ChatGPT", appPath: "/Applications/ChatGPT.app" });
   });
 
   it("finds the app of a parent process", () => {
@@ -14,7 +14,7 @@ describe("host application lookup", () => {
       { pid: 10, parentPid: 1, name: "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal" },
       { pid: 11, parentPid: 10, name: "/bin/zsh" },
     ];
-    expect(hostApplication(11, processes)).toEqual({ pid: 10, appName: "Terminal", appPath: "/System/Applications/Utilities/Terminal.app" });
+    expect(hostApplication(11, processes, "darwin")).toEqual({ pid: 10, appName: "Terminal", appPath: "/System/Applications/Utilities/Terminal.app" });
   });
 });
 

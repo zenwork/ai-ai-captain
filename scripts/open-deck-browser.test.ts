@@ -30,7 +30,7 @@ afterEach(async () => {
   await Promise.all(temporaryDirectoryPaths.splice(0).map((path) => rm(path, { force: true, recursive: true })));
 });
 
-describe("virtual deck browser launcher", () => {
+describe.skipIf(process.platform === "win32")("virtual deck browser launcher", () => {
   it("uses macOS open to launch a Chrome app window", async () => {
     const temporaryDirectoryPath = await createTemporaryDirectory();
     const pathDirectory = join(temporaryDirectoryPath, "path");

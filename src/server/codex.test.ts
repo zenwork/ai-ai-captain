@@ -214,7 +214,7 @@ describe("Codex session tracking", () => {
     expect(store.list()[0]).toMatchObject({ harness: "codex-app" });
   });
 
-  it("distinguishes readable but unsupported telemetry from a read failure", async () => {
+  it.skipIf(process.platform === "win32")("distinguishes readable but unsupported telemetry from a read failure", async () => {
     const { store, tracker, owners } = await fixture();
     await writeFile(owners[0].rolloutPath!, "not-json\n");
     await tracker.reconcile(owners);
