@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ClaudeTracker, claudeRegistryState } from "./claude.js";
+import { ClaudeTracker, claudeRegistryState, parseClaudeTranscriptTail } from "./claude.js";
 import type { ProcessInfo } from "./processes.js";
 import { SessionStore } from "./store.js";
 
@@ -39,6 +39,22 @@ async function fixture() {
   };
   return { root, store, tracker: new ClaudeTracker(store, root), registration };
 }
+
+describe("Claude transcript usage", () => {
+  const assistantLine = (model: string, inputTokens: number, cacheRead: number): string => JSON.stringify({
+    type: "assistant",
+    message: { model, content: "private text", usage: { input_tokens: inputTokens, cache_creation_input_tokens: 0, cache_read_input_tokens: cacheRead } },
+  });
+
+  it("reads the model and context tokens from the latest assistant line only", () => {
+    const tail = ["partial line", assistantLine("claude-opus-4", 10, 1000), JSON.stringify({ type: "user", message: "secret" }), assistantLine("claude-sonnet-5", 20, 49_980)].join("\n");
+    expect(parseClaudeTranscriptTail(tail)).toEqual({ model: "claude-sonnet-5", tokensUsed: 50_000, contextUsedPercent: 25 });
+  });
+
+  it("ignores synthetic models and empty usage", () => {
+    expect(parseClaudeTranscriptTail(assistantLine("<synthetic>", 0, 0))).toEqual({});
+  });
+});
 
 describe("Claude registry tracking", () => {
   it.each([

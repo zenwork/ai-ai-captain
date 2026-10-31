@@ -1,6 +1,6 @@
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
-import { cardIdentities, cardStates, escapeXml, renderCard, renderControl, type CardColors, type CardPalette, type CardPhase } from "../../src/shared/card-design.js";
+import { cardIdentities, cardStates, describeInfoCard, escapeXml, renderCard, renderControl, renderInfoCard, type CardColors, type CardPalette, type CardPhase, type InfoCardData } from "../../src/shared/card-design.js";
 import { cardIcons } from "../../src/shared/card-assets.js";
 import { applyFlashIntensity, resolveFlashIntensity } from "../../src/shared/flash-intensity.js";
 import { getPalette, type PaletteId } from "../../src/shared/palette.js";
@@ -63,6 +63,19 @@ export function sessionImage(session: Session, keyNumber?: number, options: Card
   const number = keyNumber !== undefined && Number.isFinite(keyNumber) ? Math.trunc(keyNumber) : undefined;
   const palette = paletteForSession(session, options);
   return svg(renderCard(identity, state, palette, number, cardIcons), `${sessionTypeLabels[type]}: ${state.label}`);
+}
+
+function infoData(session: Session): InfoCardData {
+  return { model: session.model, tokensUsed: session.tokensUsed, contextUsedPercent: session.contextUsedPercent, freedom: session.freedom, approval: session.approval };
+}
+
+export function infoImage(session: Session, palette?: PaletteId): string {
+  const data = infoData(session);
+  return svg(renderInfoCard(data, getPalette(palette)), `${session.label}: ${describeInfoCard(data)}`);
+}
+
+export function infoSignature(session: Session, palette?: PaletteId): string {
+  return JSON.stringify(["info", session.id, getPalette(palette).id, infoData(session)]);
 }
 
 export function emptyImage(palette?: PaletteId): string {

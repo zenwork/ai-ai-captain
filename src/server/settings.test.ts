@@ -44,12 +44,26 @@ describe("palette settings", () => {
     for (const palette of palettes) {
       const result = await app.inject({ method: "PUT", url: "/api/settings", payload: { palette: palette.id } });
       expect(result.statusCode).toBe(200);
-      expect(result.json()).toEqual({ settings: { palette: palette.id, flashIntensity: defaultFlashIntensity } });
-      expect((await app.inject({ method: "GET", url: "/api/sessions" })).json().settings).toEqual({ palette: palette.id, flashIntensity: defaultFlashIntensity });
+      expect(result.json()).toEqual({ settings: { palette: palette.id, flashIntensity: defaultFlashIntensity, showInfoKeys: true } });
+      expect((await app.inject({ method: "GET", url: "/api/sessions" })).json().settings).toEqual({ palette: palette.id, flashIntensity: defaultFlashIntensity, showInfoKeys: true });
     }
     const intensity = await app.inject({ method: "PUT", url: "/api/settings", payload: { palette: "signal", flashIntensity: 4 } });
     expect(intensity.statusCode).toBe(200);
-    expect(intensity.json()).toEqual({ settings: { palette: "signal", flashIntensity: 4 } });
+    expect(intensity.json()).toEqual({ settings: { palette: "signal", flashIntensity: 4, showInfoKeys: true } });
+  });
+
+  it("saves the info key toggle and keeps it when only the palette changes", async () => {
+    const path = await location();
+    const settings = new SettingsStore(path);
+    await settings.update({ palette: "signal", showInfoKeys: false });
+    expect(settings.get().showInfoKeys).toBe(false);
+    await settings.update({ palette: "fjord" });
+    expect(settings.get().showInfoKeys).toBe(false);
+    await settings.close();
+    const restored = new SettingsStore(path);
+    await restored.load();
+    expect(restored.get().showInfoKeys).toBe(false);
+    await restored.close();
   });
 
   it("persists a machine-wide choice across restarts with owner-only permissions", async () => {
@@ -62,7 +76,7 @@ describe("palette settings", () => {
     expect((await stat(path)).mode & 0o777).toBe(0o600);
     const restored = new SettingsStore(path);
     await restored.load();
-    expect(restored.get()).toEqual({ palette: "porcelain", flashIntensity: defaultFlashIntensity });
+    expect(restored.get()).toEqual({ palette: "porcelain", flashIntensity: defaultFlashIntensity, showInfoKeys: true });
     const copy = restored.get();
     copy.palette = "fjord";
     expect(restored.get().palette).toBe("porcelain");
@@ -74,9 +88,9 @@ describe("palette settings", () => {
     await writeFile(path, JSON.stringify({ palette: "ember-ice" }));
     const settings = new SettingsStore(path);
     await settings.load();
-    expect(settings.get()).toEqual({ palette: "ember-ice", flashIntensity: defaultFlashIntensity });
+    expect(settings.get()).toEqual({ palette: "ember-ice", flashIntensity: defaultFlashIntensity, showInfoKeys: true });
     await settings.update({ palette: "ember-ice", flashIntensity: 4 });
-    expect(JSON.parse(await readFile(path, "utf8"))).toEqual({ palette: "ember-ice", flashIntensity: 4 });
+    expect(JSON.parse(await readFile(path, "utf8"))).toEqual({ palette: "ember-ice", flashIntensity: 4, showInfoKeys: true });
     await settings.close();
   });
 
@@ -87,15 +101,15 @@ describe("palette settings", () => {
     const unsubscribe = settings.subscribe((value) => changes.push(value));
     await Promise.all([settings.update({ palette: "nocturne" }), settings.update({ palette: "signal" }), settings.update({ palette: "signal" })]);
     expect(changes).toEqual([
-      { palette: "nocturne", flashIntensity: defaultFlashIntensity },
-      { palette: "signal", flashIntensity: defaultFlashIntensity },
+      { palette: "nocturne", flashIntensity: defaultFlashIntensity, showInfoKeys: true },
+      { palette: "signal", flashIntensity: defaultFlashIntensity, showInfoKeys: true },
     ]);
-    expect(JSON.parse(await readFile(path, "utf8"))).toEqual({ palette: "signal", flashIntensity: defaultFlashIntensity });
+    expect(JSON.parse(await readFile(path, "utf8"))).toEqual({ palette: "signal", flashIntensity: defaultFlashIntensity, showInfoKeys: true });
     unsubscribe();
     await settings.update({ palette: defaultPaletteId });
     expect(changes).toEqual([
-      { palette: "nocturne", flashIntensity: defaultFlashIntensity },
-      { palette: "signal", flashIntensity: defaultFlashIntensity },
+      { palette: "nocturne", flashIntensity: defaultFlashIntensity, showInfoKeys: true },
+      { palette: "signal", flashIntensity: defaultFlashIntensity, showInfoKeys: true },
     ]);
     expect(settings.get()).toEqual(defaultSettings);
     await settings.close();
@@ -131,9 +145,9 @@ describe("palette settings", () => {
     const reader = response.body!.getReader();
     const decode = (chunk: Uint8Array | undefined) => JSON.parse(new TextDecoder().decode(chunk).split("data: ")[1].split("\n\n")[0]);
     const snapshot = decode((await reader.read()).value);
-    expect(snapshot).toMatchObject({ type: "snapshot", settings: { palette: "nocturne", flashIntensity: defaultFlashIntensity } });
+    expect(snapshot).toMatchObject({ type: "snapshot", settings: { palette: "nocturne", flashIntensity: defaultFlashIntensity, showInfoKeys: true } });
     await app.inject({ method: "PUT", url: "/api/settings", payload: { palette: "signal", flashIntensity: 3 } });
-    expect(decode((await reader.read()).value)).toEqual({ type: "settings", settings: { palette: "signal", flashIntensity: 3 } });
+    expect(decode((await reader.read()).value)).toEqual({ type: "settings", settings: { palette: "signal", flashIntensity: 3, showInfoKeys: true } });
     controller.abort();
     await reader.cancel().catch(() => {});
   });

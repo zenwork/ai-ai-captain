@@ -71,6 +71,9 @@ footer a { color: #a0b2c4; }
 .deck-grid { display: grid; grid-template-columns: repeat(var(--columns), var(--key-size, 72px)); gap: 8px; padding: 12px; border-radius: 18px; background: #070a0f; border: 1px solid #ffffff1c; }
 .deck-grid .deck-key { padding: 0; }
 .deck-key-empty { cursor: default; }
+.deck-key-pair { display: flex; flex-direction: column; gap: 8px; }
+.deck-info-key { cursor: default; }
+.deck-info-key:hover { outline: none; }
 .deck-status { margin: 10px 0 0; text-align: center; color: #aeb8c7; font-size: 12px; }
 .topbar-links { margin-left: auto; margin-right: 16px; }
 .deck-link { color: inherit; text-decoration: underline; }

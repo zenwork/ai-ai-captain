@@ -9,6 +9,14 @@
       "Controllers": ["Keypad"]
     },
     {
+      "UUID": "com.local.ai-ai-captain.session-info",
+      "Name": "AI Session Info",
+      "Icon": "imgs/session",
+      "Tooltip": "Shows model, tokens, context, freedom, and approval for the session key directly above this key",
+      "States": [{ "Image": "imgs/session", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "Controllers": ["Keypad"]
+    },
+    {
       "UUID": "com.local.ai-ai-captain.previous-page",
       "Name": "Previous Session Page",
       "Icon": "imgs/previous",

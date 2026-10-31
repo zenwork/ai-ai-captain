@@ -49,7 +49,7 @@ Starting and failure statuses mean STARTING and FAILED. Unsupported values mean 
 Approval pauses and model names must be exported by the runtime. The adapter does not infer missing metadata.
 
 The installed 2.1.309 registration format was checked locally. Other versions can need the generic lifecycle reporter.
-The reader does not open transcripts, install hooks, read registration keys, or change Claude settings.
+The reader opens only the end of the transcript, to keep the model name and token counts. It does not install hooks, read registration keys, or change Claude settings.
 
 ## Claude desktop chat
 

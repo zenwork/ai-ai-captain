@@ -5,9 +5,9 @@ import { z } from "zod";
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
 import { defaultPaletteId, getPalette, type PaletteId } from "../../src/shared/palette.js";
-import { defaultFlashIntensity, type HubSettings } from "../../src/shared/settings.js";
+import { defaultFlashIntensity, defaultShowInfoKeys, type HubSettings } from "../../src/shared/settings.js";
 import { isFlashIntensity } from "../../src/shared/flash-intensity.js";
-import { appImage, appSignature, dashboardImage, emptyImage, pagerImage, sessionImage, sessionSignature, waitingPulseIntervalMs } from "./cards.js";
+import { appImage, appSignature, dashboardImage, emptyImage, infoImage, infoSignature, pagerImage, sessionImage, sessionSignature, waitingPulseIntervalMs } from "./cards.js";
 import { svgDataUri } from "./images.js";
 import { HubSupervisor, isHubHealthy, localHubPort, spawnHubProcess } from "./hub-supervisor.js";
 
@@ -19,9 +19,11 @@ const dashboardResultSchema = z.object({ opened: z.boolean(), reason: z.string()
 const visibleKeys = new Map<string, KeyAction<SessionSettings>>();
 const renderedCards = new Map<string, string>();
 const dashboardActions = new Map<string, KeyAction<SessionSettings>>();
+const infoKeys = new Map<string, KeyAction<SessionSettings>>();
 const renderedControls = new Map<string, string>();
 let palette: PaletteId = defaultPaletteId;
 let flashIntensity = defaultFlashIntensity;
+let showInfoKeys = defaultShowInfoKeys;
 let sessions: Session[] = [];
 let clients: Client[] = [];
 const pages = new Map<string, number>();
@@ -87,6 +89,7 @@ async function readSessions(): Promise<void> {
     palette = getPalette(payload.settings?.palette).id;
     const nextFlashIntensity = payload.settings?.flashIntensity;
     if (isFlashIntensity(nextFlashIntensity)) flashIntensity = nextFlashIntensity;
+    showInfoKeys = payload.settings?.showInfoKeys ?? defaultShowInfoKeys;
     clients = payload.clients ?? [];
   } catch {
     sessions = sessions.map((session) => ({ ...session, state: "unknown" }));
@@ -99,7 +102,7 @@ function stopRefreshWhenHidden(): void {
     updatePulseTimer(false);
     updateDoneTimer();
   }
-  if (visibleKeys.size || pagerActions.size || dashboardActions.size || !refreshTimer) return;
+  if (visibleKeys.size || pagerActions.size || dashboardActions.size || infoKeys.size || !refreshTimer) return;
   clearInterval(refreshTimer);
   refreshTimer = undefined;
 }
@@ -177,12 +180,34 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
       updatedKeys++;
     }
   }
+  await renderInfoKeys(ordered);
   updatePulseTimer(hasWaiting);
   updateDoneTimer(nextDoneAt);
   if (updatedKeys && logUpdates) streamDeck.logger.info(`Updated ${updatedKeys} session keys; ${ordered.length} sessions available`);
   if (logUpdates) {
     await renderPagers();
     await renderDashboards();
+  }
+}
+
+// An info key shows the session of the session key directly above it.
+function sessionAbove(infoKey: KeyAction<SessionSettings>, ordered: Session[]): Session | undefined {
+  const coordinates = infoKey.coordinates;
+  if (!coordinates) return undefined;
+  const above = sessionKeys(infoKey.device.id).find((candidate) => candidate.coordinates?.column === coordinates.column && candidate.coordinates.row === coordinates.row - 1);
+  if (!above) return undefined;
+  const index = sessionIndex(above);
+  return index === undefined ? undefined : ordered[index];
+}
+
+async function renderInfoKeys(ordered: Session[]): Promise<void> {
+  for (const key of infoKeys.values()) {
+    const session = showInfoKeys ? sessionAbove(key, ordered) : undefined;
+    const signature = session ? infoSignature(session, palette) : `empty:${palette}`;
+    if (renderedCards.get(key.id) === signature) continue;
+    await key.setImage(svgDataUri(session ? infoImage(session, palette) : emptyImage(palette)));
+    await key.setTitle("");
+    renderedCards.set(key.id, signature);
   }
 }
 
@@ -322,6 +347,23 @@ class SessionKey extends SingletonAction<SessionSettings> {
   }
 }
 
+@action({ UUID: "com.local.ai-ai-captain.session-info" })
+class SessionInfoKey extends SingletonAction<SessionSettings> {
+  async onWillAppear(event: WillAppearEvent<SessionSettings>): Promise<void> {
+    if (!event.action.isKey()) return;
+    infoKeys.set(event.action.id, event.action);
+    renderedCards.delete(event.action.id);
+    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    await refresh();
+  }
+
+  onWillDisappear(event: WillDisappearEvent<SessionSettings>): void {
+    infoKeys.delete(event.action.id);
+    renderedCards.delete(event.action.id);
+    stopRefreshWhenHidden();
+  }
+}
+
 const pagerActions = new Map<string, { direction: "previous" | "next"; action: KeyAction<PagerSettings> }>();
 
 class PagerAction extends SingletonAction<PagerSettings> {
@@ -402,6 +444,7 @@ streamDeck.actions.registerAction(new SessionKey());
 streamDeck.actions.registerAction(new PreviousPage());
 streamDeck.actions.registerAction(new NextPage());
 streamDeck.actions.registerAction(new DashboardAction());
+streamDeck.actions.registerAction(new SessionInfoKey());
 void streamDeck.connect().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;

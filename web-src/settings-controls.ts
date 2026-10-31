@@ -9,6 +9,6 @@ export const flashIntensityChoices = [
   { value: 4, label: "Full color range" },
 ] as const satisfies readonly { value: FlashIntensity; label: string }[];
 
-export function createSettingsPayload(palette: PaletteId, flashIntensity: FlashIntensity): HubSettings {
-  return { palette, flashIntensity };
+export function createSettingsPayload(palette: PaletteId, flashIntensity: FlashIntensity, showInfoKeys: boolean): HubSettings {
+  return { palette, flashIntensity, showInfoKeys };
 }

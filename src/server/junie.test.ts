@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { JunieTracker, junieEventState, lastJunieStatus } from "./junie.js";
+import { JunieTracker, junieEventState, lastJunieContext, lastJunieStatus, parseJunieSettings } from "./junie.js";
 import type { LifetimeInspector } from "./lifetimes.js";
 import type { ProcessInfo } from "./processes.js";
 import { SessionStore } from "./store.js";
@@ -113,5 +113,19 @@ describe("Junie tracking", () => {
     stores.push(store);
     await new JunieTracker(store, join(tmpdir(), "ai-ai-captain-missing-junie")).scan(processes, openProject);
     expect(store.list()).toEqual([]);
+  });
+});
+
+describe("Junie session info", () => {
+  it("reads the latest context report", () => {
+    const line = (percentage: number, used: number): string => `{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"ContextWindowReportEvent","agent":{"kind":"MainAgent","id":"main"},"percentage":${percentage},"used":${used},"size":1000000}}}`;
+    expect(lastJunieContext(`${line(2.1, 21000)}\n${line(6.05, 60494)}\n`)).toEqual({ contextUsedPercent: 6, tokensUsed: 60494 });
+    expect(lastJunieContext("none")).toBeUndefined();
+  });
+
+  it("reads the model and Brave mode from settings", () => {
+    expect(parseJunieSettings('{"model":{"modelId":"claude-sonnet-5-5"},"braveMode":"ON"}')).toEqual({ model: "claude-sonnet-5-5", freedom: "full", approval: "never" });
+    expect(parseJunieSettings('{"model":{"modelId":"m"},"braveMode":"OFF"}')).toEqual({ model: "m", freedom: "limited", approval: "asks" });
+    expect(parseJunieSettings("not json")).toEqual({});
   });
 });
