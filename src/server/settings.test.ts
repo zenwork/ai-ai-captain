@@ -66,7 +66,7 @@ describe("palette settings", () => {
     await restored.close();
   });
 
-  it("persists a machine-wide choice across restarts with owner-only permissions", async () => {
+  it.skipIf(process.platform === "win32")("persists a machine-wide choice across restarts with owner-only permissions", async () => {
     const path = await location();
     const settings = new SettingsStore(path);
     await settings.load();

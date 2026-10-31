@@ -6,8 +6,6 @@ coverage/
 web/app.js
 web/deck.js
 dist/ai-ai-captain
-dist/sea-*.json
-dist/sea-main.cjs
 build/
 *.iml
 .idea/

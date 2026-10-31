@@ -11,6 +11,8 @@ import { HostLifetimes } from "./lifetimes.js";
 import { listProcesses, type ProcessInfo } from "./processes.js";
 import { SessionStore } from "./store.js";
 
+const supportedPlatforms: NodeJS.Platform[] = ["darwin", "linux", "win32"];
+
 const candidates = [
   { key: "chatgpt", name: "ChatGPT", appBundle: "ChatGPT.app", executable: "ChatGPT", bundleId: "com.openai.codex" },
   { key: "claude", name: "Claude", appBundle: "Claude.app", executable: "Claude", bundleId: "com.anthropic.claudefordesktop" },
@@ -46,7 +48,7 @@ export async function discoverDesktopApps(registry: ClientRegistry, processes?: 
 }
 
 export function startSessionDiscovery(store: SessionStore, clients: ClientRegistry, dataDirectory?: string): ReturnType<typeof setInterval> | undefined {
-  if (process.platform !== "darwin") return undefined;
+  if (!supportedPlatforms.includes(process.platform)) return undefined;
   const copilot = new CopilotTracker(store, join(process.env.AI_AI_CAPTAIN_COPILOT_HOME ?? join(homedir(), ".copilot"), "session-state"));
   const codex = new CodexTracker(store, process.env.AI_AI_CAPTAIN_CODEX_HOME ?? process.env.CODEX_HOME ?? join(homedir(), ".codex"));
   const claude = new ClaudeTracker(store, process.env.AI_AI_CAPTAIN_CLAUDE_HOME ?? process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"));

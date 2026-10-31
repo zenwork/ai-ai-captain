@@ -1,6 +1,5 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { dirname } from "node:path";
 import { z } from "zod";
 import { createApp, hubLogLevels } from "./app.js";
 import { startSessionDiscovery } from "./discovery.js";
@@ -20,7 +19,7 @@ async function run(): Promise<void> {
   await settings.load();
   const clients = new ClientRegistry();
   const discoveryTimer = startSessionDiscovery(store, clients, dataDirectory);
-  const webRoot = process.env.AI_AI_CAPTAIN_WEB_DIR ?? (process.env.AI_AI_CAPTAIN_SEA === "1" ? join(dirname(process.execPath), "web") : join(process.cwd(), "web"));
+  const webRoot = process.env.AI_AI_CAPTAIN_WEB_DIR ?? join(process.cwd(), "web");
   const port = Number(process.env.AI_AI_CAPTAIN_PORT ?? 43681);
   const logLevel = logLevelSchema.parse(process.env.AI_AI_CAPTAIN_LOG_LEVEL);
   const app = createApp({ store, webRoot, clients, settings, logLevel, dashboardUrl: `http://127.0.0.1:${port}/` });

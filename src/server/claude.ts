@@ -3,6 +3,7 @@ import { basename, isAbsolute, join } from "node:path";
 import { z } from "zod";
 import type { SessionInput, SessionState } from "../shared/session.js";
 import { SessionLifetimeGate, type LifetimeInspector } from "./lifetimes.js";
+import { platform } from "node:os";
 import { hostApplication, type ProcessInfo } from "./processes.js";
 import { SessionStore } from "./store.js";
 
@@ -96,7 +97,7 @@ export function claudeRegistryState(status: string | undefined): SessionState {
 function ownsRegistration(registration: Registration, process: ProcessInfo, fileName: string): boolean {
   if (registration.pid !== process.pid || fileName !== `${process.pid}.json`) return false;
   if (!/(?:^|\/)claude$/.test(process.name)) return false;
-  if (registration.pidDomain && registration.pidDomain !== "darwin") return false;
+  if (registration.pidDomain && registration.pidDomain !== platform()) return false;
   if (!process.startedAt) return false;
   const processStartedAt = Date.parse(process.startedAt);
   if (!Number.isFinite(processStartedAt) || registration.startedAt + processStartToleranceMilliseconds < processStartedAt) return false;

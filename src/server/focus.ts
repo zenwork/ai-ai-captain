@@ -17,11 +17,40 @@ function appleScriptString(value: string): string {
 
 async function runCommand(command: string, args: string[]): Promise<FocusResult> {
   try {
-    await execute(command, args, { timeout: 5000, maxBuffer: 64 * 1024 });
+    await execute(command, args, { timeout: 5000, maxBuffer: 64 * 1024, windowsHide: true });
     return { focused: true };
   } catch {
-    return { focused: false, reason: "macOS could not complete the focus request" };
+    return { focused: false, reason: "The operating system could not complete the focus request" };
   }
+}
+
+/** Opens a URL with the default program of the system. */
+function openUrlCommand(platform: NodeJS.Platform, url: string): { command: string; args: string[] } {
+  if (platform === "win32") return { command: "rundll32.exe", args: ["url.dll,FileProtocolHandler", url] };
+  if (platform === "linux") return { command: "xdg-open", args: [url] };
+  return { command: "/usr/bin/open", args: [url] };
+}
+
+/** Brings the window of a process to the front on Linux (X11, with xdotool) and Windows (PowerShell). */
+function activateProcessCommand(platform: NodeJS.Platform, pid: number): { command: string; args: string[] } {
+  if (platform === "win32") {
+    const script = `Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.Interaction]::AppActivate(${String(pid)})`;
+    return { command: "powershell.exe", args: ["-NoProfile", "-NonInteractive", "-Command", script] };
+  }
+  return { command: "xdotool", args: ["search", "--pid", String(pid), "windowactivate"] };
+}
+
+async function focusOtherSystem(platform: NodeJS.Platform, target: FocusTarget, run: CommandRunner): Promise<FocusResult> {
+  if (target.pid) {
+    const { command, args } = activateProcessCommand(platform, target.pid);
+    const result = await run(command, args);
+    if (result.focused) return { focused: true, scope: "application" };
+  }
+  if (target.url) {
+    const { command, args } = openUrlCommand(platform, target.url);
+    return run(command, args);
+  }
+  return { focused: false, reason: "The window could not be focused. On Linux, install xdotool and use an X11 session." };
 }
 
 export function createFocusHandler(options: { platform?: NodeJS.Platform; preciseFocus?: boolean; run?: CommandRunner } = {}): FocusHandler {
@@ -38,11 +67,12 @@ export function createFocusHandler(options: { platform?: NodeJS.Platform; precis
     const validated = focusTargetSchema.safeParse(target);
     if (!validated.success) return { focused: false, reason: "The focus target is not valid" };
     target = validated.data;
-    if (platform !== "darwin") return { focused: false, reason: "Window focus is supported on macOS only" };
     if (target.claudeConversationId) {
-      const result = await run("/usr/bin/open", [`claude://claude.ai/chat/${target.claudeConversationId}`]);
+      const { command, args } = openUrlCommand(platform, `claude://claude.ai/chat/${target.claudeConversationId}`);
+      const result = await run(command, args);
       return result.focused ? { focused: true, scope: "session" } : result;
     }
+    if (platform !== "darwin") return focusOtherSystem(platform, target, run);
     const isIntelliJ = /intellij/i.test(`${target.appName ?? ""} ${target.appPath ?? ""} ${target.bundleId ?? ""}`);
     if (isIntelliJ && projectPath) {
       if (!isAbsolute(projectPath)) return { focused: false, reason: "The IntelliJ project path must be absolute" };
@@ -62,7 +92,10 @@ export function createFocusHandler(options: { platform?: NodeJS.Platform; precis
     }
     if (target.appPath || target.appName) return activate(`tell application ${appleScriptString(target.appPath ?? target.appName!)} to activate`);
     if (target.bundleId) return activate(`tell application id ${appleScriptString(target.bundleId)} to activate`);
-    if (target.url) return run("/usr/bin/open", [target.url]);
+    if (target.url) {
+      const { command, args } = openUrlCommand(platform, target.url);
+      return run(command, args);
+    }
     return preciseResult ?? { focused: false, reason: "This session has no supported focus target" };
   };
 }

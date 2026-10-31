@@ -36,7 +36,7 @@ describe("project-aware focus", () => {
     expect((await focus({ claudeConversationId: "../../new?q=private" })).focused).toBe(false);
     expect(run).toHaveBeenCalledTimes(1);
   });
-  it("targets different projects in the same IDEA installation before PID-only activation", async () => {
+  it.skipIf(process.platform === "win32")("targets different projects in the same IDEA installation before PID-only activation", async () => {
     const paths = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: true, run });
@@ -48,7 +48,7 @@ describe("project-aware focus", () => {
     ]);
   });
 
-  it("uses a bundle ID when an exact application path was not reported", async () => {
+  it.skipIf(process.platform === "win32")("uses a bundle ID when an exact application path was not reported", async () => {
     const [project] = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: false, run });
@@ -56,7 +56,7 @@ describe("project-aware focus", () => {
     expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-b", "com.jetbrains.intellij", project]);
   });
 
-  it("uses the named IntelliJ launcher for bridge sessions without installation metadata", async () => {
+  it.skipIf(process.platform === "win32")("uses the named IntelliJ launcher for bridge sessions without installation metadata", async () => {
     const [project] = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", run });
@@ -72,7 +72,7 @@ describe("project-aware focus", () => {
     expect(run).not.toHaveBeenCalled();
   });
 
-  it("returns a project failure without falling back to activating every IDEA window", async () => {
+  it.skipIf(process.platform === "win32")("returns a project failure without falling back to activating every IDEA window", async () => {
     const [project] = await projects();
     const run = vi.fn(async (_command: string, _args: string[]): Promise<FocusResult> => ({ focused: false, reason: "Command failed" }));
     const focus = createFocusHandler({ platform: "darwin", run });
@@ -80,7 +80,7 @@ describe("project-aware focus", () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps non-IDE targets at application scope even when a session has a working directory", async () => {
+  it.skipIf(process.platform === "win32")("keeps non-IDE targets at application scope even when a session has a working directory", async () => {
     const [project] = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: false, run });
@@ -92,5 +92,37 @@ describe("project-aware focus", () => {
     expect(focusTargetSchema.safeParse(target).success).toBe(true);
     expect(focusTargetSchema.safeParse({ appPath: "relative/IDE.app" }).success).toBe(false);
     expect(focusTargetSchema.safeParse({ appPath: "/tmp/executable" }).success).toBe(false);
+  });
+});
+
+describe("focus on Linux and Windows", () => {
+  it("activates the window of a process with xdotool on Linux", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "linux", run });
+    expect(await focus({ appName: "GNOME Terminal", pid: 42 })).toEqual({ focused: true, scope: "application" });
+    expect(run).toHaveBeenCalledWith("xdotool", ["search", "--pid", "42", "windowactivate"]);
+  });
+
+  it("activates the window of a process with PowerShell on Windows", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "win32", run });
+    expect(await focus({ appName: "Windows Terminal", pid: 42 })).toEqual({ focused: true, scope: "application" });
+    expect(run.mock.calls[0][0]).toBe("powershell.exe");
+    expect(run.mock.calls[0][1].join(" ")).toContain("AppActivate(42)");
+  });
+
+  it("opens the Claude chat link with xdg-open on Linux", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "linux", run });
+    const result = await focus({ claudeConversationId: "6ef2c5c7-a520-49a1-b6fb-5b3831863a22" });
+    expect(result).toEqual({ focused: true, scope: "session" });
+    expect(run.mock.calls[0][0]).toBe("xdg-open");
+  });
+
+  it("reports a safe reason when no window can be focused", async () => {
+    const run = vi.fn(async (): Promise<FocusResult> => ({ focused: false, reason: "failed" }));
+    const focus = createFocusHandler({ platform: "linux", run });
+    const result = await focus({ appName: "Terminal" });
+    expect(result.focused).toBe(false);
   });
 });

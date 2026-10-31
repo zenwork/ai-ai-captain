@@ -23,7 +23,7 @@ This file intentionally uses the requested name `intagration.md`. It owns integr
 | Claude desktop chat                 | Experimental Accessibility adapter for exposed conversation URLs and known English controls | Requires Accessibility access; hidden chats and other UI formats are not fully supported               |
 | ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`; shown as an APP key on Stream Deck                    | Plain conversations not automatically tracked (see INT-10 for ChatGPT research)                        |
 
-Node.js 24+ is required to build AI AI Captain and for local hub development. Stream Deck 7.1+ is required for the current plugin; its manifest targets macOS 13+ and the embedded Node 20 runtime. The plugin also runs the bundled hub on that Node 20 runtime. The default hardware profile targets the XL. macOS is required for the current automatic process/lifetime adapters and focus commands, not for the generic session API itself.
+Node.js 24+ is required to build AI AI Captain and for local hub development. Stream Deck 7.1+ is required for the current plugin; its manifest targets macOS 13+, Windows 10+, and the embedded Node 20 runtime. The plugin also runs the bundled hub on that Node 20 runtime. The default hardware profile targets the XL. macOS is required for the current automatic process/lifetime adapters and focus commands, not for the generic session API itself.
 
 ## INT-02 — Automatic adapter contracts
 
@@ -233,7 +233,7 @@ Use **Icon palette** and **Flash intensity** in the dashboard to save shared app
 | `AI_AI_CAPTAIN_PORT`                | Hub                          | `43681`; hub remains bound to `127.0.0.1`                                                                                                             |
 | `AI_AI_CAPTAIN_URL`                 | CLI, Stream Deck, IDE bridge | `http://127.0.0.1:43681`; set consistently when changing ports                                                                                        |
 | `AI_AI_CAPTAIN_DATA_DIR`            | Hub                          | `~/Library/Application Support/ai-ai-captain`; an earlier `ai-deck` directory moves here at first start                                               |
-| `AI_AI_CAPTAIN_WEB_DIR`             | Hub                          | Static web directory; otherwise repository `web/`, or adjacent `web/` in SEA mode. The plugin sets the plugin `web/` directory for the supervised hub |
+| `AI_AI_CAPTAIN_WEB_DIR`             | Hub                          | Static web directory; otherwise repository `web/`. The plugin sets the plugin `web/` directory for the supervised hub |
 | `AI_AI_CAPTAIN_LOG_LEVEL`           | Hub                          | `info`; one of `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`. The plugin sets `warn` for the supervised hub                            |
 | `AI_AI_CAPTAIN_EXIT_WITH_PARENT`    | Hub                          | Internal flag set by the plugin. `1` stops the hub when its parent process stops                                                                      |
 | `AI_AI_CAPTAIN_COPILOT_HOME`        | Copilot adapter              | `~/.copilot`, containing `session-state`                                                                                                              |
@@ -243,8 +243,6 @@ Use **Icon palette** and **Flash intensity** in the dashboard to save shared app
 | `AI_AI_CAPTAIN_JETBRAINS_INSTANCES` | Lifetime inspector           | `~/.junie/instances`                                                                                                                                  |
 | `AI_AI_CAPTAIN_PRECISE_FOCUS`       | Hub focus adapter            | Opt-in `1` for attempted PID app focus                                                                                                                |
 | `AI_AI_CAPTAIN_IDEA_HOME`           | Bridge build                 | Optional local IDE installation                                                                                                                       |
-| `AI_AI_CAPTAIN_SEA_NODE`            | SEA build                    | Optional suitable official Node executable                                                                                                            |
-| `AI_AI_CAPTAIN_SEA`                 | Packaged hub                 | Internal SEA mode flag set by the build                                                                                                               |
 
 Environment variables must be available to the actual process, not merely an unrelated terminal; GUI-launched apps may not inherit shell configuration. The supervised hub gets the environment of the Stream Deck plugin process. Thus, it normally uses the default values. To use other values, start the hub manually with the variables before the plugin starts. No property-inspector URL setting is currently implemented for the Stream Deck action.
 

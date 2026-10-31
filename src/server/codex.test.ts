@@ -3,7 +3,10 @@ import { appendFile, mkdtemp, mkdir, rename, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CodexSessionState, CodexTracker, codexOwners, type CodexOwner } from "./codex.js";
+import { useMacosPlatform } from "./macos-platform.js";
 import { SessionStore } from "./store.js";
+
+useMacosPlatform();
 
 const directories: string[] = [];
 const stores: SessionStore[] = [];
@@ -214,7 +217,7 @@ describe("Codex session tracking", () => {
     expect(store.list()[0]).toMatchObject({ harness: "codex-app" });
   });
 
-  it("distinguishes readable but unsupported telemetry from a read failure", async () => {
+  it.skipIf(process.platform === "win32")("distinguishes readable but unsupported telemetry from a read failure", async () => {
     const { store, tracker, owners } = await fixture();
     await writeFile(owners[0].rolloutPath!, "not-json\n");
     await tracker.reconcile(owners);

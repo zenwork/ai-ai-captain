@@ -3,7 +3,10 @@ import { appendFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CopilotSessionState, CopilotTracker, copilotOwners, type CopilotOwner } from "./copilot.js";
+import { useMacosPlatform } from "./macos-platform.js";
 import { SessionStore } from "./store.js";
+
+useMacosPlatform();
 
 const directories: string[] = [];
 const stores: SessionStore[] = [];
@@ -213,6 +216,6 @@ describe("Copilot session tracking", () => {
     const root = "/home/example/.copilot/session-state";
     const processes = [{ pid: 123, parentPid: 20, name: "/cache/copilot-runtime" }, { pid: 20, parentPid: 10, name: "/plugins/copilot-language-server" }, { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea" }];
     const output = `p123\nn${root}/first-session/inuse.123.hold\nn${root}/old-session/inuse.123.lock\nn${root}/wrong-owner/inuse.456.hold\nn/other/root/unrelated/inuse.123.hold\n`;
-    expect(copilotOwners(output, root, processes)).toEqual([{ sessionId: "first-session", pid: 123, directory: `${root}/first-session`, focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA.app" } }]);
+    expect(copilotOwners(output, root, processes)).toEqual([{ sessionId: "first-session", pid: 123, directory: join(root, "first-session"), focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA.app" } }]);
   });
 });

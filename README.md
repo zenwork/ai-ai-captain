@@ -153,7 +153,6 @@ The hub binds to `127.0.0.1` by default. Do not put prompts or transcripts in `l
 npm test
 npm run typecheck
 npm run build
-npm run build:sea
 ```
 
 GitHub Actions runs typecheck, tests, and build on pull requests and on `main`. Release Please reads Conventional Commits on `main` and opens a release pull request. Refer to [AGENTS.md](AGENTS.md) for the commit rules.

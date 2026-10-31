@@ -75,7 +75,7 @@
   "Icon": "imgs/plugin",
   "SDKVersion": 3,
   "Software": { "MinimumVersion": "7.1" },
-  "OS": [{ "Platform": "mac", "MinimumVersion": "13" }],
+  "OS": [{ "Platform": "mac", "MinimumVersion": "13" }, { "Platform": "windows", "MinimumVersion": "10" }],
   "Nodejs": { "Version": "20" },
   "UUID": "com.local.ai-ai-captain",
   "Version": "0.1.0.0"

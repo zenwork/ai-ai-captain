@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import { ClaudeTracker, claudeRegistryState, parseClaudeTranscriptTail } from "./claude.js";
 import type { ProcessInfo } from "./processes.js";
+import { useMacosPlatform } from "./macos-platform.js";
 import { SessionStore } from "./store.js";
+
+useMacosPlatform();
 
 const startedAt = "2026-10-26T08:00:00.000Z";
 const sessionId = "6ef2c5c7-a520-49a1-b6fb-5b3831863a22";
@@ -34,7 +37,7 @@ async function fixture() {
   const registration = async (pid = 20, fields: Record<string, unknown> = {}) => {
     await writeFile(join(root, "sessions", `${pid}.json`), JSON.stringify({
       pid, sessionId, cwd: "/projects/example", startedAt: Date.parse(startedAt), procStart: startedAt,
-      pidDomain: "darwin", status: "busy", statusUpdatedAt: Date.parse(startedAt), ...fields,
+      pidDomain: platform(), status: "busy", statusUpdatedAt: Date.parse(startedAt), ...fields,
     }));
   };
   return { root, store, tracker: new ClaudeTracker(store, root), registration };
@@ -99,7 +102,7 @@ describe("Claude registry tracking", () => {
     const { root, tracker, store, registration } = await fixture();
     await registration(999);
     await registration(20, { procStart: "2026-10-25T08:00:00Z" });
-    await registration(40, { pidDomain: "linux" });
+    await registration(40, { pidDomain: "other-system" });
     await registration(60, { pid: 40 });
     await writeFile(join(root, "sessions", "10.json"), "{}");
     await tracker.scan(processes);

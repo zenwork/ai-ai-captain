@@ -75,7 +75,7 @@ afterEach(async () => {
   await Promise.all(temporaryDirectoryPaths.splice(0).map((path) => rm(path, { force: true, recursive: true })));
 });
 
-describe("virtual deck startup", () => {
+describe.skipIf(process.platform === "win32")("virtual deck startup", () => {
   it("opens Chrome after a direct readiness check despite proxy settings and curl configuration", async () => {
     const { directoryPath, callsFilePath } = await createLauncherEnvironment();
     let proxyRequestCount = 0;
