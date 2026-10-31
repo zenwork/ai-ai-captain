@@ -1,7 +1,19 @@
 import { EventEmitter } from "node:events";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { defaultSettings, parseStoredSettings, settingsWriteSchema, type HubSettings, type HubSettingsWrite } from "../shared/settings.js";
+
+/** Windows can refuse to rename over a file that another program holds open. Then write the file directly. */
+async function replaceFile(temporary: string, destination: string, content: string): Promise<void> {
+  try {
+    await rename(temporary, destination);
+  } catch (error) {
+    const code = error instanceof Error && "code" in error ? error.code : undefined;
+    if (code !== "EPERM") throw error;
+    await writeFile(destination, content, { mode: 0o600 });
+    await rm(temporary, { force: true });
+  }
+}
 
 export class SettingsStore {
   readonly #events = new EventEmitter();
@@ -36,7 +48,7 @@ export class SettingsStore {
         await mkdir(dirname(this.persistencePath), { recursive: true });
         const temporary = `${this.persistencePath}.tmp`;
         await writeFile(temporary, JSON.stringify(next, null, 2), { mode: 0o600 });
-        await rename(temporary, this.persistencePath);
+        await replaceFile(temporary, this.persistencePath, JSON.stringify(next, null, 2));
       }
       this.#settings = next;
       this.#events.emit("change", this.get());
