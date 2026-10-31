@@ -4,10 +4,10 @@ import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
-import { defaultPaletteId, getPalette, type PaletteId } from "../../src/shared/palette.js";
-import { defaultFlashIntensity, defaultShowInfoKeys, type HubSettings } from "../../src/shared/settings.js";
+import { defaultPaletteId, getPalette, paletteIds, type PaletteId } from "../../src/shared/palette.js";
+import { defaultFlashIntensity, defaultShowInfoKeys, flashIntensityMax, flashIntensityMin, type HubSettings } from "../../src/shared/settings.js";
 import { isFlashIntensity } from "../../src/shared/flash-intensity.js";
-import { appImage, appSignature, dashboardImage, emptyImage, infoImage, infoSignature, pagerImage, sessionImage, sessionSignature, waitingPulseIntervalMs } from "./cards.js";
+import { appImage, appSignature, dashboardImage, emptyImage, infoImage, infoSignature, pagerImage, sessionImage, sessionSignature, settingControlImage, settingControlSignature, waitingPulseIntervalMs, type SettingControlKind } from "./cards.js";
 import { svgDataUri } from "./images.js";
 import { HubSupervisor, isHubHealthy, localHubPort, spawnHubProcess } from "./hub-supervisor.js";
 
@@ -102,7 +102,7 @@ function stopRefreshWhenHidden(): void {
     updatePulseTimer(false);
     updateDoneTimer();
   }
-  if (visibleKeys.size || pagerActions.size || dashboardActions.size || infoKeys.size || !refreshTimer) return;
+  if (visibleKeys.size || pagerActions.size || dashboardActions.size || infoKeys.size || settingActions.size || !refreshTimer) return;
   clearInterval(refreshTimer);
   refreshTimer = undefined;
 }
@@ -187,6 +187,7 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
   if (logUpdates) {
     await renderPagers();
     await renderDashboards();
+    await renderSettingControls();
   }
 }
 
@@ -364,6 +365,88 @@ class SessionInfoKey extends SingletonAction<SessionSettings> {
   }
 }
 
+const settingActions = new Map<string, { kind: SettingControlKind; action: KeyAction<SessionSettings> }>();
+
+function currentFlashIntensity(): HubSettings["flashIntensity"] {
+  return isFlashIntensity(flashIntensity) ? flashIntensity : defaultFlashIntensity;
+}
+
+function nextSettings(kind: SettingControlKind): HubSettings {
+  const current: HubSettings = { palette, flashIntensity: currentFlashIntensity(), showInfoKeys };
+  if (kind === "info-keys") return { ...current, showInfoKeys: !current.showInfoKeys };
+  if (kind === "theme") {
+    const index = paletteIds.indexOf(current.palette);
+    return { ...current, palette: paletteIds[(index + 1) % paletteIds.length] ?? current.palette };
+  }
+  const levelCount = flashIntensityMax - flashIntensityMin + 1;
+  const next = (current.flashIntensity - flashIntensityMin + 1) % levelCount + flashIntensityMin;
+  return { ...current, flashIntensity: isFlashIntensity(next) ? next : defaultFlashIntensity };
+}
+
+async function renderSettingControls(): Promise<void> {
+  const state = { palette, flashIntensity, showInfoKeys };
+  for (const { kind, action } of settingActions.values()) {
+    const signature = settingControlSignature(kind, state);
+    if (renderedControls.get(action.id) === signature) continue;
+    await action.setImage(svgDataUri(settingControlImage(kind, state)));
+    await action.setTitle("");
+    renderedControls.set(action.id, signature);
+  }
+}
+
+class SettingControlAction extends SingletonAction<SessionSettings> {
+  constructor(private readonly kind: SettingControlKind) {
+    super();
+  }
+
+  async onWillAppear(event: WillAppearEvent<SessionSettings>): Promise<void> {
+    if (!event.action.isKey()) return;
+    settingActions.set(event.action.id, { kind: this.kind, action: event.action });
+    renderedControls.delete(event.action.id);
+    await renderSettingControls();
+    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    await refresh();
+  }
+
+  onWillDisappear(event: WillDisappearEvent<SessionSettings>): void {
+    settingActions.delete(event.action.id);
+    renderedControls.delete(event.action.id);
+    stopRefreshWhenHidden();
+  }
+
+  async onKeyDown(event: KeyDownEvent<SessionSettings>): Promise<void> {
+    if (!event.action.isKey()) return;
+    try {
+      const response = await fetch(`${hubUrl}/api/settings`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(nextSettings(this.kind)),
+        signal: AbortSignal.timeout(4000),
+      });
+      if (!response.ok) throw new Error(`Hub returned ${response.status}`);
+      await refresh();
+    } catch {
+      streamDeck.logger.warn("The hub could not change the setting");
+      await event.action.showAlert();
+    }
+  }
+}
+
+@action({ UUID: "com.local.ai-ai-captain.toggle-info-keys" })
+class ToggleInfoKeysAction extends SettingControlAction {
+  constructor() { super("info-keys"); }
+}
+
+@action({ UUID: "com.local.ai-ai-captain.cycle-theme" })
+class CycleThemeAction extends SettingControlAction {
+  constructor() { super("theme"); }
+}
+
+@action({ UUID: "com.local.ai-ai-captain.cycle-brightness" })
+class CycleBrightnessAction extends SettingControlAction {
+  constructor() { super("brightness"); }
+}
+
 const pagerActions = new Map<string, { direction: "previous" | "next"; action: KeyAction<PagerSettings> }>();
 
 class PagerAction extends SingletonAction<PagerSettings> {
@@ -445,6 +528,9 @@ streamDeck.actions.registerAction(new PreviousPage());
 streamDeck.actions.registerAction(new NextPage());
 streamDeck.actions.registerAction(new DashboardAction());
 streamDeck.actions.registerAction(new SessionInfoKey());
+streamDeck.actions.registerAction(new ToggleInfoKeysAction());
+streamDeck.actions.registerAction(new CycleThemeAction());
+streamDeck.actions.registerAction(new CycleBrightnessAction());
 void streamDeck.connect().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;

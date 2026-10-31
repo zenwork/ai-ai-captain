@@ -39,6 +39,30 @@
       "Tooltip": "Open session state explanations, telemetry evidence, and troubleshooting details in your browser",
       "States": [{ "Image": "imgs/dashboard", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
       "Controllers": ["Keypad"]
+    },
+    {
+      "UUID": "com.local.ai-ai-captain.toggle-info-keys",
+      "Name": "Toggle Info Keys",
+      "Icon": "imgs/session",
+      "Tooltip": "Turn the info keys on or off",
+      "States": [{ "Image": "imgs/session", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "Controllers": ["Keypad"]
+    },
+    {
+      "UUID": "com.local.ai-ai-captain.cycle-theme",
+      "Name": "Cycle Theme",
+      "Icon": "imgs/session",
+      "Tooltip": "Select the next icon palette",
+      "States": [{ "Image": "imgs/session", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "Controllers": ["Keypad"]
+    },
+    {
+      "UUID": "com.local.ai-ai-captain.cycle-brightness",
+      "Name": "Cycle Brightness",
+      "Icon": "imgs/session",
+      "Tooltip": "Select the next flash intensity level",
+      "States": [{ "Image": "imgs/session", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "Controllers": ["Keypad"]
     }
   ],
   "Profiles": [{ "Name": "profiles/ai-ai-captain-xl", "DeviceType": 2, "AutoInstall": true, "DontAutoSwitchWhenInstalled": true }],
