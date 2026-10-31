@@ -135,5 +135,10 @@ await writeFile(join(pageRoot, "manifest.json"), JSON.stringify({ Controllers: [
 const profileDirectory = join(destination, "profiles");
 await mkdir(profileDirectory, { recursive: true });
 const profileArchive = join(profileDirectory, "ai-ai-captain-xl.streamDeckProfile");
-execFileSync("zip", ["-qr", profileArchive, `${profileId}.sdProfile`], { cwd: profileTemp });
+// Windows has no zip command. Its tar command (bsdtar) makes zip files.
+if (process.platform === "win32") {
+  execFileSync("tar", ["-a", "-c", "-f", profileArchive, `${profileId}.sdProfile`], { cwd: profileTemp });
+} else {
+  execFileSync("zip", ["-qr", profileArchive, `${profileId}.sdProfile`], { cwd: profileTemp });
+}
 await rm(profileTemp, { recursive: true, force: true });
