@@ -3,7 +3,10 @@ import { appendFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CopilotSessionState, CopilotTracker, copilotOwners, type CopilotOwner } from "./copilot.js";
+import { useMacosPlatform } from "./macos-platform.js";
 import { SessionStore } from "./store.js";
+
+useMacosPlatform();
 
 const directories: string[] = [];
 const stores: SessionStore[] = [];

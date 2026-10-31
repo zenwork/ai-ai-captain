@@ -4,7 +4,10 @@ import { platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import { ClaudeTracker, claudeRegistryState, parseClaudeTranscriptTail } from "./claude.js";
 import type { ProcessInfo } from "./processes.js";
+import { useMacosPlatform } from "./macos-platform.js";
 import { SessionStore } from "./store.js";
+
+useMacosPlatform();
 
 const startedAt = "2026-10-26T08:00:00.000Z";
 const sessionId = "6ef2c5c7-a520-49a1-b6fb-5b3831863a22";

@@ -3,7 +3,10 @@ import { appendFile, mkdtemp, mkdir, rename, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CodexSessionState, CodexTracker, codexOwners, type CodexOwner } from "./codex.js";
+import { useMacosPlatform } from "./macos-platform.js";
 import { SessionStore } from "./store.js";
+
+useMacosPlatform();
 
 const directories: string[] = [];
 const stores: SessionStore[] = [];

@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { JunieTracker, junieEventState, lastJunieContext, lastJunieStatus, parseJunieSettings } from "./junie.js";
 import type { LifetimeInspector } from "./lifetimes.js";
 import type { ProcessInfo } from "./processes.js";
+import { useMacosPlatform } from "./macos-platform.js";
 import { SessionStore } from "./store.js";
+
+useMacosPlatform();
 
 const sessionIdentifier = "session-261026-193506-ofk2";
 const projectDirectory = "/projects/example";
