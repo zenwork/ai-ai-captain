@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/zenwork/ai-ai-captain/compare/v1.0.0...v1.1.0) (2026-11-01)
+
+
+### Features
+
+* **claude-app:** improve integration with claude app sessions ([#12](https://github.com/zenwork/ai-ai-captain/issues/12)) ([1b6a087](https://github.com/zenwork/ai-ai-captain/commit/1b6a087bfc13e803badd8babbfa9a6609a95e00d))
+* **keys:** add subscription keys ([#13](https://github.com/zenwork/ai-ai-captain/issues/13)) ([ab4b5c2](https://github.com/zenwork/ai-ai-captain/commit/ab4b5c29ff6537ee2a44ac83186da2941851906b))
+
+
+### Bug Fixes
+
+* **design:** improve UX ([#16](https://github.com/zenwork/ai-ai-captain/issues/16)) ([a393e9d](https://github.com/zenwork/ai-ai-captain/commit/a393e9d2000e55232d70878c3101fe3f399cea43))
+
 ## [1.0.0](https://github.com/zenwork/ai-ai-captain/compare/v0.3.0...v1.0.0) (2026-10-31)
 
 
