@@ -2,7 +2,7 @@ import { action, SingletonAction, streamDeck, type KeyAction, type KeyDownEvent,
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
-import type { Client, Session } from "../../src/shared/session.js";
+import { dismissableStates, type Client, type Session } from "../../src/shared/session.js";
 import type { Budget } from "../../src/shared/budget.js";
 import { budgetProviders, type BudgetProviderId } from "../../src/shared/card-design.js";
 import { doneAttention } from "../../src/shared/attention.js";
@@ -45,8 +45,16 @@ const removalConfirmationWindowMilliseconds = 10_000;
 const failedFocusTimes = new Map<string, number>();
 let logRenderRequested = false;
 
+// A second press on the same DONE, FAILED, or UNKNOWN session key within this time dismisses the session.
+const doublePressWindowMilliseconds = 400;
+const pendingPresses = new Map<string, { sessionId: string; timer: ReturnType<typeof setTimeout> }>();
+
+function visibleSessions(): Session[] {
+  return sessions.filter((session) => !session.dismissedAt);
+}
+
 function orderedSessions(): Session[] {
-  return [...sessions].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
+  return [...visibleSessions()].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
 }
 
 function orderedClients(): Client[] {
@@ -54,7 +62,7 @@ function orderedClients(): Client[] {
 }
 
 function keyItemCount(): number {
-  return sessions.length + clients.length;
+  return visibleSessions().length + clients.length;
 }
 
 function sessionKeys(deviceId: string): KeyAction<SessionSettings>[] {
@@ -411,29 +419,66 @@ class SessionKey extends SingletonAction<SessionSettings> {
     if (!event.action.isKey()) return;
     const index = sessionIndex(event.action);
     if (index === undefined) return;
-    const session = orderedSessions()[index];
+    const ordered = orderedSessions();
+    const session = ordered[index];
     if (!session) {
-      const client = orderedClients()[index - sessions.length];
+      const client = orderedClients()[index - ordered.length];
       if (client) await focusClient(event.action, client);
       return;
     }
-    const previousFailureTime = failedFocusTimes.get(session.id);
-    if (previousFailureTime !== undefined && Date.now() - previousFailureTime <= removalConfirmationWindowMilliseconds) {
-      await requestSessionRemoval(event.action, session.id);
+    const pending = pendingPresses.get(event.action.id);
+    if (pending) {
+      clearTimeout(pending.timer);
+      pendingPresses.delete(event.action.id);
+      if (pending.sessionId === session.id) {
+        await dismissSession(event.action, session.id);
+        return;
+      }
+    }
+    // Wait for a possible second press on a session that can be dismissed. Active sessions get focus at once.
+    if (dismissableStates.includes(session.state)) {
+      const action = event.action;
+      const timer = setTimeout(() => {
+        pendingPresses.delete(action.id);
+        void focusSession(action, session);
+      }, doublePressWindowMilliseconds);
+      pendingPresses.set(action.id, { sessionId: session.id, timer });
       return;
     }
-    failedFocusTimes.delete(session.id);
-    try {
-      const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(session.id)}/focus`, { method: "POST", signal: AbortSignal.timeout(10000) });
-      const result = await response.json() as { focused?: boolean; reason?: string };
-      if (!response.ok || !result.focused) {
-        streamDeck.logger.warn(result.reason ?? "The hub could not focus the session");
-        failedFocusTimes.set(session.id, Date.now());
-        await event.action.showAlert();
-      }
-    } catch {
-      await event.action.showAlert();
+    await focusSession(event.action, session);
+  }
+}
+
+async function dismissSession(keyAction: KeyAction<SessionSettings>, sessionIdentifier: string): Promise<void> {
+  try {
+    const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(sessionIdentifier)}/dismiss`, { method: "POST", signal: AbortSignal.timeout(4000) });
+    if (!response.ok) throw new Error(`Hub returned ${response.status}`);
+    sessions = sessions.map((session) => session.id === sessionIdentifier ? { ...session, dismissedAt: new Date().toISOString() } : session);
+    await renderKeys();
+  } catch {
+    streamDeck.logger.warn("The hub could not dismiss the session");
+    await keyAction.showAlert();
+  }
+}
+
+async function focusSession(keyAction: KeyAction<SessionSettings>, session: Session): Promise<void> {
+  // A second press within ten seconds after a failed focus removes the stale session.
+  const previousFailureTime = failedFocusTimes.get(session.id);
+  if (previousFailureTime !== undefined && Date.now() - previousFailureTime <= removalConfirmationWindowMilliseconds) {
+    await requestSessionRemoval(keyAction, session.id);
+    return;
+  }
+  failedFocusTimes.delete(session.id);
+  try {
+    const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(session.id)}/focus`, { method: "POST", signal: AbortSignal.timeout(10000) });
+    const result = await response.json() as { focused?: boolean; reason?: string };
+    if (!response.ok || !result.focused) {
+      streamDeck.logger.warn(result.reason ?? "The hub could not focus the session");
+      failedFocusTimes.set(session.id, Date.now());
+      await keyAction.showAlert();
     }
+  } catch {
+    await keyAction.showAlert();
   }
 }
 

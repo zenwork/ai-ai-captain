@@ -4,6 +4,8 @@ import type { Budget } from "./budget.js";
 
 export const sessionStates = ["starting", "working", "waiting", "done", "failed", "unknown"] as const;
 export type SessionState = (typeof sessionStates)[number];
+// The user can hide a session in these states from the Stream Deck. Active sessions (starting, working, waiting) stay visible.
+export const dismissableStates: readonly SessionState[] = ["done", "failed", "unknown"];
 
 export const focusTargetSchema = z.object({
   appName: z.string().trim().min(1).max(120).optional(),
@@ -41,6 +43,8 @@ export const sessionInputSchema = z.object({
 
 export const sessionSchema = sessionInputSchema.extend({
   stateChangedAt: z.string().datetime().optional(),
+  // The user hid this session on the Stream Deck. The hub clears it when the state or the state change time changes.
+  dismissedAt: z.string().datetime().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   lastActivityAt: z.string().datetime(),

@@ -310,6 +310,16 @@ A stale key shows an alert when you push it, and the session does not exist any 
 
 The hub removes the session. An automatic adapter can show the session again if its source files change.
 
+### 7.7 Hide a session
+
+You can hide a DONE, FAILED, or UNK session that you do not need now. This works for all session types.
+
+1. Push the key of the session two times quickly, within 0.4 seconds.
+
+The key goes away, and the other keys move up. The session comes back when its status changes, for example when it starts new work. The dashboard virtual deck also hides it.
+
+You cannot hide a STARTING, WORKING, or WAITING session. A single push on a DONE, FAILED, or UNK key waits 0.4 seconds before it shows the application, so the plugin can see a second push. Keys in other states respond at once.
+
 ### 7.7 Show all key variations (demo)
 
 Use the demo to test the keys. It shows 24 keys: each of the 12 key types two times. The states change every 4 seconds.

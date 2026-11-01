@@ -258,7 +258,8 @@ class DeckPanel extends HTMLElement {
     const rowsPerKey = this.#showInfoKeys && !alternating ? 2 : 1;
     const slotsPerItem = alternating ? 2 : 1;
     const maxRows = this.#view.singleRow ? 1 : Math.max(1, Math.floor(fittingRows / rowsPerKey));
-    const page = deckPage(this.#sessions, this.#clients, this.#page, alternating ? Math.floor(maxColumns / slotsPerItem) : maxColumns, maxRows);
+    // Sessions that the user dismissed on the Stream Deck stay hidden until their state changes.
+    const page = deckPage(this.#sessions.filter((session) => !session.dismissedAt), this.#clients, this.#page, alternating ? Math.floor(maxColumns / slotsPerItem) : maxColumns, maxRows);
     this.#page = page.page;
     const pageLabel = `${page.page + 1}/${page.totalPages}`;
     const automaticKeySize = Math.min(maximumKeySize, Math.floor(Math.min(available.width / (page.columns * slotsPerItem), available.height / (page.rows * rowsPerKey))) - keyGap);

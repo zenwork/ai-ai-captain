@@ -92,10 +92,11 @@ The adapter also reads each row of the "Chats and tasks" sidebar list. Each row 
 `Running` gives WORKING. A working task can show its current activity in place of `Running`, for example `Using the browser`. Any other status indicator label also gives WORKING. `Awaiting input` and `Awaiting answer` give WAITING. `Unread response`, `Done`, and `Completed` give DONE. `Error` gives FAILED. `Idle` and `Archived` rows are not reported.
 The inspection script changes each row title into a 64-bit hash. The title does not leave the script. The hub keeps only the hash.
 When the open page title agrees with a row title, the page joins that row. The row identity stays the same when the user opens another page.
-A hidden sidebar or a filtered list removes the rows that it does not show. A changed title gives a new row identity.
+A hidden sidebar or a filtered list removes the rows that it does not show, after 15 seconds. The app sorts its sidebar again when a task changes, so one scan can miss a row. During the 15 seconds, the session keeps its key position and its completion time. A changed title gives a new row identity.
+DONE attention: a row that the hub sees change to DONE flashes as a new completion. A row that is already DONE at its first scan has no known completion time, so it does not flash. A row that the app shows as read (`Done` or `Completed`, not `Unread response`) does not flash, because the user has opened it. The adapter sets `completionAttention: "none"` in the session metadata for these rows.
 The adapter reads the model picker label of the open page, for example `Model: Opus 5.5 Medium`. It changes the label to a model name such as `claude-opus-5-5` and does not keep the effort level.
 The hub keeps the last model of each chat or task after the user leaves its page. The app does not show tokens, context use, freedom, or approval, so the info key leaves them empty.
-Inspection is bounded to 6000 elements and four seconds. Unsupported UI formats fail to UNKNOWN or app-presence diagnostics.
+Inspection is bounded to 6000 elements and four seconds. A long conversation can pass the element limit. Then the scan reports the sessions that it found and removes no session. Unsupported UI formats fail to UNKNOWN or app-presence diagnostics.
 The installed desktop app must expose these controls; full UI-version coverage is not yet verified.
 
 The [Claude deep-link contract](https://support.claude.com/en/articles/14729294-open-claude-desktop-with-a-link) defines existing-chat navigation.
@@ -118,6 +119,7 @@ The default base URL is `http://127.0.0.1:43681`.
 | `PUT /api/sessions/:id`        | Validated session upsert; body `id` must match URL-decoded path ID                                                                                                                                     |
 | `POST /api/sessions/:id/end`   | `{ "state": "done" }` or `{ "state": "failed" }`; explicitly closes one record                                                                                                                         |
 | `POST /api/sessions/:id/focus` | Navigation result with `focused` and optional scope/reason                                                                                                                                             |
+| `POST /api/sessions/:id/dismiss` | Hide a DONE, FAILED, or UNKNOWN session until its state or state change time changes; sets `dismissedAt`. 404 for a missing session, 409 for an active one                                   |
 | `GET /api/events`              | SSE snapshot, then session/client/settings/budget changes                                                                                                                                              |
 | `GET` / `PUT` / `DELETE /api/budgets` | Subscription budgets. Refer to `INT-12`                                                                                                                                                          |
 

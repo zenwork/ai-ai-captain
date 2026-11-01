@@ -31,9 +31,12 @@ const rowSessionSchema = z.object({
   kind: z.literal("row"),
   sessionId: titleKeySchema,
   state: sessionStateSchema,
+  // The app shows the row as read ("Done", "Completed"), not "Unread response". The user has opened the result.
+  seen: z.literal(true).optional(),
 });
 const snapshotSchema = z.object({
-  status: z.enum(["available", "permission-denied", "unavailable"]),
+  // "partial": the inspection reached its element limit. The sessions that it found are correct, but others can be missing.
+  status: z.enum(["available", "partial", "permission-denied", "unavailable"]),
   sessions: z.array(z.union([rowSessionSchema, taskSessionSchema, chatSessionSchema])).max(200),
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
@@ -98,6 +101,7 @@ function run(argv) {
     "Running": "working", "Awaiting input": "waiting", "Awaiting answer": "waiting", "Unread response": "done",
     "Done": "done", "Completed": "done", "Error": "failed", "Idle": "idle", "Archived": "idle",
   };
+  var seenLabels = { "Done": true, "Completed": true };
   var count = 0;
   var pause = typeof delay === "function" ? delay : function() {};
   // Find the title key of the open claude.ai page. Return null when no page is open.
@@ -160,6 +164,7 @@ function run(argv) {
   function inspectRow(button, title) {
     var labels = [];
     var state = null;
+    var read = false;
     var pending = children(button).map(function(child) { return { element: child, depth: 1 }; });
     while (pending.length && count++ < 6000) {
       var item = pending.pop();
@@ -169,7 +174,10 @@ function run(argv) {
       if (typeof label === "string" && label) {
         labels.push(label);
         var indicator = scalar(item.element, "AXSubrole") === "AXApplicationStatus";
-        if (rowStates.hasOwnProperty(label) && (role === "AXImage" || indicator)) state = rowStates[label];
+        if (rowStates.hasOwnProperty(label) && (role === "AXImage" || indicator)) {
+          state = rowStates[label];
+          read = seenLabels.hasOwnProperty(label);
+        }
         // A working task shows its current activity, for example "Using the browser", in place of "Running".
         else if (indicator && !state) state = "working";
       }
@@ -177,9 +185,9 @@ function run(argv) {
     }
     if (!state) return null;
     for (var index = 0; index < labels.length; index++) {
-      if (title.indexOf(labels[index] + " ") === 0) return { state: state, title: title.slice(labels[index].length + 1) };
+      if (title.indexOf(labels[index] + " ") === 0) return { state: state, read: read, title: title.slice(labels[index].length + 1) };
     }
-    return { state: state, title: title };
+    return { state: state, read: read, title: title };
   }
   try {
     var root = $.AXUIElementCreateApplication(Number(argv[0]));
@@ -217,7 +225,7 @@ function run(argv) {
           seen[key] = (seen[key] || 0) + 1;
           if (seen[key] > 1) key = key + "-" + seen[key];
           if (pressKey && key === pressKey) return openRow(root, element, key);
-          if (row.state !== "idle") rows.push({ kind: "row", sessionId: key, state: row.state });
+          if (row.state !== "idle") rows.push(row.read ? { kind: "row", sessionId: key, state: row.state, seen: true } : { kind: "row", sessionId: key, state: row.state });
         }
         continue;
       }
@@ -239,8 +247,8 @@ function run(argv) {
       var descendants = children(element);
       for (var index = 0; index < descendants.length; index++) pending.push({ element: descendants[index], session: session, sidebar: sidebar });
     }
-    if (pending.length) return snapshot("unavailable");
-    return snapshot("available", rows.concat(sessions.map(function(session) {
+    // A long conversation can pass the element limit. Report what was found, so that the hub keeps the other sessions.
+    return snapshot(pending.length ? "partial" : "available", rows.concat(sessions.map(function(session) {
       var result = { kind: session.kind, sessionId: session.sessionId, state: session.waiting ? "waiting" : session.working ? "working" : session.composer && session.send ? "done" : "unknown" };
       if (session.titleKey) result.titleKey = session.titleKey;
       if (session.model) result.model = session.model;
@@ -298,18 +306,24 @@ function merge(sessions: Snapshot["sessions"]): Map<string, ObservedSession> {
   return observed;
 }
 
+const missingSessionGraceMilliseconds = 15_000;
+
 export class ClaudeDesktopTracker {
   readonly #tracked = new Set<string>();
   readonly #signatures = new Map<string, string>();
-  readonly #observations = new Map<string, { state: string; transitionAt: string }>();
+  // quiet: the completion needs no attention, because its time is not known or the user has read it in the app.
+  readonly #observations = new Map<string, { state: string; transitionAt: string; quiet: boolean }>();
   // The model is visible only while a page is open. Keep the last model for each session.
   readonly #models = new Map<string, string>();
+  // The app sorts its sidebar again when a task changes. A scan in that moment can miss rows.
+  // Keep a missing session for a short time, so that it keeps its key position and its completion time.
+  readonly #missingSince = new Map<string, number>();
   status: Snapshot["status"] = "unavailable";
 
-  constructor(private readonly store: SessionStore, private readonly inspect: Inspector = inspectDesktop) {}
+  constructor(private readonly store: SessionStore, private readonly inspect: Inspector = inspectDesktop, private readonly now: () => number = Date.now) {}
 
   get hasSessions(): boolean {
-    return this.#tracked.size > 0 && this.status === "available";
+    return this.#tracked.size > 0 && (this.status === "available" || this.status === "partial");
   }
 
   async scan(processes: ProcessInfo[]): Promise<void> {
@@ -320,12 +334,13 @@ export class ClaudeDesktopTracker {
       this.#signatures.clear();
       this.#observations.clear();
       this.#models.clear();
+      this.#missingSince.clear();
       this.status = "unavailable";
       return;
     }
     const snapshot = snapshotSchema.parse(await this.inspect(application.pid));
     this.status = snapshot.status;
-    if (snapshot.status !== "available") {
+    if (snapshot.status !== "available" && snapshot.status !== "partial") {
       this.unavailable(snapshot.status === "permission-denied" ? "ACCESSIBILITY_DENIED" : "ACCESSIBILITY_UNAVAILABLE");
       return;
     }
@@ -334,14 +349,18 @@ export class ClaudeDesktopTracker {
       present.add(identifier);
       if (session.model) this.#models.set(identifier, claudeModelName(session.model));
       const model = this.#models.get(identifier);
+      this.#missingSince.delete(identifier);
       const signature = JSON.stringify([session, model, application.pid, application.startedAt]);
       if (this.#signatures.get(identifier) === signature) continue;
-      const observedAt = new Date().toISOString();
+      const observedAt = new Date(this.now()).toISOString();
       const previous = this.store.get(identifier);
       const known = this.#observations.get(identifier) ?? (previous && previous.state !== "unknown"
-        ? { state: previous.state, transitionAt: previous.stateChangedAt ?? previous.lastActivityAt } : undefined);
+        ? { state: previous.state, transitionAt: previous.stateChangedAt ?? previous.lastActivityAt, quiet: previous.metadata?.completionAttention === "none" } : undefined);
       const transitionAt = known?.state === session.state ? known.transitionAt : observedAt;
-      if (session.state !== "unknown") this.#observations.set(identifier, { state: session.state, transitionAt });
+      // A session that is DONE when the hub first sees it has no known completion time. Do not flash it as a new result.
+      const read = session.kind === "row" && session.seen === true;
+      const quiet = session.state === "done" && (read || (known ? known.state === "done" && known.quiet : true));
+      if (session.state !== "unknown") this.#observations.set(identifier, { state: session.state, transitionAt, quiet });
       // The deep-link contract covers chats only. Tasks and unmatched rows use application focus.
       const conversationId = session.kind === "chat" ? session.sessionId : session.conversationId;
       const rowKey = session.kind === "row" ? session.sessionId : undefined;
@@ -373,6 +392,7 @@ export class ClaudeDesktopTracker {
           lastTelemetryAt: observedAt,
           hostLifetime: "open",
           hostEvidence: evidence,
+          ...(quiet ? { completionAttention: "none" } : {}),
         },
       }, observedAt, transitionAt);
       this.#signatures.set(identifier, signature);
@@ -380,6 +400,12 @@ export class ClaudeDesktopTracker {
     }
     for (const identifier of this.#tracked) {
       if (present.has(identifier)) continue;
+      // A partial scan does not prove that a session is gone.
+      if (snapshot.status === "partial") continue;
+      const missingSince = this.#missingSince.get(identifier) ?? this.now();
+      this.#missingSince.set(identifier, missingSince);
+      if (this.now() - missingSince < missingSessionGraceMilliseconds) continue;
+      this.#missingSince.delete(identifier);
       this.store.remove(identifier);
       this.#tracked.delete(identifier);
       this.#signatures.delete(identifier);

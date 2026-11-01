@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { EventEmitter } from "node:events";
-import { sessionSchema, type HubEvent, type Session, type SessionInput } from "../shared/session.js";
+import { dismissableStates, sessionSchema, type HubEvent, type Session, type SessionInput } from "../shared/session.js";
 
 const terminalStates = new Set(["done", "failed"]);
 const terminalLifetimeMs = 10_000;
@@ -69,17 +69,34 @@ export class SessionStore {
       project: input.project ?? previous?.project,
       metadata: input.metadata ?? previous?.metadata,
     };
+    const transition = observedTransition ?? (previous?.state === input.state ? previous.stateChangedAt ?? previous.lastActivityAt : activity);
+    const { dismissedAt: previousDismissal, ...kept } = previous ?? {};
+    // A dismissed session comes back when its state changes, or when it enters the same state again (a new state change time).
+    const dismissedAt = previousDismissal && previous?.state === input.state && previous.stateChangedAt === transition ? previousDismissal : undefined;
     const session: Session = {
-      ...previous,
+      ...kept,
       ...mergedInput,
       createdAt: previous?.createdAt ?? now,
       updatedAt: now,
       lastActivityAt: activity,
-      stateChangedAt: observedTransition ?? (previous?.state === input.state ? previous.stateChangedAt ?? previous.lastActivityAt : activity),
+      stateChangedAt: transition,
+      ...(dismissedAt ? { dismissedAt } : {}),
     };
     this.#restored.delete(session.id);
     this.#sessions.set(session.id, session);
     this.#scheduleExpiry(session);
+    this.#publish({ type: "upsert", session });
+    this.#persist();
+    return session;
+  }
+
+  /** Hide a DONE, FAILED, or UNKNOWN session until its state changes. Returns undefined when the session is missing or active. */
+  dismiss(id: string): Session | undefined {
+    const existing = this.#sessions.get(id);
+    if (!existing || !dismissableStates.includes(existing.state)) return undefined;
+    if (existing.dismissedAt) return existing;
+    const session: Session = { ...existing, dismissedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    this.#sessions.set(id, session);
     this.#publish({ type: "upsert", session });
     this.#persist();
     return session;

@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
 import { ClaudeDesktopTracker, claudeDesktopInspectionScript, claudeModelName } from "./claude-desktop.js";
 import { SessionStore } from "./store.js";
+import { doneAttention } from "../shared/attention.js";
 
 const sessionId = "6ef2c5c7-a520-49a1-b6fb-5b3831863a22";
 const taskId = "cse_019ewEg4CX1aSU5w19VAT66W";
@@ -187,6 +188,8 @@ describe("Claude desktop chat inspection", () => {
     for (const session of rows) expect(session).toMatchObject({ kind: "row", sessionId: expect.stringMatching(/^[0-9a-f]{16}$/) });
     expect(new Set(rows.map((session: { sessionId: string }) => session.sessionId)).size).toBe(4);
     expect(JSON.stringify(result.snapshot)).not.toContain("private-");
+    // The read row (Done) has seen; the unread row (Unread response) does not.
+    expect(rows.filter((session: { seen?: boolean }) => session.seen === true)).toHaveLength(1);
     expect(result.inspected.mock.calls.some(([role, attribute]) => role === "AXStaticText" && attribute !== "AXRole")).toBe(false);
   });
 
@@ -219,6 +222,9 @@ describe("Claude desktop chat inspection", () => {
     const rows = snapshot.sessions.filter((session: { kind: string }) => session.kind === "row");
     const count = (state: string) => rows.filter((session: { state: string }) => session.state === state).length;
     expect({ working: count("working"), waiting: count("waiting"), done: count("done"), total: rows.length }).toEqual({ working: 3, waiting: 1, done: 3, total: 7 });
+    // "Mark as unread" rows are read (Done). The fixture has no unread row.
+    expect(rows.filter((session: { seen?: boolean }) => session.seen === true)).toHaveLength(3);
+    expect(rows.filter((session: { state: string; seen?: boolean }) => session.state !== "done" && session.seen)).toHaveLength(0);
     const page = snapshot.sessions.find((session: { kind: string }) => session.kind === "task");
     expect(page).toMatchObject({ sessionId: "cse_000000000000000000000001", state: "working" });
     expect(rows.find((session: { sessionId: string }) => session.sessionId === page.titleKey)?.state).toBe("working");
@@ -293,19 +299,76 @@ describe("Claude desktop chat tracking", () => {
     const store = new SessionStore();
     stores.push(store);
     const read = vi.fn(async () => ({ status: "available", sessions: [{ sessionId, state: "working" }] }));
-    const tracker = new ClaudeDesktopTracker(store, read);
+    let clock = Date.parse("2026-11-01T10:00:00Z");
+    const tracker = new ClaudeDesktopTracker(store, read, () => clock);
     await tracker.scan([application]);
     expect(store.list()).toHaveLength(1);
     expect(store.list()[0]).toMatchObject({ harness: "claude-app", state: "working", focusTarget: { claudeConversationId: sessionId } });
     const before = store.list()[0];
     await tracker.scan([application]);
     expect(store.list()[0]).toBe(before);
-    read.mockResolvedValueOnce({ status: "available", sessions: [] });
+    read.mockResolvedValue({ status: "available", sessions: [] });
+    await tracker.scan([application]);
+    expect(store.list()).toHaveLength(1);
+    clock += 15_000;
     await tracker.scan([application]);
     expect(store.list()).toEqual([]);
     await tracker.scan([application]);
     await tracker.scan([]);
     expect(store.list()).toEqual([]);
+  });
+
+  it("keeps a session that a scan misses for a moment, with its key position and completion time", async () => {
+    const store = new SessionStore();
+    stores.push(store);
+    let clock = Date.parse("2026-11-01T10:00:00Z");
+    const rows = [{ kind: "row", sessionId: "0123456789abcdef", state: "working" }, { kind: "row", sessionId: "fedcba9876543210", state: "working" }];
+    const read = vi.fn(async () => ({ status: "available", sessions: rows }));
+    const tracker = new ClaudeDesktopTracker(store, read, () => clock);
+    await tracker.scan([application]);
+    rows[1] = { ...rows[1], state: "done" };
+    clock += 2000;
+    await tracker.scan([application]);
+    const finished = store.get("claude-row:fedcba9876543210")!;
+    const created = store.get("claude-row:0123456789abcdef")!.createdAt;
+    // The app sorts the sidebar again. One scan misses the first row, and a partial scan misses both.
+    read.mockResolvedValueOnce({ status: "available", sessions: [rows[1]] });
+    clock += 1500;
+    await tracker.scan([application]);
+    read.mockResolvedValueOnce({ status: "partial", sessions: [] });
+    clock += 1500;
+    await tracker.scan([application]);
+    clock += 1500;
+    await tracker.scan([application]);
+    expect(store.get("claude-row:0123456789abcdef")?.createdAt).toBe(created);
+    expect(store.get("claude-row:fedcba9876543210")?.stateChangedAt).toBe(finished.stateChangedAt);
+    expect(tracker.hasSessions).toBe(true);
+  });
+
+  it("flashes a completion that it sees happen, and stops when the app shows the row as read", async () => {
+    const store = new SessionStore();
+    stores.push(store);
+    let clock = Date.parse("2026-11-01T10:00:00Z");
+    const row = { kind: "row", sessionId: "0123456789abcdef", state: "working" } as Record<string, unknown>;
+    const old = { kind: "row", sessionId: "fedcba9876543210", state: "done" };
+    const tracker = new ClaudeDesktopTracker(store, async () => ({ status: "available", sessions: [row, old] }), () => clock);
+    await tracker.scan([application]);
+    // A row that is already DONE at the first scan has no known completion time.
+    expect(doneAttention(store.get("claude-row:fedcba9876543210")!, clock)?.phase).toBe("aged");
+    Object.assign(row, { state: "done" });
+    clock += 1000;
+    await tracker.scan([application]);
+    const fresh = store.get("claude-row:0123456789abcdef")!;
+    expect(fresh.metadata?.completionAttention).toBeUndefined();
+    expect(doneAttention(fresh, clock + 100)?.phase).toBe("bright");
+    Object.assign(row, { seen: true });
+    clock += 1000;
+    await tracker.scan([application]);
+    expect(doneAttention(store.get("claude-row:0123456789abcdef")!, clock)?.phase).toBe("aged");
+    Object.assign(row, { state: "working", seen: undefined });
+    clock += 1000;
+    await tracker.scan([application]);
+    expect(store.get("claude-row:0123456789abcdef")?.metadata?.completionAttention).toBeUndefined();
   });
 
   it("retains UNKNOWN on denied inspection, then recovers without restarting completion attention", async () => {
