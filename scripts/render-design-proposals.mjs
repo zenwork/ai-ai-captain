@@ -71,8 +71,11 @@ function fullSheet(palette) {
     const top = 176 + row * 104;
     return `<g id="row-${identity.id}">${text(identity.title, 36, top + 36, palette.foreground, 13, 'font-weight="700"')}${text(identity.detail, 36, top + 58, palette.muted)}${states.map((state, column) => tile(identity, state, palette, row + 1, 231 + column * 104, top, 1.25, "matrix")).join("\n")}</g>`;
   }).join("\n");
-  const examples = [[0, 1, "Copilot · CLI"], [1, 2, "Copilot · IJ"], [4, 4, "Codex · new"], [4, 6, "Codex · aged"], [4, 7, "Codex · assessed"], [5, 9, "JetBrains AI"], [8, 1, "Claude · app"]];
-  const samples = examples.map(([identity, state, label], index) => tile(identities[identity], states[state], palette, index + 1, 36 + index * 102, 1564, 1, "readability")
+  // The sections below the matrix move down when the matrix has more rows than the original eleven.
+  const shift = Math.max(0, identities.length - 11) * 104;
+  const byId = (list, id) => list.find((entry) => entry.id === id);
+  const examples = [["copilot-cli", "working", "Copilot · CLI"], ["copilot-ide", "waiting-bright", "Copilot · IJ"], ["codex-ide", "done-bright", "Codex · new"], ["codex-ide", "done-aged", "Codex · aged"], ["codex-ide", "done-assessed", "Codex · assessed"], ["intellij-ai", "unknown", "JetBrains AI"], ["claude-app", "working", "Claude · app"]];
+  const samples = examples.map(([identity, state, label], index) => tile(byId(identities, identity), byId(states, state), palette, index + 1, 36 + index * 102, 1564, 1, "readability")
     + text(label, 72 + index * 102, 1655, palette.muted, 11, 'text-anchor="middle"')).join("\n");
   const content = `
 ${text(`AI AI CAPTAIN / ICON SYSTEM / ${palette.name.toUpperCase()}`, 36, 28, palette.muted, 11, 'font-weight="700" letter-spacing="2"')}
@@ -81,6 +84,7 @@ ${text(`${palette.name} reference · Full wording, Claude Desktop and assessed D
 ${text("CLIENT / HOST", 36, 133, palette.muted, 11, 'font-weight="700" letter-spacing="1"')}
 ${headers(palette)}
 ${rows}
+<g id="below-matrix" transform="translate(0 ${shift})">
 <path d="M36 1335H1268" stroke="${palette.badge.border}"/>
 ${text("Fixed controls", 36, 1364, palette.foreground, 17, 'font-weight="700"')}
 ${control("layout-dashboard", "INFO", palette, 36, 1385)}${control("chevron-left", "PREV", palette, 150, 1385)}${control("chevron-right", "NEXT", palette, 264, 1385)}
@@ -99,8 +103,9 @@ ${text("Darker than aged DONE, with a double check.", 822, 1608, palette.muted, 
 ${text("A new turn clears assessment. App focus alone cannot assess all sessions.", 822, 1630, palette.muted, 11)}
 <path d="M36 1677H1268" stroke="${palette.badge.border}"/>
 ${text("Selected brand marks: Lobe Icons 1.100.0. Interface symbols: Lucide 0.468.0. Local assets; licenses accompany these previews.", 36, 1701, palette.muted, 10.5)}
-${text("DESIGN REFERENCE · Assessed DONE detection remains unimplemented · Illustrated products do not imply automatic conversation telemetry.", 36, 1721, palette.muted, 10.5)}`;
-  return frame(`AI AI Captain: ${palette.name} complete icon and state combinations`, "Eleven client/host combinations across ten state and brightness examples: STARTING, WORKING, WAITING bright/dim, DONE fresh/dim/aged/assessed, FAILED and UNK. Claude Desktop, fixed controls and seven 72-pixel samples are included. Assessed DONE is darkest and double-checked but visit detection is not implemented. Choose the live palette in the dashboard.", 1304, 1740, palette, content);
+${text("DESIGN REFERENCE · Assessed DONE detection remains unimplemented · Illustrated products do not imply automatic conversation telemetry.", 36, 1721, palette.muted, 10.5)}
+</g>`;
+  return frame(`AI AI Captain: ${palette.name} complete icon and state combinations`, `${identities.length} client/host combinations across ten state and brightness examples: STARTING, WORKING, WAITING bright/dim, DONE fresh/dim/aged/assessed, FAILED and UNK. Claude Desktop, fixed controls and seven 72-pixel samples are included. Assessed DONE is darkest and double-checked but visit detection is not implemented. Choose the live palette in the dashboard.`, 1304, 1740 + shift, palette, content);
 }
 
 const neutral = { id: "comparison", canvas: "#0B1019", foreground: "#F4F6FA", muted: "#AAB7C7" };
