@@ -18,6 +18,8 @@ export interface DoneAttention {
 
 export function doneAttention(session: Session, now = Date.now(), reducedMotion = false): DoneAttention | undefined {
   if (session.state !== "done") return undefined;
+  // The adapter knows that this completion needs no attention: its time is not known, or the user has read it in the host app.
+  if (session.metadata?.completionAttention === "none") return { phase: "aged" };
   const completedAt = Date.parse(session.stateChangedAt ?? session.lastActivityAt);
   if (!Number.isFinite(completedAt) || completedAt > now) return { phase: "aged" };
   const age = now - completedAt;

@@ -42,6 +42,34 @@ describe("session API", () => {
     expect((await app.inject({ method: "GET", url: "/api/budgets" })).json().budgets).toEqual([]);
   });
 
+  it("dismisses a DONE, FAILED, or UNKNOWN session until its state changes", async () => {
+    const store = new SessionStore();
+    const app = createApp({ webRoot: "/no-static-assets", store });
+    apps.push(app);
+    const working = { id: "codex:1", source: "codex", label: "Review", state: "working" as const };
+    store.upsert(working, "2026-11-01T09:00:00Z", "2026-11-01T09:00:00Z");
+    expect((await app.inject({ method: "POST", url: "/api/sessions/none/dismiss" })).statusCode).toBe(404);
+    // An active session cannot be dismissed.
+    expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/dismiss" })).statusCode).toBe(409);
+    store.upsert({ ...working, state: "unknown" });
+    expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/dismiss" })).json().session.dismissedAt).toBeDefined();
+    store.upsert({ ...working, state: "failed" });
+    expect(store.get("codex:1")?.dismissedAt).toBeUndefined();
+    expect(store.dismiss("codex:1")?.dismissedAt).toBeDefined();
+    store.upsert({ ...working, state: "done" }, "2026-11-01T10:00:00Z", "2026-11-01T10:00:00Z");
+    const dismissed = await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/dismiss" });
+    expect(dismissed.json().session.dismissedAt).toBeDefined();
+    // A new report with the same state and completion keeps it hidden.
+    expect(store.upsert({ ...working, state: "done" }, "2026-11-01T10:05:00Z", "2026-11-01T10:00:00Z").dismissedAt).toBeDefined();
+    expect(store.upsert({ ...working, state: "done", metadata: { completionAttention: "none" } }).dismissedAt).toBeDefined();
+    // New work brings it back.
+    expect(store.upsert({ ...working, state: "working" }).dismissedAt).toBeUndefined();
+    store.upsert({ ...working, state: "done" }, "2026-11-01T10:10:00Z", "2026-11-01T10:10:00Z");
+    store.dismiss("codex:1");
+    // A new completion time brings it back too.
+    expect(store.upsert({ ...working, state: "done" }, "2026-11-01T10:20:00Z", "2026-11-01T10:20:00Z").dismissedAt).toBeUndefined();
+  });
+
   it("removes a session by request and reports missing sessions", async () => {
     const app = createApp({ webRoot: "/no-static-assets" });
     apps.push(app);

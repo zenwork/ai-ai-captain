@@ -47,6 +47,7 @@ The theme, brightness, and info key toggle settings apply to the whole hub. They
  GitHub Copilot  | Yes         | Not read. Report it with the reporter or the API | Yes   | Yes        | Yes             |
  Codex           | Yes         | Model, tokens, context, freedom, and approval    | Yes   | Yes        | Yes             |
  Claude Code     | Yes         | Model, tokens, and context                       | Yes   | Yes        | Yes             |
+ Claude desktop  | Yes         | Model only, after you open the chat or task once | Yes   | Yes        | Yes             |
  Junie           | Yes         | Model, tokens, context, freedom, and approval    | Yes   | Yes        | Yes             |
  Other harnesses | Yes         | Reporter or API fields                           | Yes   | Yes        | Yes             |
 

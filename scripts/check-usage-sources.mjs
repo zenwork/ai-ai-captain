@@ -42,6 +42,41 @@ function findKey(value, name, path = []) {
 }
 
 const codexHome = process.env.CODEX_HOME ?? join(homedir(), ".codex");
+
+// With --recent, list the newest rollout files with the number of rate-limit records and the time of the newest one.
+if (process.argv.includes("--recent")) {
+  const files = [];
+  const collect = (path, level) => {
+    let entries = [];
+    try { entries = readdirSync(path, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const child = join(path, entry.name);
+      if (entry.isDirectory() && level < 5) collect(child, level + 1);
+      else if (entry.isFile() && /\.jsonl$/.test(entry.name)) files.push({ path: child, time: statSync(child).mtimeMs, size: statSync(child).size });
+    }
+  };
+  collect(codexHome, 0);
+  files.sort((left, right) => right.time - left.time);
+  console.log(`Codex home: ${codexHome.replace(homedir(), "~")}`);
+  for (const file of files.slice(0, 8)) {
+    const lines = readFileSync(file.path, "utf8").split("\n");
+    const counts = { token_count: 0, rate_limits: 0, rate_limits_null: 0 };
+    let newest;
+    for (const line of lines) {
+      if (!line.includes("token_count")) continue;
+      counts.token_count++;
+      try {
+        const record = JSON.parse(line);
+        const limits = record.payload?.rate_limits;
+        if (limits === null || limits === undefined) counts.rate_limits_null++;
+        else { counts.rate_limits++; newest = { at: record.timestamp, primary: limits.primary?.used_percent, secondary: limits.secondary?.used_percent, limit: limits.limit_id }; }
+      } catch { /* not JSON */ }
+    }
+    const relative = file.path.replace(codexHome, "").split("/").slice(0, -1).join("/") || "/";
+    console.log(`${new Date(file.time).toISOString()} ${relative}/<rollout> ${Math.round(file.size / 1024)} KiB · token_count ${counts.token_count} · rate_limits ${counts.rate_limits} · empty ${counts.rate_limits_null}${newest ? ` · newest ${newest.at} limit=${newest.limit} 5h=${newest.primary}% wk=${newest.secondary}%` : ""}`);
+  }
+  process.exit(0);
+}
 const rollout = newest(join(codexHome, "sessions"), /^rollout-.*\.jsonl$/);
 console.log(`Codex newest rollout: ${rollout ? "found" : "not found"}`);
 if (rollout) {

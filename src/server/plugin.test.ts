@@ -435,6 +435,43 @@ describe("dashboard keys", () => {
     expect(info.setImage).toHaveBeenCalledTimes(1);
   });
 
+  it("dismisses a DONE session on a double press and focuses it on a single press", async () => {
+    const done = { ...waiting, id: "finished", state: "done" as const, stateChangedAt: "2026-10-25T12:00:00.000Z" };
+    const active = { ...waiting, id: "active", state: "working" as const, createdAt: "2026-10-25T12:01:00.000Z" };
+    let sessions: Session[] = [done, active];
+    const fetchSessions = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.endsWith("/dismiss")) {
+        sessions = sessions.map((session) => session.id === "finished" ? { ...session, dismissedAt: new Date().toISOString() } : session);
+        return new Response(JSON.stringify({ session: sessions[0] }));
+      }
+      return new Response(JSON.stringify(options?.method === "POST" ? { focused: true } : { sessions }));
+    });
+    vi.stubGlobal("fetch", fetchSessions);
+    loadPlugin();
+    const first = key("first", 0);
+    const second = key("second", 1);
+    await sdk.actions[0].onWillAppear({ action: first });
+    await sdk.actions[0].onWillAppear({ action: second });
+    const urls = () => fetchSessions.mock.calls.map(([url]) => String(url));
+    // A WORKING session gets focus at once.
+    await sdk.actions[0].onKeyDown({ action: second });
+    expect(urls()).toContain("http://127.0.0.1:43681/api/sessions/active/focus");
+    // A single press on a DONE session gets focus after the double-press time.
+    await sdk.actions[0].onKeyDown({ action: first });
+    expect(urls()).not.toContain("http://127.0.0.1:43681/api/sessions/finished/focus");
+    await vi.advanceTimersByTimeAsync(400);
+    expect(urls()).toContain("http://127.0.0.1:43681/api/sessions/finished/focus");
+    // A double press dismisses it, without focus. The next session moves into its key.
+    fetchSessions.mockClear();
+    await sdk.actions[0].onKeyDown({ action: first });
+    await vi.advanceTimersByTimeAsync(200);
+    await sdk.actions[0].onKeyDown({ action: first });
+    await vi.advanceTimersByTimeAsync(400);
+    expect(urls()).toContain("http://127.0.0.1:43681/api/sessions/finished/dismiss");
+    expect(urls()).not.toContain("http://127.0.0.1:43681/api/sessions/finished/focus");
+    expect(lastImage(first)).toContain(">WORKING<");
+  });
+
   it("keeps session layouts and paging independent across devices", async () => {
     const sessions = Array.from({ length: 3 }, (_unused, index) => ({ ...waiting, id: `session-${index}` }));
     vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions }))));

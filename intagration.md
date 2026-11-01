@@ -20,7 +20,7 @@ This file intentionally uses the requested name `intagration.md`. It owns integr
 | Junie in IntelliJ IDEA              | `~/.junie/sessions` index, status events, and open IntelliJ project registration            | Needs a running IDEA process; approval waits are not recorded, so WAITING is not shown                 |
 | Other harness hooks                 | Generic CLI/HTTP reporter                                                                   | Requires the harness to invoke configured hooks                                                        |
 | Other IntelliJ tasks                | Optional manual Kotlin bridge                                                               | One manually reported task per project, not per-conversation automatic telemetry                       |
-| Claude desktop chat                 | Experimental Accessibility adapter for exposed conversation URLs and known English controls | Requires Accessibility access; hidden chats and other UI formats are not fully supported               |
+| Claude desktop chat and task        | Experimental Accessibility adapter for exposed chat and task URLs and known English controls | Requires Accessibility access; hidden chats and other UI formats are not fully supported; tasks have no model or token data |
 | ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`; shown as an APP key on Stream Deck                    | Plain conversations not automatically tracked (see INT-10 for ChatGPT research)                        |
 
 Node.js 24+ is required to build AI AI Captain and for local hub development. Stream Deck 7.1+ is required for the current plugin; its manifest targets macOS 13+, Windows 10+, and the embedded Node 20 runtime. The plugin also runs the bundled hub on that Node 20 runtime. The default hardware profile targets the XL. macOS is required for the current automatic process/lifetime adapters and focus commands, not for the generic session API itself.
@@ -85,7 +85,18 @@ Claude desktop chat inspection uses macOS Accessibility. Enable access for the a
 The inspector reads exposed conversation URLs, roles, enabled flags, and known control labels only.
 It does not read message text, composer values, cookies, authentication storage, or private errors.
 The adapter follows exposed `claude.ai/chat/<UUID>` web areas, not chat history links.
-Inspection is bounded to 6000 elements and four seconds. Unsupported UI formats fail to UNKNOWN or app-presence diagnostics.
+It also follows exposed `claude.ai/cowork/cse_<ID>` (Cowork) and `claude.ai/code/session_<ID>` (Claude Code) task web areas.
+A task runs in the cloud or in an isolated VM, so it has no local `sessions/<pid>.json` registration.
+A task key uses application focus. The deep-link contract covers chats only.
+The adapter also reads each row of the "Chats and tasks" sidebar list. Each row has a status indicator.
+`Running` gives WORKING. A working task can show its current activity in place of `Running`, for example `Using the browser`. Any other status indicator label also gives WORKING. `Awaiting input` and `Awaiting answer` give WAITING. `Unread response`, `Done`, and `Completed` give DONE. `Error` gives FAILED. `Idle` and `Archived` rows are not reported.
+The inspection script changes each row title into a 64-bit hash. The title does not leave the script. The hub keeps only the hash.
+When the open page title agrees with a row title, the page joins that row. The row identity stays the same when the user opens another page.
+A hidden sidebar or a filtered list removes the rows that it does not show, after 15 seconds. The app sorts its sidebar again when a task changes, so one scan can miss a row. During the 15 seconds, the session keeps its key position and its completion time. A changed title gives a new row identity.
+DONE attention: a row that the hub sees change to DONE flashes as a new completion. A row that is already DONE at its first scan has no known completion time, so it does not flash. A row that the app shows as read (`Done` or `Completed`, not `Unread response`) does not flash, because the user has opened it. The adapter sets `completionAttention: "none"` in the session metadata for these rows.
+The adapter reads the model picker label of the open page, for example `Model: Opus 5.5 Medium`. It changes the label to a model name such as `claude-opus-5-5` and does not keep the effort level.
+The hub keeps the last model of each chat or task after the user leaves its page. The app does not show tokens, context use, freedom, or approval, so the info key leaves them empty.
+Inspection is bounded to 6000 elements and four seconds. A long conversation can pass the element limit. Then the scan reports the sessions that it found and removes no session. Unsupported UI formats fail to UNKNOWN or app-presence diagnostics.
 The installed desktop app must expose these controls; full UI-version coverage is not yet verified.
 
 The [Claude deep-link contract](https://support.claude.com/en/articles/14729294-open-claude-desktop-with-a-link) defines existing-chat navigation.
@@ -108,6 +119,7 @@ The default base URL is `http://127.0.0.1:43681`.
 | `PUT /api/sessions/:id`        | Validated session upsert; body `id` must match URL-decoded path ID                                                                                                                                     |
 | `POST /api/sessions/:id/end`   | `{ "state": "done" }` or `{ "state": "failed" }`; explicitly closes one record                                                                                                                         |
 | `POST /api/sessions/:id/focus` | Navigation result with `focused` and optional scope/reason                                                                                                                                             |
+| `POST /api/sessions/:id/dismiss` | Hide a DONE, FAILED, or UNKNOWN session until its state or state change time changes; sets `dismissedAt`. 404 for a missing session, 409 for an active one                                   |
 | `GET /api/events`              | SSE snapshot, then session/client/settings/budget changes                                                                                                                                              |
 | `GET` / `PUT` / `DELETE /api/budgets` | Subscription budgets. Refer to `INT-12`                                                                                                                                                          |
 
@@ -177,7 +189,7 @@ open -b <IDEA bundle ID> <absolute project directory>
 
 Do not use `-n` or `--args`; these options start a new IDEA process or pass the project path as an application argument. Opening the project as a document lets macOS reuse the selected running installation. The adapter reports project scope when the command succeeds. Other sessions use supported app-path/name, bundle-ID, optional PID, or HTTP(S) URL navigation. `AI_AI_CAPTAIN_PRECISE_FOCUS=1` enables an attempted PID-based app focus, which may need Accessibility permission; project targeting takes precedence.
 
-Focus scopes are application, project, and session. Only an identified Claude desktop chat uses session scope through its restricted deep link. A successful navigation command does not prove that the user read the result. Assessed DONE remains unimplemented.
+Focus scopes are application, project, and session. An identified Claude desktop chat uses session scope through its restricted deep link. On macOS, a Claude desktop sidebar row uses session scope when the hub opens that row. The hub finds the row through Accessibility and clicks it with a mouse event, then restores the pointer position. The app ignores the Accessibility press on sidebar rows. This click is the only action that the Claude adapter does in the app. The press reuses the inspection script with the row title key as a second argument. A successful navigation command does not prove that the user read the result. Assessed DONE remains unimplemented.
 
 ## INT-06 — Stream Deck installation and layout
 
@@ -295,6 +307,15 @@ Options:
 
 Next step: run a Codex thread in the ChatGPT app. Check if the Codex adapter shows it. Report the result before any new code.
 
+## INT-11 — Claude desktop adapter on Windows
+
+**Proposed.** Do not implement without approval from the user.
+
+The Claude desktop adapter and sidebar row focus use macOS Accessibility only. Windows has UI Automation. PowerShell can read it and can invoke a button.
+The Claude app uses Chromium, so it probably shows a similar tree. Nobody has verified the names, the status indicators, or the page URLs on Windows.
+
+Next step: on a Windows computer, open the Claude app with some running tasks. Run `scripts/claude-uia-tree.ps1 > logs\claude-uia-tree.txt`. Remove titles, message text, and personal names. Add the result as a test fixture. Then write the PowerShell inspector so that it gives the same JSON snapshot as the macOS script.
+
 ## INT-12 — Subscription budget keys
 
 **Implemented.** The design is in `docs/design/subscription-budget-key.svg`. The Stream Deck plugin has one action for each provider: **AI Budget: Claude**, **AI Budget: OpenAI**, **AI Budget: GitHub Copilot**, and **AI Budget: JetBrains AI**. Pressing a budget key opens the usage page of the provider in the default browser.
@@ -304,13 +325,13 @@ The hub keeps the newest budget of each provider in `budgets.json` in its data f
 | Provider       | Values                                                | Source                                                                       | Status          |
 |----------------|-------------------------------------------------------|------------------------------------------------------------------------------|-----------------|
 | OpenAI         | Plan, 5-hour and weekly percent used, resets, credits | `rate_limits` in Codex rollout `token_count` events. Verified on macOS        | **Implemented** |
-| Claude         | 5-hour and weekly percent used, reset times           | Reporter or API. `~/.claude.json` has no usage numbers                        | Reporter only   |
+| Claude         | 5-hour and weekly percent used, reset times           | Claude Code status line (`integrations/claude-statusline.mjs`), the Usage page of the Claude desktop app, reporter, or API | **Implemented** (status line, Usage page) |
 | GitHub Copilot | AI Credits used of the allowance, extra spend         | Reporter or API. Usage data needs a GitHub token                              | Reporter only   |
 | JetBrains AI   | Credits used, reset date, top-up balance              | Reporter or API. The IDE widget shows the values. No local source is known    | Reporter only   |
 
 ### Codex source
 
-Every 30 seconds, the hub reads the end (256 KiB) of the four newest rollout files in the three newest day folders under `sessions/`. It uses the newest `token_count` event with `rate_limits`, when `limit_id` is `codex` or empty. It reads no other event.
+Every 30 seconds, the hub reads the end (256 KiB) of the four newest rollout files under `sessions/`, by change time. A resumed conversation writes into the day folder where it started, so the hub checks the change time of the files in all day folders. It uses the newest `token_count` event with `rate_limits`, when `limit_id` is `codex` or empty. It reads no other event.
 
 | Codex field                         | Budget field                                                                                |
 |-------------------------------------|---------------------------------------------------------------------------------------------|
@@ -320,6 +341,22 @@ Every 30 seconds, the hub reads the end (256 KiB) of the four newest rollout fil
 | `credits.balance`, `has_credits`    | `extra.kind` `topup`. In use when a window is at 100% or `rate_limit_reached_type` is set |
 
 The snapshot changes only when Codex runs. After its reset time, a window starts again at 0%, because Codex writes a new snapshot each time it runs. Use on another computer shows only after Codex runs on this computer.
+
+### Claude status line source
+
+Claude Code gives its status line command `rate_limits.five_hour` and `rate_limits.seven_day` on stdin, with `used_percentage` (0–100) and `resets_at` (Unix seconds). The fields are present only for claude.ai Pro and Max plans, and only after the first API response of a session. `integrations/claude-statusline.mjs` sends these numbers to `PUT /api/budgets/claude` and prints a short status line. It sends no prompt, path, or token. The hub does not change Claude settings: the user sets the status line in `~/.claude/settings.json`:
+
+```json
+"statusLine": { "type": "command", "command": "node /path/to/ai-ai-captain/integrations/claude-statusline.mjs --plan max" }
+```
+
+The values update when Claude Code runs the status line, after each response. Use in the Claude desktop app or on claude.ai shows after the next Claude Code response, because the limits are shared. Claude Code drops a window after its reset time; the script then sends 0% for it. With `--quiet`, the script prints nothing.
+
+### Claude Usage page source
+
+On macOS, the Claude desktop adapter also reads the Usage page of the app (Settings, Usage) while it is open. The page shows two meters (Accessibility role `AXLevelIndicator`): "Current session" and "This week", with values such as `46% used`. Each meter has a text such as `Resets Mon 12:50 AM` or `Resets Sunday 5:00 PM` directly before it. The adapter reads only these meters and the nearest reset text before each meter. It reads no other text of the page.
+
+The hub changes the reset text to a local time: a weekday and a time give the next such time, a time alone gives today or tomorrow, and `Resets in 2 hr 10 min` gives a time from now. Other forms give no reset time. The page is in English only. The page does not show the plan, so the hub keeps the plan from the status line or a reporter. The Usage page and the status line both update the same Claude budget. The newest reading wins.
 
 ### Budget API and reporter
 

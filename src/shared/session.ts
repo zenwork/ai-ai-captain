@@ -4,6 +4,8 @@ import type { Budget } from "./budget.js";
 
 export const sessionStates = ["starting", "working", "waiting", "done", "failed", "unknown"] as const;
 export type SessionState = (typeof sessionStates)[number];
+// The user can hide a session in these states from the Stream Deck. Active sessions (starting, working, waiting) stay visible.
+export const dismissableStates: readonly SessionState[] = ["done", "failed", "unknown"];
 
 export const focusTargetSchema = z.object({
   appName: z.string().trim().min(1).max(120).optional(),
@@ -11,6 +13,8 @@ export const focusTargetSchema = z.object({
   bundleId: z.string().trim().min(1).max(200).optional(),
   pid: z.number().int().positive().optional(),
   claudeConversationId: z.string().uuid().optional(),
+  // The title key of a Claude desktop sidebar row. Focus presses that row through macOS Accessibility.
+  claudeRowKey: z.string().regex(/^[0-9a-f]{16}(?:-\d{1,2})?$/).optional(),
   url: z.string().url().refine((value) => value.startsWith("http://") || value.startsWith("https://"), "Focus URLs must use HTTP or HTTPS").optional(),
 }).refine((value) => Object.keys(value).length > 0, "At least one focus target is required");
 export type FocusTarget = z.infer<typeof focusTargetSchema>;
@@ -39,6 +43,8 @@ export const sessionInputSchema = z.object({
 
 export const sessionSchema = sessionInputSchema.extend({
   stateChangedAt: z.string().datetime().optional(),
+  // The user hid this session on the Stream Deck. The hub clears it when the state or the state change time changes.
+  dismissedAt: z.string().datetime().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   lastActivityAt: z.string().datetime(),

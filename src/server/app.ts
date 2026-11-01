@@ -95,6 +95,13 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     if (!session) return reply.code(404).send({ error: "Session not found" });
     return { session };
   });
+  app.post("/api/sessions/:id/dismiss", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    if (!store.get(id)) return reply.code(404).send({ error: "Session not found" });
+    const session = store.dismiss(id);
+    if (!session) return reply.code(409).send({ error: "Only a DONE, FAILED, or UNKNOWN session can be dismissed" });
+    return { session };
+  });
   app.delete("/api/sessions/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
     if (!store.get(id)) return reply.code(404).send({ error: "Session not found" });

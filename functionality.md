@@ -25,7 +25,7 @@ This anchor owns observable behavior and acceptance criteria. See [architecture.
 | Claude Code CLI and IntelliJ Claude runtimes             | Automatic sessions from live local registrations; requires a supported registration format                                              |
 | Claude Code in the desktop app                           | Same registrations with Claude app ancestry; remote/isolated runtimes need a reporter                                                   |
 | Other IntelliJ AI workflows                              | Optional manual bridge, one reported task per project; not automatic conversation discovery                                             |
-| Claude desktop chat                                      | Experimental exposed-chat adapter using Accessibility conversation URLs and known English controls; hidden chats remain unsupported     |
+| Claude desktop chat                                      | Experimental adapter using Accessibility chat and task URLs and known English controls; hidden chats and tasks remain unsupported        |
 | ChatGPT and Microsoft Copilot desktop plain chats        | App presence only (APP key); session adapters not implemented                                                                           |
 
 Illustrated icons do not expand this coverage matrix.
@@ -34,7 +34,7 @@ Claude Code registration status supplies its state. `busy`, `running`, and `work
 
 Versions that omit approval status cannot expose that pause through this adapter. Missing model metadata stays **Not observed**.
 
-The desktop chat adapter requires an exposed `https://claude.ai/chat/<UUID>` URL. Enabled Stop controls mean WORKING. Known approval controls mean WAITING. An enabled composer and a Send control, without activity or approval controls, mean DONE. Other controls mean UNKNOWN.
+The desktop chat adapter requires an exposed `https://claude.ai/chat/<UUID>`, `https://claude.ai/cowork/cse_<ID>`, or `https://claude.ai/code/session_<ID>` URL. The last two forms identify a Cowork or Claude Code task. The adapter also reports each sidebar row that shows Running or a current activity such as Using the browser (WORKING), Awaiting input or Awaiting answer (WAITING), Unread response, Done, or Completed (DONE), or Error (FAILED). Only a change to DONE that the adapter sees, and that the app shows as unread, starts the DONE flash. A row that is already DONE at its first scan, or that the app shows as read, stays steady. Enabled Stop controls mean WORKING. Known approval controls mean WAITING. An enabled composer and a Send control, without activity or approval controls, mean DONE. Other controls mean UNKNOWN.
 
 The adapter does not inspect response text to guess failure or completion. Desktop transition times are observation times, not server completion timestamps.
 
@@ -185,9 +185,13 @@ The exact assessment API, persistence fields, and supported visit-detection mech
 
 **Implemented:** pressing a populated session key or browser focus control asks the hub to activate the recorded target. IntelliJ sessions with valid absolute project paths use project-specific navigation and the exact owning installation when known. macOS opens the project as a document so it can reuse that running installation. Other targets may only support application-level activation.
 
+**Implemented:** a double press (two presses within 0.4 seconds) on a DONE, FAILED, or UNKNOWN session key dismisses the session (`POST /api/sessions/:id/dismiss`). This applies to all session types. The hub sets `dismissedAt`. The Stream Deck and the virtual deck hide the session, and the other keys move up. The hub clears `dismissedAt` when the state changes, or when the session enters the same state again with a new state change time. Then the session shows again. The hub does not dismiss STARTING, WORKING, or WAITING sessions (HTTP 409). A single press on a DONE, FAILED, or UNKNOWN key waits 0.4 seconds before focus, so that the plugin can see a second press. Other states get focus at once.
+
 The response distinguishes application/project focus where available and reports failures. Stream Deck shows an alert on a failed request. After a failed press, a second press on the same key within ten seconds asks the hub to remove that stale session. Invalid/unavailable project paths must not silently fall back to generic app focus. IntelliJ navigation may reopen an available closed project if the record still exists during a closing interval or comes from a reporter.
 
 **Implemented for identified Claude desktop chats:** the restricted `claudeConversationId` focus field opens the existing chat through its Claude deep link. This navigation request does not prove that the user read the result. It does not assess DONE.
+
+**Implemented for Claude desktop sidebar rows on macOS:** the restricted `claudeRowKey` focus field opens the sidebar row with that title key. The hub brings Claude to the front, clicks the center of the row with the mouse, and puts the pointer back. The app ignores the Accessibility press on sidebar rows. Session scope is reported only when the open page has the title key of that row. If the row is not visible, the hub activates Claude only and reports application scope. A chat that has a conversation ID uses its deep link instead. Pressing a row does not assess DONE.
 
 **Required for IDE session navigation:** selecting the exact conversation/tab inside an IDE. Project focus must not be advertised as conversation selection or proof of assessment. Claude CLI and local desktop Code sessions retain application-level focus.
 

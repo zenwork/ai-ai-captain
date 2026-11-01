@@ -53,11 +53,11 @@ The reader opens only the end of the transcript, to keep the model name and toke
 
 ## Claude desktop chat
 
-The experimental desktop adapter uses read-only macOS Accessibility inspection for exposed `claude.ai/chat/<UUID>` conversations.
+The experimental desktop adapter uses read-only macOS Accessibility inspection for exposed `claude.ai/chat/<UUID>` conversations and `claude.ai/cowork/cse_<ID>` or `claude.ai/code/session_<ID>` tasks.
 It follows known English Stop, approval, composer, and Send controls. It does not inspect message text or composer values.
 Enable Accessibility access for the application that runs the hub. Then restart the hub.
 
-Hidden chats, remote Code runtimes, unsupported UI formats, and additional languages do not have full coverage.
+Hidden chats and tasks, unsupported UI formats, and additional languages do not have full coverage.
 A failed inspection makes known chats UNKNOWN. App closure or removal of an exposed conversation removes its key.
 An app without an exposed conversation ID remains under **Other detected apps**, with a tracking explanation.
 
@@ -92,3 +92,14 @@ Session-start/resume events mean `starting`; prompt/turn-start/tool events mean 
 ## Limitations
 
 Hook names and payload shapes vary by harness and version. Generic reporters need explicit configuration and do not change harness settings. ChatGPT, Microsoft Copilot desktop, and unsupported JetBrains workflows still need session adapters. Claude desktop chat covers exposed conversations only; it does not provide full desktop history or remote Code session discovery.
+
+## Claude subscription limits
+
+`claude-statusline.mjs` is a Claude Code status line that reports the 5-hour and weekly limits of a Claude Pro or Max plan to the **AI Budget: Claude** key. Claude Code gives it the `rate_limits` fields on stdin. The script sends only the percentages, the reset times, and the plan name that you give with `--plan`. It prints the model, the context use, and the two limits, so the status line stays useful. Add it to `~/.claude/settings.json`:
+
+```json
+"statusLine": { "type": "command", "command": "node /path/to/ai-ai-captain/integrations/claude-statusline.mjs --plan max" }
+```
+
+The script needs no dependencies. It waits at most 1.5 seconds for the hub and never fails the status line. Refer to `INT-12` in [intagration.md](../intagration.md).
+

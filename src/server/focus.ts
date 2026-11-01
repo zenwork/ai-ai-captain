@@ -4,6 +4,7 @@ import { isAbsolute } from "node:path";
 import { promisify } from "node:util";
 import type { FocusTarget } from "./types.js";
 import { focusTargetSchema } from "../shared/session.js";
+import { claudeDesktopInspectionScript } from "./claude-desktop.js";
 
 export type FocusResult = { focused: true; scope?: "application" | "project" | "session" } | { focused: false; reason: string };
 export type FocusHandler = (target: FocusTarget | undefined, projectPath?: string) => Promise<FocusResult>;
@@ -73,6 +74,11 @@ export function createFocusHandler(options: { platform?: NodeJS.Platform; precis
       return result.focused ? { focused: true, scope: "session" } : result;
     }
     if (platform !== "darwin") return focusOtherSystem(platform, target, run);
+    if (target.claudeRowKey && target.pid) {
+      // Press the sidebar row of the task. If the row is not visible, activate the application only.
+      const result = await run("/usr/bin/osascript", ["-l", "JavaScript", "-e", claudeDesktopInspectionScript, "--", String(target.pid), target.claudeRowKey]);
+      if (result.focused) return { focused: true, scope: "session" };
+    }
     const isIntelliJ = /intellij/i.test(`${target.appName ?? ""} ${target.appPath ?? ""} ${target.bundleId ?? ""}`);
     if (isIntelliJ && projectPath) {
       if (!isAbsolute(projectPath)) return { focused: false, reason: "The IntelliJ project path must be absolute" };

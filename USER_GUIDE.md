@@ -310,6 +310,16 @@ A stale key shows an alert when you push it, and the session does not exist any 
 
 The hub removes the session. An automatic adapter can show the session again if its source files change.
 
+### 7.7 Hide a session
+
+You can hide a DONE, FAILED, or UNK session that you do not need now. This works for all session types.
+
+1. Push the key of the session two times quickly, within 0.4 seconds.
+
+The key goes away, and the other keys move up. The session comes back when its status changes, for example when it starts new work. The dashboard virtual deck also hides it.
+
+You cannot hide a STARTING, WORKING, or WAITING session. A single push on a DONE, FAILED, or UNK key waits 0.4 seconds before it shows the application, so the plugin can see a second push. Keys in other states respond at once.
+
 ### 7.7 Show all key variations (demo)
 
 Use the demo to test the keys. It shows 24 keys: each of the 12 key types two times. The states change every 4 seconds.
@@ -392,13 +402,54 @@ A budget key shows how much of an AI subscription you used and when the limit re
 2. In the action list, find **AI AI Captain**.
 3. Drag **AI Budget: Claude**, **AI Budget: OpenAI**, **AI Budget: GitHub Copilot**, or **AI Budget: JetBrains AI** onto a key.
 
-The OpenAI key fills itself after Codex runs once. The other keys show dashed bars and "?" until you report values. For example:
+Push a budget key to open the usage page of the provider.
+
+#### Where each key gets its values
+
+| Key            | Source                                              | When the key updates                                     |
+|----------------|-----------------------------------------------------|----------------------------------------------------------|
+| OpenAI         | Codex log files on this computer. Automatic         | After Codex runs on this computer. The hub reads every 30 seconds |
+| Claude         | Claude Code status line                             | After each Claude Code response                          |
+| Claude         | Usage page of the Claude desktop app (macOS)        | Every 1.5 seconds, but only while the page is open       |
+| GitHub Copilot | `report budget` command or the API                  | When you report values                                   |
+| JetBrains AI   | `report budget` command or the API                  | When you report values                                   |
+
+A key without values shows dashed bars and "?".
+
+#### Set up the Claude key
+
+1. Add this line to `~/.claude/settings.json`. Use the path of your copy of the project and the name of your plan:
+
+   ```json
+   "statusLine": { "type": "command", "command": "node /path/to/ai-ai-captain/integrations/claude-statusline.mjs --plan max" }
+   ```
+
+2. Start Claude Code and send a prompt. The status line shows the model, the context use, and the two limits.
+
+If you use only the Claude desktop app, open **Settings → Usage** in the app from time to time. While the page is open, the hub reads the two limits from it. This needs Accessibility access, as for the Claude desktop sessions.
+
+#### Report values
+
+For keys without an automatic source, report the values that the usage page of the provider shows. For example:
 
 ```sh
-npm run report -- budget claude --plan max --five-hour-percent 34 --five-hour-reset 2h --weekly-percent 21 --weekly-reset 4d
+npm run report -- budget jetbrains --plan "ai pro" --credits-used 6.1 --credits-total 20 --monthly-reset 22d
+npm run report -- budget copilot --plan pro --credits-used 420 --credits-total 1500 --monthly-reset 19d
 ```
 
-Find the values on the usage page of the provider. Push the key to open that page. The hub keeps reported values in `budgets.json` in its data folder, so they stay after a restart. Refer to `INT-12` in [intagration.md](intagration.md) for all options.
+The hub keeps reported values in `budgets.json` in its data folder, so they stay after a restart. Refer to `INT-12` in [intagration.md](intagration.md) for all options.
+
+#### Limits
+
+A budget key shows the last value that a source gave. It is not a live view of your account.
+
+- **OpenAI.** The key reads only Codex on this computer. It does not see use in ChatGPT, in Codex on other computers, or in the cloud until Codex runs again on this computer.
+- **Claude status line.** It works only in Claude Code in a terminal, with a Claude Pro or Max plan. With an API key, Claude Code gives no limits. Claude Code gives the limits only after the first response of a session. The Claude desktop app, Cowork tasks, and claude.ai chats do not run the status line.
+- **Claude Usage page.** The app shows the page only while it is open, so the hub can read it only then. When you close the page, the key keeps the last values. The page must be in English. The page does not show the plan: the key uses the plan from `--plan` of the status line.
+- **Shared Claude limits.** Claude Code, the desktop app, Cowork, and claude.ai use the same limits. Use in one place shows on the key only after the status line or the Usage page gives new values.
+- **GitHub Copilot and JetBrains AI.** There is no automatic source. Automatic values would need the login token of your account, and AI AI Captain does not use account tokens. IntelliJ IDEA does not keep the current JetBrains AI credits in a file.
+- **After a reset.** When the reset time of a window passes, the key shows that window at 0% until the source gives new values.
+- **Status line setting.** The AI AI Captain status line replaces a status line that you set before in `~/.claude/settings.json`.
 
 ### 8.2.3 Make the plugin file for the Elgato Marketplace
 
@@ -461,12 +512,12 @@ The Claude mark identifies the assistant. Its badge identifies the terminal, Int
 Claude desktop chat support is experimental:
 
 1. Give Accessibility permission to the application that runs the hub. Refer to [8.4](#84-give-accessibility-permission).
-2. Open an existing chat in the Claude desktop app.
+2. Open an existing chat, Claude Code task, or Cowork task in the Claude desktop app.
 3. Check the dashboard for the session and its state details.
 
-The app must show the conversation URL and English controls. Hidden chats and remote Code sessions are not tracked. If no conversation ID is available, Claude stays under **Other detected apps** on the dashboard and shows an APP key.
+The app must show the conversation URL or task URL and English controls. Each chat or task in the sidebar list that is running, waiting, or done also gets a key. Idle items, a hidden sidebar, and items outside the visible list are not tracked. If no conversation ID is available, Claude stays under **Other detected apps** on the dashboard and shows an APP key.
 
-A chat key opens that conversation through its Claude link. AI AI Captain does not read message text or change Claude settings.
+A chat key opens that conversation through its Claude link. A task key opens that task in the sidebar and brings the Claude app to the front. If the task is not visible in the sidebar, the key only brings the app to the front. Keys show a short code, not the chat or task title. AI AI Captain does not read message text or change Claude settings.
 
 #### Other assistants
 
@@ -511,6 +562,8 @@ Your palette, your INFO key, and your sessions stay the same.
 | The dashboard does not open.                                    | The Stream Deck app is not open, or the address is wrong.                                         | Open the Stream Deck app. Use <http://127.0.0.1:43681>.                                                          |
 | The Terminal shows `EADDRINUSE`.                                | A hub runs already.                                                                               | Quit the Stream Deck app before you start the hub manually. Refer to [6.4](#64-start-the-hub-manually-optional). |
 | An APP key shows instead of a session.                          | AI AI Captain cannot track the chats of this app.                                                 | Push the key to open the app.                                                                                    |
+| A budget key shows dashed bars and "?".                         | The key has no source, or its source gave no values yet.                                          | Refer to 8.2.2. For OpenAI, run Codex once. For Claude, send a prompt in Claude Code, or open Settings → Usage in the app. |
+| A budget key shows old values.                                  | The key shows the last values of its source.                                                      | Run the source again, or open the Usage page. Refer to the limits in 8.2.2.                                      |
 | A session does not show on the keys.                            | AI AI Captain cannot find this type of session.                                                   | Look at **Other detected apps** on the dashboard. Refer to [8.5](#85-other-ai-assistants).                       |
 | A key shows an alert when you push it.                          | AI AI Captain cannot go to the session. The project is moved or deleted, or the session is stale. | Open the session manually. For a stale session, refer to [7.6](#76-remove-a-stale-key).                          |
 | The plugin stopped after you moved the `ai-ai-captain` folder.  | The link to the plugin is broken.                                                                 | Move the folder back. Or type `npm run reload:streamdeck` from the new folder.                                   |
