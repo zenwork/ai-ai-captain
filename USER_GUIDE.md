@@ -63,7 +63,7 @@ These functions work on macOS only:
 - Use of the dashboard tab again when you push the INFO key.
 - Focus on the correct IntelliJ IDEA project window.
 
-On Windows, Codex and Copilot sessions use lock files only, because Windows cannot list open files.
+On Windows, Codex and GitHub Copilot sessions do not show. Refer to [8.3](#83-windows).
 
 ---
 
@@ -216,7 +216,7 @@ You can hide a DONE, FAILED, or UNK session that you do not need now. This works
 
 The key goes away, and the other keys move up. The session comes back when its status changes, for example when it starts new work. The dashboard virtual deck also hides it.
 
-You cannot hide a STARTING, WORKING, or WAITING session. A single push on a DONE, FAILED, or UNK key waits 0.4 seconds before it shows the application, so the plugin can see a second push. Keys in other states respond at once. Refer to [8.5](#85-done-alerts-and-hidden-sessions).
+You cannot hide a STARTING, WORKING, or WAITING session. A single push on a DONE, FAILED, or UNK key waits 0.4 seconds before it shows the application, so the plugin can see a second push. Keys in other states respond at once. Refer to [8.1](#81-all-operating-systems).
 
 To show all key variations on your Stream Deck, use the key demo. Refer to the [Developer Guide](DEVELOPER_GUIDE.md).
 
@@ -324,7 +324,7 @@ npm run report -- budget copilot --plan pro --credits-used 420 --credits-total 1
 
 The hub keeps reported values in `budgets.json` in its data folder, so they stay after a restart. Refer to `INT-12` in [intagration.md](intagration.md) for all options.
 
-A budget key shows the last values that a source gave. For the limits of each source, refer to [8.7](#87-budget-keys).
+A budget key shows the last values that a source gave. For the limits of each source, refer to [8. Known limitations](#8-known-limitations).
 
 
 ### 6.5 Give Accessibility permission (macOS)
@@ -362,6 +362,10 @@ Claude desktop chat support is experimental. To use it, do these steps:
 
 The app must show the conversation URL or task URL and English controls. Each chat or task in the sidebar list that is running, waiting, or done also gets a key. Idle items, a hidden sidebar, and items outside the visible list are not tracked. If no conversation ID is available, Claude stays under **Other detected apps** on the dashboard and shows an APP key.
 
+When an item goes out of the list, its key goes away after 15 seconds. The 15 seconds stop a key from going away while the app sorts its list again.
+
+A DONE item flashes only when the hub sees it finish and the app shows it as unread. An item that you opened in the app, or that was DONE when the hub started, does not flash.
+
 A chat key opens its conversation through the Claude link. A task key opens that task in the sidebar and brings the Claude app to the front. If the task is not visible in the sidebar, the key only brings the app to the front. Keys show a short code, not the chat or task title. AI AI Captain does not read message text or change Claude settings.
 
 #### Other assistants
@@ -383,99 +387,142 @@ Your palette, your INFO key, and your sessions stay the same.
 
 ## 8. Known limitations
 
-This section tells you what AI AI Captain cannot do. Most limits come from the assistants: AI AI Captain can show only what an assistant writes on your computer or shows on the screen.
+This section tells you what AI AI Captain cannot do, and where it can show old or incomplete information. Most limits come from the assistants: AI AI Captain can show only what an assistant writes on your computer or shows on the screen.
 
-### 8.1 Computers and devices
+The limits are in groups by operating system. In each group, they are in groups by AI platform.
 
-- These functions work on macOS only: the Claude desktop app sessions, the Claude Usage page, the use of the dashboard tab again for the INFO key, and the focus on the correct IntelliJ IDEA project window.
-- On Windows, a push on a session key brings the application to the front. It does not select the window, the project, or the conversation.
-- On Windows, Codex and Copilot sessions use lock files only, because Windows cannot list open files.
-- On Windows, the hub does not find desktop apps. The Claude desktop app, the ChatGPT app, and the Microsoft Copilot app do not get a key, not even an APP key. Codex sessions in the ChatGPT app show, because they write the same files as the Codex CLI.
-- The Stream Deck app does not run on Linux. On Linux, the focus needs `xdotool` and an X11 session.
-- The default profile is for the Stream Deck XL. On other models, put the actions on the keys yourself.
+### 8.1 All operating systems
+
+#### AI AI Captain
+
+- A new version of an assistant can change the files that AI AI Captain reads. Then a key can show **UNK**, or a session can stop showing until AI AI Captain gets an update.
+- A visit to a session does not stop its DONE flash. The flash stops after 10 minutes, or when new work starts.
+- You cannot hide a STARTING, WORKING, or WAITING session.
+- A single push on a DONE, FAILED, or UNK key waits 0.4 seconds before it shows the application.
+- The session list of the dashboard still shows hidden sessions. In the virtual deck, you cannot hide a session.
+- In terminals, a push on a session key does not select the terminal tab or the conversation.
+- The default profile is for the Stream Deck XL only. On other models, you must put the actions on the keys yourself.
+- A budget key shows the last values that a source gave. It is not a live view of your account.
+- When the reset time of a budget window passes, the key shows 0% for that window. If you used the assistant somewhere that the key cannot see, the real use is higher.
+- The Claude status line and the `report` command need a copy of the GitHub project. The Claude status line also needs Node.js 24 or later.
+
+#### Anthropic Claude
+
+- **Claude Code sessions.** A key can show WAITING only if Claude Code reports that it waits. Sessions on another computer or in the cloud do not show.
+- **Info key.** Claude sessions show no freedom or approval. For Claude Code, the context use is for a window of 200,000 tokens. With a model that has a larger window, the bar shows too much use.
+- **Budget key, status line.** It works only in Claude Code in a terminal, with a Claude Pro or Max plan. With an API key, Claude Code gives no limits. Before the first response of a session, there are no values.
+- **Budget key, other Claude use.** The Claude desktop app, Cowork tasks, and claude.ai chats do not run the status line. Their use shows on the key only after the status line or the Usage page (macOS) gives new values.
+- **Status line setting.** The AI AI Captain status line replaces a status line that you set before in `~/.claude/settings.json`.
+
+#### OpenAI Codex and ChatGPT
+
+- **Codex sessions.** Codex does not write every approval pause. A key can show WORKING while Codex waits for you. A Codex session without a log history shows **UNK**.
+- **ChatGPT.** Plain ChatGPT chats are not tracked.
+- **Budget key.** The key reads only Codex on this computer. It does not see use in ChatGPT, in Codex on other computers, or in the cloud until Codex runs again on this computer.
+
+#### GitHub Copilot
+
+- In IntelliJ IDEA, several conversations can use one Copilot runtime. Copilot agents that do not write the local event files do not show.
+- Copilot sessions show no info key data, unless a reporter gives it.
+- **Budget key.** There is no automatic source. You must report the values yourself. Automatic values would need the login token of your account, and AI AI Captain does not use account tokens.
+
+#### JetBrains AI and Junie
+
+- **Junie sessions.** The key never shows WAITING. A Junie session does not show when its project is closed in IntelliJ IDEA.
+- **IntelliJ IDEA.** A push on a session key does not select the AI chat in the project window.
+- **Budget key.** There is no automatic source. You must report the values yourself. IntelliJ IDEA does not keep the current JetBrains AI credits in a file, and AI AI Captain does not use account tokens.
+
+#### Microsoft Copilot
+
+- Plain Microsoft Copilot chats are not tracked.
+
+#### Other assistants
+
+- They do not show automatically. They need a reporter, and a reporter needs a copy of the GitHub project.
+
+### 8.2 macOS
+
+#### Anthropic Claude
+
+- **Claude desktop app.** Support is experimental. It needs Accessibility permission. Refer to [6.5](#65-give-accessibility-permission-macos).
+- The app must be in English.
+- Only the items in the visible **Chats and tasks** list show. Items under **View all**, items that a filter hides, and **Idle** items do not show. If you hide the sidebar, the keys go away.
+- When Claude gives a chat or a task a new title, the item gets a new key in a new position.
+- Keys show a short code, not the title. You cannot see which chat or task a key is for until you push it.
+- An update of the app can change its labels. Then items can show **UNK** or stop showing.
+- The info key shows no tokens or context use. It shows the model only after you open the chat or task once.
+- A task key moves the mouse pointer to the task for a moment. If the task is not visible in the sidebar, the key cannot open it.
+- **Budget key, Usage page.** The hub reads the page only while it is open. The page must be in English. The page does not show the plan, so the key shows the plan from `--plan` of the status line, or "?".
+
+#### OpenAI ChatGPT and Microsoft Copilot
+
+- These desktop apps show an APP key only.
+
+### 8.3 Windows
+
+#### AI AI Captain
+
+- A push on a session key only brings the application to the front. It does not select the window, the project, or the conversation.
+- A push on the INFO key does not use the dashboard tab again. It can open a new tab.
 - The action icons and the default key images in the Stream Deck app are not tested on Windows.
 
-### 8.2 Session detection
+#### Anthropic Claude
 
-- AI AI Captain reads the local files of each assistant. A new version of an assistant can change these files. Then a key can show **UNK**, or a session can stop showing. Install a new version of AI AI Captain when one is available.
-- **GitHub Copilot.** In IntelliJ IDEA, several conversations can use one Copilot runtime. Copilot agents that do not write the local event files do not show.
-- **Codex.** A Codex session without a log history shows **UNK**. Codex does not write every approval pause, so a key can show WORKING when Codex waits for you. Plain ChatGPT chats show an APP key only, on macOS.
-- **Claude Code.** A key shows WAITING only when Claude Code reports that it waits. Claude Code sessions that run on another computer or in the cloud do not show.
-- **Junie.** A Junie session shows only when its project is open in IntelliJ IDEA. The key does not show WAITING.
-- **Microsoft Copilot.** The desktop app shows an APP key only, on macOS.
-- **Other assistants.** They need a reporter, and a reporter needs a copy of the GitHub project. Refer to the [Developer Guide](DEVELOPER_GUIDE.md).
+- The hub does not find the Claude desktop app. Its chats and tasks get no key, not even an APP key.
+- The Usage page of the Claude desktop app is not a source for the budget key. Only the Claude status line updates it.
 
-### 8.3 Claude desktop app
+#### OpenAI Codex and ChatGPT
 
-Claude desktop app support is experimental.
+- Codex sessions do not show. The hub finds Codex sessions from the files that Codex keeps open, and the hub cannot list open files on Windows.
+- The ChatGPT app gets no key, not even an APP key.
+- The budget key still reads the Codex log files.
 
-- It works on macOS only. The Stream Deck app must have Accessibility permission. Refer to [6.5](#65-give-accessibility-permission-macos).
-- The app must be in English.
-- The hub reads the **Chats and tasks** list in the sidebar. The sidebar must be visible. Items that are not in the visible list do not show. This includes items under **View all** and items that a filter hides.
-- **Idle** items do not show.
-- When an item goes out of the list, its key goes away after 15 seconds.
-- When Claude gives a chat or a task a new title, the item gets a new key.
-- Keys show a short code, not the title of the chat or task. AI AI Captain does not keep titles.
-- The status comes from the sidebar label of each item, for example "Running" or "Awaiting input". An update of the app can change these labels. Then its items can show **UNK** or stop showing.
-- The info key shows the model only, and only after you open the chat or task once. It does not show tokens, context use, freedom, or approval.
+#### GitHub Copilot
 
-### 8.4 Going to a session
+- Copilot sessions do not show, for the same reason as Codex sessions.
 
-- In most applications, a push on a session key brings the application to the front. It does not select the terminal tab or the conversation.
-- In IntelliJ IDEA on macOS, the key opens the project window. It does not select the AI chat in the window.
-- A Claude chat key opens the chat.
-- A Claude task key clicks the task in the Claude sidebar. The mouse pointer moves to the task for a moment and then goes back. If the task is not visible in the sidebar, the key only brings the Claude app to the front.
+#### JetBrains AI and Junie
 
-### 8.5 DONE alerts and hidden sessions
+- Junie sessions do not show. The hub finds the IntelliJ IDEA of a Junie session by its macOS application path only.
+- For other sessions in IntelliJ IDEA, a push on a session key does not open the project window. It brings IntelliJ IDEA to the front.
 
-- A DONE key flashes for 10 minutes. Then it shows dark blue. A visit to the session does not stop the flash. Refer to [5.1](#51-key-colors-and-labels).
-- In the Claude desktop app, a chat or task that you opened in the app does not flash. A chat or task that is DONE when the hub starts does not flash.
-- You can hide only DONE, FAILED, and UNK sessions. Refer to [5.7](#57-hide-a-session).
-- A single push on a DONE, FAILED, or UNK key waits 0.4 seconds before it shows the application.
-- A hidden session still shows in the session list of the dashboard. The virtual deck does not hide sessions with a double click.
-- A hidden session comes back when its status changes.
+#### Microsoft Copilot
 
-### 8.6 Info keys
+- The Microsoft Copilot app gets no key, not even an APP key.
 
-Each assistant gives different data for the info key. A dashed shape or "?" means that the assistant does not give the value.
+### 8.4 Linux
 
-| Assistant      | Info key data                                                                        |
-| -------------- | ------------------------------------------------------------------------------------ |
-| Codex          | Model, tokens, context, freedom, and approval                                        |
-| Junie          | Model, tokens, context, freedom, and approval                                        |
-| Claude Code    | Model, tokens, and context. The context use is for a window of 200,000 tokens        |
-| Claude desktop | Model only, after you open the chat or task once                                     |
-| GitHub Copilot | No data. A reporter can give it                                                      |
+#### AI AI Captain
 
-### 8.7 Budget keys
+- The Stream Deck app does not run on Linux. Use the dashboard and the virtual deck.
+- A push on a session key needs `xdotool` and an X11 session. It only brings the application to the front.
+- A push on the INFO key does not use the dashboard tab again.
 
-A budget key shows the last values that a source gave. It is not a live view of your account.
+#### Anthropic Claude, OpenAI ChatGPT, and Microsoft Copilot
 
-- **OpenAI.** The key reads only Codex on this computer. It does not see use in ChatGPT, in Codex on other computers, or in the cloud until Codex runs again on this computer.
-- **Claude status line.** It works only in Claude Code in a terminal, with a Claude Pro or Max plan. With an API key, Claude Code gives no limits. Claude Code gives the limits only after the first response of a session. The Claude desktop app, Cowork tasks, and claude.ai chats do not run the status line.
-- **Claude Usage page.** The app shows the page only while it is open, so the hub can read it only then. When you close the page, the key keeps the last values. The page must be in English. The page does not show the plan: the key uses the plan from `--plan` of the status line.
-- **Shared Claude limits.** Claude Code, the desktop app, Cowork, and claude.ai use the same limits. Use in one place shows on the key only after the status line or the Usage page gives new values.
-- **GitHub Copilot and JetBrains AI.** There is no automatic source. Automatic values would need the login token of your account, and AI AI Captain does not use account tokens. IntelliJ IDEA does not keep the current JetBrains AI credits in a file.
-- **After a reset.** When the reset time of a window passes, the key shows that window at 0% until the source gives new values.
-- **Status line setting.** The AI AI Captain status line replaces a status line that you set before in `~/.claude/settings.json`.
-- **Setup.** The Claude status line and the `report` command need a copy of the GitHub project. The Claude status line also needs Node.js 24 or later.
+- The hub does not find desktop apps. They get no key, not even an APP key.
+
+#### JetBrains AI and Junie
+
+- Junie sessions do not show. The hub finds the IntelliJ IDEA of a Junie session by its macOS application path only.
+- For other sessions in IntelliJ IDEA, a push on a session key does not open the project window. It brings IntelliJ IDEA to the front.
 
 ---
 
 ## 9. Troubleshooting
 
-| Problem                                              | Possible cause                                                                                    | Action                                                                                  |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| All keys show **UNK**.                               | The hub starts or restarts. Or the hub cannot start.                                              | Wait 30 seconds. If the problem continues, quit the Stream Deck app and open it again.  |
-| One key shows **UNK**.                               | AI AI Captain cannot read the status of this session.                                             | On the dashboard, open **State details & evidence** for this session.                   |
-| The keys show a star only.                           | The plugin did not start correctly.                                                               | Quit the Stream Deck app and open it again. If the problem continues, install it again. |
-| The profile **AI AI Captain XL** is not in the list. | The plugin is not installed, or the Stream Deck is not an XL.                                     | Do [3.1](#31-install-the-plugin-file) again. Make sure that you use a Stream Deck XL.   |
-| The dashboard does not open.                         | The Stream Deck app is not open, or the address is wrong.                                         | Open the Stream Deck app. Use <http://127.0.0.1:43681>.                                 |
-| An APP key shows instead of a session.               | AI AI Captain cannot track the chats of this app.                                                 | Push the key to open the app.                                                           |
-| A budget key shows dashed bars and "?".                         | The key has no source, or its source gave no values yet.                                          | Refer to [6.4](#64-add-subscription-budget-keys). For OpenAI, run Codex once. For Claude, send a prompt in Claude Code, or open Settings → Usage in the app. |
-| A budget key shows old values.                                  | The key shows the last values of its source.                                                      | Run the source again, or open the Usage page. Refer to [8.7](#87-budget-keys).                                      |
-| A session does not show on the keys.                 | AI AI Captain cannot find this type of session.                                                   | Look at **Other detected apps** on the dashboard. Refer to [6.6](#66-ai-assistants).    |
-| A key shows an alert when you push it.               | AI AI Captain cannot go to the session. The project is moved or deleted, or the session is stale. | Open the session manually. For a stale session, refer to [5.6](#56-remove-a-stale-key). |
+| Problem                                              | Possible cause                                                                                    | Action                                                                                                                                                       |
+|------------------------------------------------------|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| All keys show **UNK**.                               | The hub starts or restarts. Or the hub cannot start.                                              | Wait 30 seconds. If the problem continues, quit the Stream Deck app and open it again.                                                                       |
+| One key shows **UNK**.                               | AI AI Captain cannot read the status of this session.                                             | On the dashboard, open **State details & evidence** for this session.                                                                                        |
+| The keys show a star only.                           | The plugin did not start correctly.                                                               | Quit the Stream Deck app and open it again. If the problem continues, install it again.                                                                      |
+| The profile **AI AI Captain XL** is not in the list. | The plugin is not installed, or the Stream Deck is not an XL.                                     | Do [3.1](#31-install-the-plugin-file) again. Make sure that you use a Stream Deck XL.                                                                        |
+| The dashboard does not open.                         | The Stream Deck app is not open, or the address is wrong.                                         | Open the Stream Deck app. Use <http://127.0.0.1:43681>.                                                                                                      |
+| An APP key shows instead of a session.               | AI AI Captain cannot track the chats of this app.                                                 | Push the key to open the app.                                                                                                                                |
+| A budget key shows dashed bars and "?".              | The key has no source, or its source gave no values yet.                                          | Refer to [6.4](#64-add-subscription-budget-keys). For OpenAI, run Codex once. For Claude, send a prompt in Claude Code, or open Settings → Usage in the app. |
+| A budget key shows old values.                       | The key shows the last values of its source.                                                      | Run the source again, or open the Usage page. Refer to [8. Known limitations](#8-known-limitations).                                                         |
+| A session does not show on the keys.                 | AI AI Captain cannot find this type of session.                                                   | Look at **Other detected apps** on the dashboard. Refer to [6.6](#66-ai-assistants).                                                                         |
+| A key shows an alert when you push it.               | AI AI Captain cannot go to the session. The project is moved or deleted, or the session is stale. | Open the session manually. For a stale session, refer to [5.6](#56-remove-a-stale-key).                                                                      |
 
 If the problem continues, open an issue on <https://github.com/zenwork/ai-ai-captain/issues>. Attach the log files of the Stream Deck app:
 

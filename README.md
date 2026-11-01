@@ -1,5 +1,8 @@
 # AI AI Captain
 
+> [!NOTE]
+> **Help wanted: Windows integration testing.** AI AI Captain is developed and tested on macOS. On Windows, some session sources do not work yet, for example Codex, GitHub Copilot, and Junie sessions. Refer to the known limitations in the [User Guide](USER_GUIDE.md#83-windows). If you use a Stream Deck on Windows, please test the plugin and open an [issue](https://github.com/zenwork/ai-ai-captain/issues) with what you find. Pull requests are welcome.
+
 Stream Deck users: start with the [User Guide](USER_GUIDE.md). It has the install, use, and configure steps for the plugin.
 
 Developers: start with [Quick start](#quick-start), or the [Developer Guide](DEVELOPER_GUIDE.md). It has the build, install, run, and package steps for the GitHub project.
