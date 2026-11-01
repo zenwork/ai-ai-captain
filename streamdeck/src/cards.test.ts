@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Client, Session } from "../../src/shared/session.js";
-import { appIconName, appImage, appSignature, budgetImage, budgetSignature, infoImage, infoPlaceholderImage, sessionPlaceholderImage, infoSignature, settingControlImage, settingControlSignature } from "./cards.js";
+import { appIconName, appImage, appSignature, budgetImage, budgetSignature, infoImage, infoPlaceholderImage, sessionPlaceholderImage, infoSignature, settingControlImage, settingControlSignature, dashboardImage } from "./cards.js";
 
 function client(id: string, name: string, bundleId?: string): Client {
   return { id, name, focusTarget: { appName: name, ...(bundleId ? { bundleId } : {}) }, sessionTracking: "unavailable" };
@@ -134,5 +134,12 @@ describe("placeholder keys", () => {
     const image = infoPlaceholderImage("porcelain");
     expect(image).toContain(">INFO<");
     expect(image).toContain("stroke-dasharray");
+  });
+
+  it("draws the INFO key with the frame of the setting keys", () => {
+    const image = dashboardImage("fjord");
+    expect(image).toContain(">INFO<");
+    expect(image).toContain(">DASHBOARD<");
+    expect(image).not.toContain('height="18" rx="4"');
   });
 });

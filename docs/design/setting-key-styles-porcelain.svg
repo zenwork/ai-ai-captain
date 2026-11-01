@@ -86,14 +86,14 @@
 <text x="36" y="10" fill="#122135" font-size="8" text-anchor="middle" font-weight="700">1/2</text>
 <rect x="3" y="51" width="66" height="18" rx="4" fill="#4F267D"/>
 <text x="36" y="64" fill="#FFFFFF" font-size="12" text-anchor="middle" font-weight="800">PREV</text></g>
-<g transform="translate(1200 196)"><rect width="72" height="72" rx="8" fill="#F3EDFC" stroke="#4F267D" stroke-width="1.5"/>
-<g color="#122135"><g transform="translate(20.5 14) scale(1.2916666666666667)"><g fill="none" stroke="#122135" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" />
+<g transform="translate(1200 196)"><g aria-label="Open the dashboard"><rect width="72" height="72" rx="8" fill="#EFF3F8"/>
+<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="#4F267D" stroke-width="1.5"/>
+<text x="36" y="13" fill="#3D5065" font-size="8" text-anchor="middle" font-weight="700" letter-spacing=".8">DASHBOARD</text>
+<g color="#4F267D"><g transform="translate(23 20) scale(1.0833333333333333)"><g fill="none" stroke="#4F267D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" />
   <rect width="7" height="5" x="14" y="3" rx="1" />
   <rect width="7" height="9" x="14" y="12" rx="1" />
   <rect width="7" height="5" x="3" y="16" rx="1" /></g></g></g>
-
-<rect x="3" y="51" width="66" height="18" rx="4" fill="#4F267D"/>
-<text x="36" y="64" fill="#FFFFFF" font-size="12" text-anchor="middle" font-weight="800">INFO</text></g>
+<text x="36" y="63" fill="#122135" font-size="12" text-anchor="middle" font-weight="800">INFO</text></g></g>
 <g transform="translate(1280 196)"><g aria-label="Info keys on"><rect width="72" height="72" rx="8" fill="#F3EDFC" stroke="#4F267D" stroke-width="1.5"/>
 <g color="#122135"><g transform="translate(20.5 14) scale(1.2916666666666667)"><g fill="none" stroke="#122135" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 9.5 8 12l2 2.5" />
   <path d="m14 9.5 2 2.5-2 2.5" />
@@ -171,14 +171,14 @@
 <text x="36" y="10" fill="#122135" font-size="8" text-anchor="middle" font-weight="700">1/2</text>
 <rect x="3" y="51" width="66" height="18" rx="4" fill="#4F267D"/>
 <text x="36" y="64" fill="#FFFFFF" font-size="12" text-anchor="middle" font-weight="800">PREV</text></g>
-<g transform="translate(1200 338)"><rect width="72" height="72" rx="8" fill="#F3EDFC" stroke="#4F267D" stroke-width="1.5"/>
-<g color="#122135"><g transform="translate(20.5 14) scale(1.2916666666666667)"><g fill="none" stroke="#122135" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" />
+<g transform="translate(1200 338)"><g aria-label="Open the dashboard"><rect width="72" height="72" rx="8" fill="#EFF3F8"/>
+<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="#4F267D" stroke-width="1.5"/>
+<text x="36" y="13" fill="#3D5065" font-size="8" text-anchor="middle" font-weight="700" letter-spacing=".8">DASHBOARD</text>
+<g color="#4F267D"><g transform="translate(23 20) scale(1.0833333333333333)"><g fill="none" stroke="#4F267D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" />
   <rect width="7" height="5" x="14" y="3" rx="1" />
   <rect width="7" height="9" x="14" y="12" rx="1" />
   <rect width="7" height="5" x="3" y="16" rx="1" /></g></g></g>
-
-<rect x="3" y="51" width="66" height="18" rx="4" fill="#4F267D"/>
-<text x="36" y="64" fill="#FFFFFF" font-size="12" text-anchor="middle" font-weight="800">INFO</text></g>
+<text x="36" y="63" fill="#122135" font-size="12" text-anchor="middle" font-weight="800">INFO</text></g></g>
 <g transform="translate(1280 338)"><g aria-label="Info keys on"><rect width="72" height="72" rx="8" fill="#F3EDFC" stroke="#4F267D" stroke-width="1.5"/>
 <text x="36" y="11" fill="#122135" font-size="7.5" text-anchor="middle" font-weight="700" letter-spacing=".5">INFO KEYS</text>
 <rect x="20" y="20" width="32" height="17" rx="8.5" fill="#122135"/><circle cx="43.5" cy="28.5" r="6" fill="#F3EDFC"/>
@@ -247,14 +247,14 @@
 <text x="36" y="10" fill="#122135" font-size="8" text-anchor="middle" font-weight="700">1/2</text>
 <rect x="3" y="51" width="66" height="18" rx="4" fill="#4F267D"/>
 <text x="36" y="64" fill="#FFFFFF" font-size="12" text-anchor="middle" font-weight="800">PREV</text></g>
-<g transform="translate(1200 480)"><rect width="72" height="72" rx="8" fill="#F3EDFC" stroke="#4F267D" stroke-width="1.5"/>
-<g color="#122135"><g transform="translate(20.5 14) scale(1.2916666666666667)"><g fill="none" stroke="#122135" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" />
+<g transform="translate(1200 480)"><g aria-label="Open the dashboard"><rect width="72" height="72" rx="8" fill="#EFF3F8"/>
+<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="#4F267D" stroke-width="1.5"/>
+<text x="36" y="13" fill="#3D5065" font-size="8" text-anchor="middle" font-weight="700" letter-spacing=".8">DASHBOARD</text>
+<g color="#4F267D"><g transform="translate(23 20) scale(1.0833333333333333)"><g fill="none" stroke="#4F267D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" />
   <rect width="7" height="5" x="14" y="3" rx="1" />
   <rect width="7" height="9" x="14" y="12" rx="1" />
   <rect width="7" height="5" x="3" y="16" rx="1" /></g></g></g>
-
-<rect x="3" y="51" width="66" height="18" rx="4" fill="#4F267D"/>
-<text x="36" y="64" fill="#FFFFFF" font-size="12" text-anchor="middle" font-weight="800">INFO</text></g>
+<text x="36" y="63" fill="#122135" font-size="12" text-anchor="middle" font-weight="800">INFO</text></g></g>
 <g transform="translate(1280 480)"><g aria-label="Info keys on"><rect width="72" height="72" rx="8" fill="#F3EDFC" stroke="#4F267D" stroke-width="1.5"/>
 <rect x="16" y="13" width="40" height="21" rx="10.5" fill="#4F267D"/><circle cx="45.5" cy="23.5" r="8" fill="#F3EDFC"/>
 <text x="36" y="48" fill="#122135" font-size="12" text-anchor="middle" font-weight="800">ON</text>
@@ -323,14 +323,14 @@
 <text x="36" y="10" fill="#122135" font-size="8" text-anchor="middle" font-weight="700">1/2</text>
 <rect x="3" y="51" width="66" height="18" rx="4" fill="#4F267D"/>
 <text x="36" y="64" fill="#FFFFFF" font-size="12" text-anchor="middle" font-weight="800">PREV</text></g>
-<g transform="translate(1200 622)"><rect width="72" height="72" rx="8" fill="#F3EDFC" stroke="#4F267D" stroke-width="1.5"/>
-<g color="#122135"><g transform="translate(20.5 14) scale(1.2916666666666667)"><g fill="none" stroke="#122135" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" />
+<g transform="translate(1200 622)"><g aria-label="Open the dashboard"><rect width="72" height="72" rx="8" fill="#EFF3F8"/>
+<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="#4F267D" stroke-width="1.5"/>
+<text x="36" y="13" fill="#3D5065" font-size="8" text-anchor="middle" font-weight="700" letter-spacing=".8">DASHBOARD</text>
+<g color="#4F267D"><g transform="translate(23 20) scale(1.0833333333333333)"><g fill="none" stroke="#4F267D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" />
   <rect width="7" height="5" x="14" y="3" rx="1" />
   <rect width="7" height="9" x="14" y="12" rx="1" />
   <rect width="7" height="5" x="3" y="16" rx="1" /></g></g></g>
-
-<rect x="3" y="51" width="66" height="18" rx="4" fill="#4F267D"/>
-<text x="36" y="64" fill="#FFFFFF" font-size="12" text-anchor="middle" font-weight="800">INFO</text></g>
+<text x="36" y="63" fill="#122135" font-size="12" text-anchor="middle" font-weight="800">INFO</text></g></g>
 <g transform="translate(1280 622)"><g aria-label="Info keys on"><rect width="72" height="72" rx="8" fill="#EFF3F8"/>
 <rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="#4F267D" stroke-width="1.5"/>
 <text x="36" y="13" fill="#3D5065" font-size="8" text-anchor="middle" font-weight="700" letter-spacing=".8">INFO KEYS</text>

@@ -529,6 +529,20 @@ ${label(value, 63, palette.foreground, 12)}`;
 }
 
 /**
+ * The INFO key that opens the dashboard. It has the same frame as the setting keys: the canvas color with a
+ * control-accent outline and no band. The word DASHBOARD is small at the top, the symbol is in the middle,
+ * and INFO is large at the bottom.
+ */
+export function renderDashboardKey(palette: CardPalette, icons: CardIcons): string {
+  const colors = palette.controls;
+  return `<g aria-label="Open the dashboard"><rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
+<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${colors.accent}" stroke-width="1.5"/>
+${text("DASHBOARD", 36, 13, palette.muted, 8, 'text-anchor="middle" font-weight="700" letter-spacing=".8"')}
+<g color="${colors.accent}">${icon("layout-dashboard", 23, 20, 26, 26, icons, colors.accent)}</g>
+${text("INFO", 36, 63, palette.foreground, 12, 'text-anchor="middle" font-weight="800"')}</g>`;
+}
+
+/**
  * The Stream Deck key frame covers a thin edge of the key display, and the display can sit a little off center.
  * A full-size key image then looks too big or shifted. Draw each key at 94% size in the center of the image,
  * so that the frame never touches the key outline. The margin is transparent and shows as black on the device.

@@ -1,6 +1,6 @@
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
-import { cardIdentities, cardStates, describeBudgetCard, describeInfoCard, describeSettingCard, escapeXml, inKeySafeArea, renderBudgetCard, renderCard, renderControl, renderInfoCard, renderSettingCard, type SettingCardData, renderInfoPlaceholder, renderSessionPlaceholder, type BudgetProviderId, type CardColors, type CardPalette, type CardPhase, type InfoCardData } from "../../src/shared/card-design.js";
+import { cardIdentities, cardStates, describeBudgetCard, describeInfoCard, describeSettingCard, escapeXml, inKeySafeArea, renderBudgetCard, renderCard, renderControl, renderDashboardKey, renderInfoCard, renderSettingCard, type SettingCardData, renderInfoPlaceholder, renderSessionPlaceholder, type BudgetProviderId, type CardColors, type CardPalette, type CardPhase, type InfoCardData } from "../../src/shared/card-design.js";
 import { budgetCardData, type Budget } from "../../src/shared/budget.js";
 import { cardIcons } from "../../src/shared/card-assets.js";
 import { applyFlashIntensity, resolveFlashIntensity } from "../../src/shared/flash-intensity.js";
@@ -124,7 +124,7 @@ export function budgetSignature(provider: BudgetProviderId, budget: Budget | und
 }
 
 export function dashboardImage(palette?: PaletteId): string {
-  return svg(renderControl("layout-dashboard", "INFO", getPalette(palette), cardIcons), "Open AI AI Captain dashboard and state details");
+  return svg(renderDashboardKey(getPalette(palette), cardIcons), "Open AI AI Captain dashboard and state details");
 }
 
 export type SettingControlKind = "info-keys" | "theme" | "brightness";
