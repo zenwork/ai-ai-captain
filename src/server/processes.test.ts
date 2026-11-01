@@ -58,11 +58,15 @@ describe("Windows and Linux support", () => {
   });
 });
 
+// On Windows, the process list starts PowerShell and reads Win32_Process. The command can take up to 10 seconds,
+// and the first PowerShell start on a new CI runner is slow. The test limit must be longer than the command limit.
+const processListTestTimeoutMilliseconds = 20_000;
+
 describe("process list smoke test", () => {
   it("lists the current process on the real operating system", async () => {
     const processes = await listProcesses();
     const currentProcess = processes.find((entry) => entry.pid === process.pid);
     expect(processes.length).toBeGreaterThan(0);
     expect(currentProcess).toBeDefined();
-  });
+  }, processListTestTimeoutMilliseconds);
 });
