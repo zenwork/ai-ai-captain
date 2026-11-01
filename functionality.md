@@ -107,7 +107,7 @@ Closure is separate from these six API states: a completed open conversation sta
 
 ### DONE presentation substates
 
-The lifecycle state remains `done` throughout this diagram. Fresh/aged completion behavior is implemented; **assessed DONE is required but not implemented**, as detailed in FUNC-05. Bright/dim animation frames are not additional lifecycle states.
+The lifecycle state remains `done` throughout this diagram. Fresh, aged, and assessed completion behavior is implemented, as detailed in FUNC-05. Bright/dim animation frames are not additional lifecycle states.
 
 ```mermaid
 stateDiagram-v2
@@ -128,7 +128,7 @@ stateDiagram-v2
     Completion --> WorkingAgain: New turn starts and clears assessment
 ```
 
-Assessment can occur at any completion age; it does not require waiting ten minutes. Reconnection, polling, or restored state preserves the original completion age and, once implemented, its assessment instead of starting a new completion. A visit before completion or broad app/project activation cannot trigger the assessed transition.
+Assessment can occur at any completion age; it does not require waiting ten minutes. Reconnection, polling, or restored state preserves the original completion age and its assessment instead of starting a new completion. A visit before completion or broad app/project activation cannot trigger the assessed transition.
 
 ## FUNC-03 — Completion versus closure
 
@@ -166,7 +166,7 @@ Exact timing and color-role contracts belong to [design.md](design.md).
 
 ## FUNC-05 — Assessed DONE
 
-**Required and illustrated; runtime tracking and persistence are not implemented.**
+**Implemented for an explicit press on the Stream Deck. Automatic visit detection is not implemented.**
 
 Assessment is a DONE substate: the user visited this specific session after its current result finished, so that result is presumed reviewed. It is not a claim that the user actually read every word.
 
@@ -179,7 +179,9 @@ Assessment is a DONE substate: the user visited this specific session after its 
 - The original completion timestamp must remain unchanged. Assessment must survive hub/plugin restarts and propagate to browser and hardware consumers.
 - Assessment neither ends nor removes the conversation; the key remains focusable.
 
-The exact assessment API, persistence fields, and supported visit-detection mechanisms are still to be implemented. Existing focus calls do not currently record assessment.
+**Implemented:** a single press on a DONE session key is the explicit assessment action. This applies to all session types. After the 0.4-second double-press time, the plugin sends `POST /api/sessions/:id/attend` and then focuses the session. The hub sets `attendedAt` and keeps it in the persisted session store. The Stream Deck and the browser show assessed DONE at once: the darkest DONE colors, a double check, and no flashing. The hub clears `attendedAt` when the state changes, or when the session enters DONE again with a new state change time. Then the next completion starts with a fresh alert. The hub does not mark a session in another state (HTTP 409). A press on a STARTING, WORKING, WAITING, FAILED, or UNKNOWN key does not mark the session.
+
+**Not implemented:** automatic visit detection. Focus calls from the browser and focus in the host app do not record assessment.
 
 ## FUNC-06 — Navigation
 

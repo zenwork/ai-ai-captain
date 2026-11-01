@@ -120,6 +120,7 @@ The default base URL is `http://127.0.0.1:43681`.
 | `POST /api/sessions/:id/end`   | `{ "state": "done" }` or `{ "state": "failed" }`; explicitly closes one record                                                                                                                         |
 | `POST /api/sessions/:id/focus` | Navigation result with `focused` and optional scope/reason                                                                                                                                             |
 | `POST /api/sessions/:id/dismiss` | Hide a DONE, FAILED, or UNKNOWN session until its state or state change time changes; sets `dismissedAt`. 404 for a missing session, 409 for an active one                                   |
+| `POST /api/sessions/:id/attend` | Mark a DONE session as attended until its state or state change time changes; sets `attendedAt`. The key shows assessed DONE. 404 for a missing session, 409 for any other state |
 | `GET /api/events`              | SSE snapshot, then session/client/settings/budget changes                                                                                                                                              |
 | `GET` / `PUT` / `DELETE /api/budgets` | Subscription budgets. Refer to `INT-12`                                                                                                                                                          |
 
@@ -137,7 +138,7 @@ Optional fields `tokensUsed` (integer), `contextUsedPercent` (0–100), `freedom
 
 Reuse that ID for every update. For a completed turn, send `state: "done", ended: false`; use the end route for closure. The public upsert schema does not accept reporter-supplied store timestamps as lifecycle clock fields. Built-in adapters pass observed times internally; generic HTTP reports normally use receipt-time behavior.
 
-There is currently no assessment route or public assessment field. Do not document or send a fabricated endpoint for assessed DONE. A future contract must distinguish a verified session visit from broad app/project focus and associate assessment with the specific completion.
+`POST /api/sessions/:id/attend` is the assessment route. The Stream Deck plugin calls it after a single press on a DONE key. `attendedAt` is a store field: the upsert schema does not accept it from reporters, and every new state or completion time clears it. Navigation alone never sets it.
 
 ### SSE contract
 

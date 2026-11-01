@@ -440,6 +440,8 @@ class SessionKey extends SingletonAction<SessionSettings> {
       const action = event.action;
       const timer = setTimeout(() => {
         pendingPresses.delete(action.id);
+        // A single press on a DONE key marks the completion as attended. The key then shows assessed DONE.
+        if (session.state === "done") void attendSession(session.id);
         void focusSession(action, session);
       }, doublePressWindowMilliseconds);
       pendingPresses.set(action.id, { sessionId: session.id, timer });
@@ -458,6 +460,19 @@ async function dismissSession(keyAction: KeyAction<SessionSettings>, sessionIden
   } catch {
     streamDeck.logger.warn("The hub could not dismiss the session");
     await keyAction.showAlert();
+  }
+}
+
+async function attendSession(sessionIdentifier: string): Promise<void> {
+  try {
+    const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(sessionIdentifier)}/attend`, { method: "POST", signal: AbortSignal.timeout(4000) });
+    if (!response.ok) throw new Error(`Hub returned ${response.status}`);
+    const attendedAt = new Date().toISOString();
+    sessions = sessions.map((session) => session.id === sessionIdentifier && session.state === "done" ? { ...session, attendedAt: session.attendedAt ?? attendedAt } : session);
+    await renderKeys();
+  } catch {
+    // The key keeps its normal DONE look. Focus still works.
+    streamDeck.logger.warn("The hub could not mark the session as attended");
   }
 }
 

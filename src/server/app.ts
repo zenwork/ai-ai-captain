@@ -102,6 +102,13 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     if (!session) return reply.code(409).send({ error: "Only a DONE, FAILED, or UNKNOWN session can be dismissed" });
     return { session };
   });
+  app.post("/api/sessions/:id/attend", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    if (!store.get(id)) return reply.code(404).send({ error: "Session not found" });
+    const session = store.attend(id);
+    if (!session) return reply.code(409).send({ error: "Only a DONE session can be marked as attended" });
+    return { session };
+  });
   app.delete("/api/sessions/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
     if (!store.get(id)) return reply.code(404).send({ error: "Session not found" });

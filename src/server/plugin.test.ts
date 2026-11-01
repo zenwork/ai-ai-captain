@@ -444,6 +444,10 @@ describe("dashboard keys", () => {
         sessions = sessions.map((session) => session.id === "finished" ? { ...session, dismissedAt: new Date().toISOString() } : session);
         return new Response(JSON.stringify({ session: sessions[0] }));
       }
+      if (url.endsWith("/attend")) {
+        sessions = sessions.map((session) => session.id === "finished" ? { ...session, attendedAt: new Date().toISOString() } : session);
+        return new Response(JSON.stringify({ session: sessions[0] }));
+      }
       return new Response(JSON.stringify(options?.method === "POST" ? { focused: true } : { sessions }));
     });
     vi.stubGlobal("fetch", fetchSessions);
@@ -461,6 +465,11 @@ describe("dashboard keys", () => {
     expect(urls()).not.toContain("http://127.0.0.1:43681/api/sessions/finished/focus");
     await vi.advanceTimersByTimeAsync(400);
     expect(urls()).toContain("http://127.0.0.1:43681/api/sessions/finished/focus");
+    // The single press also marks the completion as attended. The key shows assessed DONE.
+    expect(urls()).toContain("http://127.0.0.1:43681/api/sessions/finished/attend");
+    expect(lastImage(first)).toContain("Assessed");
+    // The WORKING session is not marked.
+    expect(urls()).not.toContain("http://127.0.0.1:43681/api/sessions/active/attend");
     // A double press dismisses it, without focus. The next session moves into its key.
     fetchSessions.mockClear();
     await sdk.actions[0].onKeyDown({ action: first });

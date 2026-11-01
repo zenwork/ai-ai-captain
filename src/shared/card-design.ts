@@ -21,6 +21,8 @@ export interface CardPalette {
   states: Record<string, CardColors>;
   /** Brand colors of the subscription providers, adjusted to the contrast target of the palette. Used on budget keys only. */
   brands: { claude: string; openai: string; copilot: string; jetbrains: string };
+  /** One color for each host badge, so that CLI, IntelliJ, and desktop app keys are easy to tell apart. */
+  hosts: { terminal: string; ide: string; "app-window": string };
 }
 
 export type CardIcons = Record<string, { viewBox: string; content: string }>;
@@ -74,12 +76,22 @@ function icon(name: string, horizontal: number, vertical: number, width: number,
   return `<g transform="translate(${offsetHorizontal} ${offsetVertical}) scale(${scale})">${artwork.content.replaceAll("currentColor", color)}</g>`;
 }
 
+/** Every key has the same border: 1.5 units wide, fully inside the 72 × 72 key, with the same corner radius. */
+export const keyBorderWidth = 1.5;
+
+function keyBorder(color: string, attributes = ""): string {
+  const inset = keyBorderWidth / 2;
+  return `<rect x="${inset}" y="${inset}" width="${72 - keyBorderWidth}" height="${72 - keyBorderWidth}" rx="${8 - inset}" fill="none" stroke="${color}" stroke-width="${keyBorderWidth}"${attributes}/>`;
+}
+
 export function renderHostBadge(host: string | undefined, palette: CardPalette, icons: CardIcons, horizontal = 48, vertical = 4): string {
   if (!host) return "";
+  // The glyph and the outline use the host color. The badge background stays dark, so the color never looks like a state band.
+  const color = palette.hosts[host as keyof CardPalette["hosts"]] ?? palette.badge.foreground;
   const content = host === "ide"
-    ? text("IJ", horizontal + 10, vertical + 10.8, palette.badge.foreground, 11, 'text-anchor="middle" font-weight="700"')
-    : icon(host, horizontal + 3, vertical + 1, 14, 12, icons, palette.badge.foreground);
-  return `<g color="${palette.badge.foreground}"><rect x="${horizontal}" y="${vertical}" width="20" height="14" rx="3" fill="${palette.badge.background}" stroke="${palette.badge.border}" stroke-width=".6"/>${content}</g>`;
+    ? text("IJ", horizontal + 10, vertical + 10.8, color, 11, 'text-anchor="middle" font-weight="700"')
+    : icon(host, horizontal + 3, vertical + 1, 14, 12, icons, color);
+  return `<g color="${color}"><rect x="${horizontal + .5}" y="${vertical + .5}" width="19" height="13" rx="2.6" fill="${palette.badge.background}" stroke="${color}" stroke-width="1"/>${content}</g>`;
 }
 
 export function renderCard(identity: typeof cardIdentities[number], state: typeof cardStates[number], palette: CardPalette, number: number | undefined, icons: CardIcons): string {
@@ -94,7 +106,7 @@ export function renderCard(identity: typeof cardIdentities[number], state: typeo
   const reference = number === undefined ? "" : `<rect x="4" y="4" width="16" height="14" rx="4" fill="${palette.badge.background}"/>${text(number, 12, 14.6, palette.badge.foreground, 9.5, 'text-anchor="middle" font-weight="700"')}`;
   return `<g aria-label="${escapeXml(`${identity.title}, ${identity.detail}: ${state.label}, ${state.detail}, ${palette.name}`)}">
 <rect width="72" height="72" rx="8" fill="${colors.background}"/>
-<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${colors.accent}" stroke-width="1.5"/>
+${keyBorder(colors.accent)}
 <g color="${colors.foreground}">${mark}</g>
 ${renderHostBadge(identity.host, palette, icons)}
 ${reference}
@@ -106,7 +118,7 @@ ${label}
 
 export function renderControl(symbol: string, label: string, palette: CardPalette, icons: CardIcons, page?: string): string {
   const colors = palette.controls;
-  return `<rect width="72" height="72" rx="8" fill="${colors.background}" stroke="${colors.accent}" stroke-width="1.5"/>
+  return `<rect width="72" height="72" rx="8" fill="${colors.background}"/>${keyBorder(colors.accent)}
 <g color="${colors.foreground}">${icon(symbol, 18, 14, 36, 31, icons, colors.foreground)}</g>
 ${page ? text(page, 36, 10, colors.foreground, 8, 'text-anchor="middle" font-weight="700"') : ""}
 <rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
@@ -196,7 +208,7 @@ export function renderInfoCard(data: InfoCardData, palette: CardPalette): string
   const fill = reported ? `<rect x="${infoBarLeft + infoBarInset}" y="23.5" width="${fillWidth}" height="15" rx="3" fill="${barColor}"/>` : "";
   const tokenColor = data.tokensUsed === undefined ? palette.muted : palette.foreground;
   return `<g aria-label="${escapeXml(describeInfoCard(data))}">
-<rect width="72" height="72" rx="8" fill="${palette.canvas}" stroke="${palette.badge.border}" stroke-width="1.5"/>
+<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>${keyBorder(palette.badge.border)}
 ${text(infoModelName(data.model), 6, 15, palette.muted, 10)}
 ${text(formatTokenCount(data.tokensUsed), 66, 15, tokenColor, 10, 'text-anchor="end"')}
 ${outline}${fill}
@@ -329,7 +341,7 @@ export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, ico
     `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>`,
     tinted ? `<rect width="72" height="72" rx="8" fill="${brand}" opacity="${budgetTintOpacity}"/>` : "",
     budgetMark(provider, palette, icons, style),
-    `<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${border}" stroke-width="1.5"${level === "unknown" ? ' stroke-dasharray="3 3"' : ""}/>`,
+    `${keyBorder(border, level === "unknown" ? ' stroke-dasharray="3 3"' : "")}`,
   ];
   // Top right: the plan. When the budget is out, the reset time takes its place. Paid extras show their amount.
   // On the tab, the top row uses the canvas color on the brand color.
@@ -366,7 +378,7 @@ export function renderSessionPlaceholder(palette: CardPalette, number?: number):
   const label = number === undefined ? "" : text(number, 36, 40.5, palette.muted, 12, `text-anchor="middle" font-weight="700" opacity="${placeholderOpacity}"`);
   return `<g aria-label="${escapeXml(`Unused session key${number === undefined ? "" : ` ${number}`}`)}">
 <rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
-<rect x="2" y="2" width="68" height="68" rx="7" fill="none" stroke="${palette.badge.border}" stroke-width="1.2" stroke-dasharray="3 4" opacity="${placeholderOpacity}"/>
+${keyBorder(palette.badge.border, ` stroke-dasharray="3 4" opacity="${placeholderOpacity}"`)}
 ${label}
 </g>`;
 }
@@ -375,7 +387,7 @@ ${label}
 export function renderInfoPlaceholder(palette: CardPalette): string {
   return `<g aria-label="Unused info key">
 <rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
-<rect x="2" y="2" width="68" height="68" rx="7" fill="none" stroke="${palette.badge.border}" stroke-width="1.2" stroke-dasharray="3 4" opacity="${placeholderOpacity}"/>
+${keyBorder(palette.badge.border, ` stroke-dasharray="3 4" opacity="${placeholderOpacity}"`)}
 <rect x="${infoBarLeft + 4}" y="28" width="${infoBarWidth - 8}" height="12" rx="3" fill="none" stroke="${palette.badge.border}" stroke-width="1.2" stroke-dasharray="3 3" opacity="${placeholderOpacity}"/>
 ${text("INFO", 36, 58, palette.muted, 8, `text-anchor="middle" font-weight="700" letter-spacing=".5" opacity="${placeholderOpacity}"`)}
 </g>`;
@@ -501,7 +513,7 @@ export function renderSettingCard(data: SettingCardData, palette: CardPalette, i
     const symbol = data.kind === "info-keys"
       ? settingSwitch(data.on === true, 20, 20, 32, 17, colors.foreground, colors.background, colors.foreground)
       : data.kind === "theme" ? settingSwatches(palette, 36, 28.5, 6, colors.background) : settingSun(36, 28, 7, colors.foreground);
-    content = `<rect width="72" height="72" rx="8" fill="${colors.background}" stroke="${colors.accent}" stroke-width="1.5"/>
+    content = `<rect width="72" height="72" rx="8" fill="${colors.background}"/>${keyBorder(colors.accent)}
 ${text(name, 36, 11, colors.foreground, 7.5, 'text-anchor="middle" font-weight="700" letter-spacing=".5"')}
 ${symbol}
 <rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
@@ -510,7 +522,7 @@ ${label(value, 64, colors.ink, 12)}`;
     const visual = data.kind === "info-keys"
       ? settingSwitch(data.on === true, 16, 13, 40, 21, colors.accent, colors.background, colors.foreground)
       : data.kind === "theme" ? settingSwatches(palette, 36, 22, 6.5, colors.background) : settingMeter(level, maximum, 17, 33, 38, 22, colors.accent, colors.foreground);
-    content = `<rect width="72" height="72" rx="8" fill="${colors.background}" stroke="${colors.accent}" stroke-width="1.5"/>
+    content = `<rect width="72" height="72" rx="8" fill="${colors.background}"/>${keyBorder(colors.accent)}
 ${visual}
 ${label(value, 48, colors.foreground, 12)}
 <rect x="3" y="56" width="66" height="13" rx="3.5" fill="${colors.accent}"/>
@@ -520,7 +532,7 @@ ${text(name, 36, 65.6, colors.ink, 8, 'text-anchor="middle" font-weight="800" le
       ? settingSwitch(data.on === true, 14, 22, 44, 23, colors.accent, palette.canvas, palette.muted)
       : data.kind === "theme" ? settingSwatches(palette, 36, 33, 6.5, palette.canvas) : settingMeter(level, maximum, 15, 44, 42, 26, colors.accent, palette.muted);
     content = `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
-<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${colors.accent}" stroke-width="1.5"/>
+${keyBorder(colors.accent)}
 ${text(name, 36, 13, palette.muted, 8, 'text-anchor="middle" font-weight="700" letter-spacing=".8"')}
 ${visual}
 ${label(value, 63, palette.foreground, 12)}`;
@@ -536,7 +548,7 @@ ${label(value, 63, palette.foreground, 12)}`;
 export function renderDashboardKey(palette: CardPalette, icons: CardIcons): string {
   const colors = palette.controls;
   return `<g aria-label="Open the dashboard"><rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
-<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${colors.accent}" stroke-width="1.5"/>
+${keyBorder(colors.accent)}
 ${text("DASHBOARD", 36, 13, palette.muted, 8, 'text-anchor="middle" font-weight="700" letter-spacing=".8"')}
 <g color="${colors.accent}">${icon("layout-dashboard", 23, 20, 26, 26, icons, colors.accent)}</g>
 ${text("INFO", 36, 63, palette.foreground, 12, 'text-anchor="middle" font-weight="800"')}</g>`;

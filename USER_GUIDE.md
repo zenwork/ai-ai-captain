@@ -172,12 +172,13 @@ Each key shows one session. The color and the label show the status.
 | Amber, slow blink | WAITING  | The AI needs your answer or your permission.            | Go to the session and answer.                  |
 | Blue, flashes     | DONE     | The AI finished its work.                               | Look at the result.                            |
 | Dark blue         | DONE     | The AI finished more than 10 minutes ago.               | Look at the result when you have time.         |
+| Darkest blue, ✓✓  | DONE     | You pushed the key after the AI finished.               | Nothing. You saw this result.                  |
 | Purple            | STARTING | The session starts.                                     | Wait.                                          |
 | Red               | FAILED   | The session has an error.                               | Go to the session and look at the error.       |
 | Gray              | UNK      | The status is not known, or the hub does not run.       | Read [9. Troubleshooting](#9-troubleshooting). |
 | Not applicable    | APP      | AI AI Captain finds the app but cannot track its chats. | Push the key to open the app.                  |
 
-The large symbol on the key shows the type of assistant. A small badge shows the host. `>_` is a terminal. `IJ` is IntelliJ IDEA. An app window is a desktop app.
+The large symbol on the key shows the type of assistant. A small badge shows the host. A green `>_` is a terminal. A pink `IJ` is IntelliJ IDEA. A blue app window is a desktop app.
 
 ### 5.2 Go to a session
 
@@ -208,7 +209,13 @@ A stale key shows an alert when you push it. The session does not exist any more
 
 The hub removes the session. An automatic adapter can show the session again if its source files change.
 
-### 5.7 Hide a session
+### 5.7 Mark a result as seen
+
+When a DONE key flashes, push it one time. The application of the session opens. The key also stops flashing and changes to the darkest blue with a double check (✓✓). This shows that you saw the result. This works for all session types.
+
+The key stays like this until the status of the session changes, for example when the session starts new work. The next DONE flashes again. The dashboard shows the same color.
+
+### 5.8 Hide a session
 
 You can hide a DONE, FAILED, or UNK session that you do not need now. This works for all session types.
 
@@ -396,7 +403,7 @@ The limits are in groups by operating system. In each group, they are in groups 
 #### AI AI Captain
 
 - A new version of an assistant can change the files that AI AI Captain reads. Then a key can show **UNK**, or a session can stop showing until AI AI Captain gets an update.
-- A visit to a session does not stop its DONE flash. The flash stops after 10 minutes, or when new work starts.
+- A visit to a session in its application does not stop its DONE flash. Only a push on the DONE key stops it. The flash also stops after 10 minutes, or when new work starts.
 - You cannot hide a STARTING, WORKING, or WAITING session.
 - A single push on a DONE, FAILED, or UNK key waits 0.4 seconds before it shows the application.
 - The session list of the dashboard still shows hidden sessions. In the virtual deck, you cannot hide a session.

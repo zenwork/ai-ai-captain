@@ -88,7 +88,7 @@ ${rows}
 <path d="M36 1335H1268" stroke="${palette.badge.border}"/>
 ${text("Fixed controls", 36, 1364, palette.foreground, 17, 'font-weight="700"')}
 ${control("layout-dashboard", "INFO", palette, 36, 1385)}${control("chevron-left", "PREV", palette, 150, 1385)}${control("chevron-right", "NEXT", palette, 264, 1385)}
-${text("NEUTRAL HOST BADGES", 411, 1399, palette.foreground, 12, 'font-weight="700" letter-spacing=".7"')}
+${text("HOST BADGES", 411, 1399, palette.foreground, 12, 'font-weight="700" letter-spacing=".7"')}
 <g transform="translate(411 1416) scale(1.6)">${badge("terminal", palette, 0, 0)}${badge("ide", palette, 32, 0)}${badge("app-window", palette, 64, 0)}</g>
 ${text("CLI / IntelliJ / desktop app", 411, 1459, palette.muted)}
 ${text("IDENTITY IS NOT THE MODEL", 716, 1399, palette.foreground, 12, 'font-weight="700" letter-spacing=".7"')}
@@ -105,7 +105,7 @@ ${text("A new turn clears assessment. App focus alone cannot assess all sessions
 ${text("Selected brand marks: Lobe Icons 1.100.0. Interface symbols: Lucide 0.468.0. Local assets; licenses accompany these previews.", 36, 1701, palette.muted, 10.5)}
 ${text("DESIGN REFERENCE · Assessed DONE detection remains unimplemented · Illustrated products do not imply automatic conversation telemetry.", 36, 1721, palette.muted, 10.5)}
 </g>`;
-  return frame(`AI AI Captain: ${palette.name} complete icon and state combinations`, `${identities.length} client/host combinations across ten state and brightness examples: STARTING, WORKING, WAITING bright/dim, DONE fresh/dim/aged/assessed, FAILED and UNK. Claude Desktop, fixed controls and seven 72-pixel samples are included. Assessed DONE is darkest and double-checked but visit detection is not implemented. Choose the live palette in the dashboard.`, 1304, 1740 + shift, palette, content);
+  return frame(`AI AI Captain: ${palette.name} complete icon and state combinations`, `${identities.length} client/host combinations across ten state and brightness examples: STARTING, WORKING, WAITING bright/dim, DONE fresh/dim/aged/assessed, FAILED and UNK. Claude Desktop, fixed controls and seven 72-pixel samples are included. Assessed DONE is darkest and double-checked; a press on the DONE key assesses it. Choose the live palette in the dashboard.`, 1304, 1740 + shift, palette, content);
 }
 
 const neutral = { id: "comparison", canvas: "#0B1019", foreground: "#F4F6FA", muted: "#AAB7C7" };
@@ -122,14 +122,14 @@ ${completionStates.map((state, column) => tile(identities[4], state, palette, 5,
   }).join("\n");
   return frame("AI AI Captain: DONE assessment in all five palettes", "Fresh, aged and assessed completed sessions are compared across all five palettes, including dark and light high contrast. A verified visit after completion can assess the result at any age. Assessment cancels blinking, uses the darkest blue and a double check, and resets on a new turn. It remains a design requirement, not implemented visit tracking.", 1050, 1274, neutral, `
 ${text("DONE keeps its meaning. Assessment changes attention.", 36, 48, neutral.foreground, 26, 'font-weight="700"')}
-${text("All five palettes · Same session · Same scale · Assessment is required, not implemented.", 36, 80, neutral.muted, 13)}
+${text("All five palettes · Same session · Same scale · A press on the DONE key assesses it.", 36, 80, neutral.muted, 13)}
 ${text("Fresh · not assessed", 324, 118, neutral.foreground, 12, 'text-anchor="middle"')}
 ${text("After 10 min · not assessed", 580, 118, neutral.foreground, 12, 'text-anchor="middle"')}
 ${text("Visited after completion · assessed", 836, 118, neutral.foreground, 12, 'text-anchor="middle"')}
 ${rows}<path d="M36 1156H1014" stroke="#43546A"/>
-${text("A verified visit can assess a completed result immediately, at any age; there is no ten-minute prerequisite.", 36, 1186, neutral.muted, 13)}
+${text("A press on the DONE key assesses a completed result immediately, at any age; there is no ten-minute prerequisite.", 36, 1186, neutral.muted, 13)}
 ${text("New work resets assessment. App/project activation alone cannot assess every session in that host.", 36, 1210, neutral.muted, 13)}
-${text("Static design frames · No palette selection, runtime deployment or visit-detection implementation is implied.", 36, 1244, neutral.muted, 11)}`);
+${text("Static design frames · Automatic visit detection is not implemented.", 36, 1244, neutral.muted, 11)}`);
 }
 
 const budgetExamples = {
@@ -403,7 +403,7 @@ function validatePalette(palette) {
   assert.equal(Object.keys(palette.states).length, states.length, `${palette.id}: incomplete states`);
   const pairs = {
     captions: [[palette.muted, palette.canvas], [palette.foreground, palette.canvas]],
-    hostBadges: [[palette.badge.foreground, palette.badge.background]],
+    hostBadges: [[palette.badge.foreground, palette.badge.background], ...Object.values(palette.hosts).map((host) => [host, palette.badge.background])],
     controls: [[palette.controls.ink, palette.controls.accent], [palette.controls.foreground, palette.controls.background]],
     stateLabels: states.map((state) => [palette.states[state.id].ink, palette.states[state.id].accent]),
     identityMarks: states.map((state) => [palette.states[state.id].foreground, palette.states[state.id].background]),
