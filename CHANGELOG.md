@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.0.0](https://github.com/zenwork/ai-ai-captain/compare/v1.1.0...v2.0.0) (2026-11-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* publish to Elgato Marketplace and support Linux and Windows ([#11](https://github.com/zenwork/ai-ai-captain/issues/11))
+
+### Features
+
+* add initial AI AI Captain project ([a4be31c](https://github.com/zenwork/ai-ai-captain/commit/a4be31cf6fe0f9110d8e1aa09594f2c64f6cd805))
+* **appearance:** add configurable flash intensity ([4381bca](https://github.com/zenwork/ai-ai-captain/commit/4381bca8d31e9f2620fd1061f2c89d66749ccd0b))
+* **app:** run the streamdeck in a browser without hardware ([383fe22](https://github.com/zenwork/ai-ai-captain/commit/383fe22e754060b90822e5f539a9ce5092392ce1))
+* **app:** run the streamdeck in a browser without hardware ([fc9005a](https://github.com/zenwork/ai-ai-captain/commit/fc9005a5b03dcf756cde6b9b4d7232c0c20eef2c))
+* **apps:** improved and fixed app support ([e9f37b8](https://github.com/zenwork/ai-ai-captain/commit/e9f37b8bbfc51efc6cedc894f61e079ddd59942f))
+* **claude-app:** improve integration with claude app sessions ([#12](https://github.com/zenwork/ai-ai-captain/issues/12)) ([1b6a087](https://github.com/zenwork/ai-ai-captain/commit/1b6a087bfc13e803badd8babbfa9a6609a95e00d))
+* **keys:** add information keys ([c9c1965](https://github.com/zenwork/ai-ai-captain/commit/c9c19656ee8a60c2bcb9f7b5ed54dfcfede0f2e1))
+* **keys:** add subscription keys ([#13](https://github.com/zenwork/ai-ai-captain/issues/13)) ([ab4b5c2](https://github.com/zenwork/ai-ai-captain/commit/ab4b5c29ff6537ee2a44ac83186da2941851906b))
+* publish to Elgato Marketplace and support Linux and Windows ([#11](https://github.com/zenwork/ai-ai-captain/issues/11)) ([94f9c29](https://github.com/zenwork/ai-ai-captain/commit/94f9c29b5032f8bc5ae6ce0aa89083c051052e6a))
+* **settings:** added setting toggle keys; updated documentation ([335f20a](https://github.com/zenwork/ai-ai-captain/commit/335f20a3fbdd0386c9709e78c61d2d7a45d237f1))
+
+
+### Bug Fixes
+
+* **copilot:** keep plan approvals waiting ([5761d2f](https://github.com/zenwork/ai-ai-captain/commit/5761d2fd6e52e6871b3ad1ec4d61956a72755122))
+* **design:** improve UX ([#16](https://github.com/zenwork/ai-ai-captain/issues/16)) ([a393e9d](https://github.com/zenwork/ai-ai-captain/commit/a393e9d2000e55232d70878c3101fe3f399cea43))
+* **junie:** focus the owning IntelliJ project ([cfa60ff](https://github.com/zenwork/ai-ai-captain/commit/cfa60ffaba0c9819aac5e14a9129ca760edaedae))
+* **web:** fix deck startup and add keep-on-top controls ([#4](https://github.com/zenwork/ai-ai-captain/issues/4)) ([768aef5](https://github.com/zenwork/ai-ai-captain/commit/768aef540aca0473acb30da74e819ffeb535833b)), closes [#3](https://github.com/zenwork/ai-ai-captain/issues/3)
+
 ## [1.1.0](https://github.com/zenwork/ai-ai-captain/compare/v1.0.0...v1.1.0) (2026-11-01)
 
 
