@@ -11,6 +11,7 @@ import { HostLifetimes } from "./lifetimes.js";
 import { listProcesses, type ProcessInfo } from "./processes.js";
 import { SessionStore } from "./store.js";
 
+
 const supportedPlatforms: NodeJS.Platform[] = ["darwin", "linux", "win32"];
 
 const candidates = [
@@ -47,10 +48,15 @@ export async function discoverDesktopApps(registry: ClientRegistry, processes?: 
   registry.replace(clients);
 }
 
+export function codexHomeDirectory(): string {
+  return process.env.AI_AI_CAPTAIN_CODEX_HOME ?? process.env.CODEX_HOME ?? join(homedir(), ".codex");
+}
+
 export function startSessionDiscovery(store: SessionStore, clients: ClientRegistry, dataDirectory?: string): ReturnType<typeof setInterval> | undefined {
   if (!supportedPlatforms.includes(process.platform)) return undefined;
+  const codexHome = codexHomeDirectory();
   const copilot = new CopilotTracker(store, join(process.env.AI_AI_CAPTAIN_COPILOT_HOME ?? join(homedir(), ".copilot"), "session-state"));
-  const codex = new CodexTracker(store, process.env.AI_AI_CAPTAIN_CODEX_HOME ?? process.env.CODEX_HOME ?? join(homedir(), ".codex"));
+  const codex = new CodexTracker(store, codexHome);
   const claude = new ClaudeTracker(store, process.env.AI_AI_CAPTAIN_CLAUDE_HOME ?? process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"));
   const junie = new JunieTracker(store, process.env.AI_AI_CAPTAIN_JUNIE_HOME ?? join(homedir(), ".junie", "sessions"));
   const claudeDesktop = new ClaudeDesktopTracker(store);

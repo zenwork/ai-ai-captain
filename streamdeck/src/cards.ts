@@ -1,6 +1,7 @@
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
-import { cardIdentities, cardStates, describeInfoCard, escapeXml, renderCard, renderControl, renderInfoCard, type CardColors, type CardPalette, type CardPhase, type InfoCardData } from "../../src/shared/card-design.js";
+import { cardIdentities, cardStates, describeBudgetCard, describeInfoCard, escapeXml, renderBudgetCard, renderCard, renderControl, renderInfoCard, renderInfoPlaceholder, renderSessionPlaceholder, type BudgetProviderId, type CardColors, type CardPalette, type CardPhase, type InfoCardData } from "../../src/shared/card-design.js";
+import { budgetCardData, type Budget } from "../../src/shared/budget.js";
 import { cardIcons } from "../../src/shared/card-assets.js";
 import { applyFlashIntensity, resolveFlashIntensity } from "../../src/shared/flash-intensity.js";
 import { getPalette, type PaletteId } from "../../src/shared/palette.js";
@@ -78,6 +79,17 @@ export function infoSignature(session: Session, palette?: PaletteId): string {
   return JSON.stringify(["info", session.id, getPalette(palette).id, infoData(session)]);
 }
 
+/** An unused session key. It shows its key number, so the deck layout stays readable. */
+export function sessionPlaceholderImage(keyNumber?: number, palette?: PaletteId): string {
+  const number = keyNumber !== undefined && Number.isFinite(keyNumber) ? Math.trunc(keyNumber) : undefined;
+  return svg(renderSessionPlaceholder(getPalette(palette), number), `Unused session key${number === undefined ? "" : ` ${number}`}`);
+}
+
+/** An info key without a session above it, or with the info keys turned off. */
+export function infoPlaceholderImage(palette?: PaletteId): string {
+  return svg(renderInfoPlaceholder(getPalette(palette)), "Unused info key");
+}
+
 export function emptyImage(palette?: PaletteId): string {
   const colors = getPalette(palette);
   return svg(`<rect width="72" height="72" rx="8" fill="${colors.canvas}"/><path d="M27 36h18" stroke="${colors.badge.border}" stroke-width="3" stroke-linecap="round"/>`, "Unused session key");
@@ -97,6 +109,17 @@ export function appImage(client: Client, keyNumber?: number, palette?: PaletteId
 
 export function appSignature(client: Client, keyNumber?: number, palette?: PaletteId): string {
   return JSON.stringify(["app", client.id, appIconName(client), keyNumber, getPalette(palette).id]);
+}
+
+/** A subscription budget key. Without a budget, the key shows dashed bars and "?". */
+export function budgetImage(provider: BudgetProviderId, budget: Budget | undefined, palette?: PaletteId, now = Date.now()): string {
+  const data = budgetCardData(provider, budget, now);
+  return svg(renderBudgetCard(data, getPalette(palette), cardIcons), describeBudgetCard(data));
+}
+
+// The reset times change each minute, so the signature uses the key data, not the budget.
+export function budgetSignature(provider: BudgetProviderId, budget: Budget | undefined, palette?: PaletteId, now = Date.now()): string {
+  return JSON.stringify(["budget", getPalette(palette).id, budgetCardData(provider, budget, now)]);
 }
 
 export function dashboardImage(palette?: PaletteId): string {

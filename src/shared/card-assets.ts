@@ -89,6 +89,12 @@ export const designPalettes = [
         "foreground": "#F2F6FA",
         "ink": "#111827"
       }
+    },
+    "brands": {
+      "claude": "#D97757",
+      "openai": "#10A37F",
+      "copilot": "#9466E7",
+      "jetbrains": "#FF318C"
     }
   },
   {
@@ -177,6 +183,12 @@ export const designPalettes = [
         "foreground": "#F5F3FA",
         "ink": "#111827"
       }
+    },
+    "brands": {
+      "claude": "#D97757",
+      "openai": "#10A37F",
+      "copilot": "#9163E7",
+      "jetbrains": "#FF318C"
     }
   },
   {
@@ -265,6 +277,12 @@ export const designPalettes = [
         "foreground": "#F7F4F0",
         "ink": "#111827"
       }
+    },
+    "brands": {
+      "claude": "#D97757",
+      "openai": "#10A37F",
+      "copilot": "#9568E8",
+      "jetbrains": "#FF318C"
     }
   },
   {
@@ -353,6 +371,12 @@ export const designPalettes = [
         "foreground": "#FFFFFF",
         "ink": "#03060B"
       }
+    },
+    "brands": {
+      "claude": "#DC8163",
+      "openai": "#26AB8B",
+      "copilot": "#AA86EC",
+      "jetbrains": "#FF5CA4"
     }
   },
   {
@@ -441,6 +465,12 @@ export const designPalettes = [
         "foreground": "#122135",
         "ink": "#FFFFFF"
       }
+    },
+    "brands": {
+      "claude": "#774130",
+      "openai": "#095D48",
+      "copilot": "#603DA0",
+      "jetbrains": "#991D54"
     }
   }
 ] as const satisfies readonly CardPalette[];
@@ -453,6 +483,10 @@ export const cardIcons = {
   "loader-circle": {
     "viewBox": "0 0 24 24",
     "content": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12a9 9 0 1 1-6.219-8.56\" /></g>"
+  },
+  "rotate-ccw": {
+    "viewBox": "0 0 24 24",
+    "content": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\" />\n  <path d=\"M3 3v5h5\" /></g>"
   },
   "hand": {
     "viewBox": "0 0 24 24",

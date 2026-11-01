@@ -19,6 +19,8 @@ export interface CardPalette {
   badge: { background: string; foreground: string; border: string };
   controls: CardColors;
   states: Record<string, CardColors>;
+  /** Brand colors of the subscription providers, adjusted to the contrast target of the palette. Used on budget keys only. */
+  brands: { claude: string; openai: string; copilot: string; jetbrains: string };
 }
 
 export type CardIcons = Record<string, { viewBox: string; content: string }>;
@@ -201,4 +203,195 @@ ${outline}${fill}
 <line x1="${markHorizontal}" y1="21" x2="${markHorizontal}" y2="41" stroke="${palette.muted}" stroke-width="1"/>
 ${infoAutoSymbol(data.approval, data.freedom !== undefined, palette)}${infoPadlock(data.freedom, palette)}
 </g>`;
+}
+
+export const budgetProviders = [
+  { id: "claude", title: "CLAUDE", icon: "claude", usageUrl: "https://claude.ai/settings/usage" },
+  { id: "openai", title: "OPENAI", icon: "openai", usageUrl: "https://chatgpt.com/codex/settings/usage" },
+  { id: "copilot", title: "GITHUB COPILOT", icon: "githubcopilot", usageUrl: "https://github.com/settings/billing" },
+  { id: "jetbrains", title: "JETBRAINS AI", icon: "jetbrains", usageUrl: "https://account.jetbrains.com/licenses" },
+] as const;
+export type BudgetProviderId = typeof budgetProviders[number]["id"];
+
+export interface BudgetWindowCard {
+  /** 5H, WK, or MO. */
+  label: string;
+  /** Percent used, 0 to 100. Undefined when not reported. */
+  percent?: number;
+  /** Short time until the reset, for example "1h12" or "4d". */
+  reset?: string;
+}
+
+export interface BudgetCardData {
+  provider: BudgetProviderId;
+  plan?: string;
+  /** Two windows (5H and WK) or one window (MO). */
+  windows: readonly BudgetWindowCard[];
+  /** Credits used and the allowance, already formatted. Only for one-window keys. */
+  used?: string;
+  total?: string;
+  /** Paid extras in use: extra spend (Copilot) or top-up credits (JetBrains AI). */
+  extra?: { kind: "extra" | "topup"; amount: string };
+}
+
+// The same 80% mark and warning rule as the context bar of the info key.
+type BudgetLevel = "ok" | "low" | "out" | "unknown";
+
+function budgetLevel(percent: number | undefined): BudgetLevel {
+  if (percent === undefined) return "unknown";
+  if (percent >= 100) return "out";
+  if (percent >= contextWarningPercent) return "low";
+  return "ok";
+}
+
+// The product mark in the brand color, and a brand stripe along the top edge. Brand color never shows a level:
+// the bars, the border, and the bands keep the state colors.
+function budgetMark(provider: typeof budgetProviders[number], palette: CardPalette, icons: CardIcons): string {
+  const brand = palette.brands[provider.id];
+  const stripe = `<rect x="23" y="3.4" width="42" height="2.2" rx="1.1" fill="${brand}"/>`;
+  if (provider.icon === "jetbrains") {
+    return `${stripe}<rect x="6" y="6" width="12" height="12" rx="2" fill="${brand}"/>${text("IJ", 12, 15.4, palette.canvas, 8, 'text-anchor="middle" font-weight="800"')}${icon("sparkles", 15.5, 3.5, 6, 6, icons, brand)}`;
+  }
+  return `${stripe}<g color="${brand}">${icon(provider.icon, 5, 5, 14, 14, icons, brand)}</g>`;
+}
+
+function budgetBar(window: BudgetWindowCard, vertical: number, palette: CardPalette): string {
+  const left = 21;
+  const width = 45;
+  const level = budgetLevel(window.percent);
+  const color = level === "out" ? palette.states.failed.accent : level === "low" ? palette.states["waiting-bright"].accent : palette.states.working.accent;
+  // A small use stays visible: any use above 0% fills at least 2 pixels.
+  const percent = window.percent === undefined ? 0 : Math.min(Math.max(window.percent, 0), 100);
+  const fillWidth = percent > 0 ? Math.max(2, Math.round((width - 3) * percent) / 100) : 0;
+  const fill = fillWidth ? `<rect x="${left + 1.5}" y="${vertical + 1.5}" width="${fillWidth}" height="7" rx="${Math.min(2, fillWidth / 2)}" fill="${color}"/>` : "";
+  const mark = left + (width * contextWarningPercent) / 100 - 1.5;
+  return `${text(window.label, 6, vertical + 8.4, palette.muted, 8.5, 'font-weight="700"')}
+<rect x="${left}" y="${vertical}" width="${width}" height="10" rx="3" fill="none" stroke="${palette.badge.border}" stroke-width="1.2"${window.percent === undefined ? ' stroke-dasharray="2.5 2.5"' : ""}/>${fill}
+<line x1="${mark}" y1="${vertical - 1}" x2="${mark}" y2="${vertical + 11}" stroke="${palette.muted}" stroke-width="1"/>`;
+}
+
+// A state band like the band of a session key: symbol on the left, label in the middle.
+function budgetBand(label: string, colors: CardColors, symbol: string, icons: CardIcons): string {
+  const content = label.length > 5
+    ? text(label, 0, 64.1, colors.ink, 11, `transform="translate(45.5 0) scale(${label.length >= 7 ? ".78" : ".86"} 1)" text-anchor="middle" font-weight="800" letter-spacing=".1"`)
+    : text(label, 44, 64.1, colors.ink, 12, 'text-anchor="middle" font-weight="800" letter-spacing=".1"');
+  return `<rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
+<g color="${colors.ink}">${icon(symbol, 7, 53.5, 14, 14, icons, colors.ink)}</g>
+${content}`;
+}
+
+// A value in the top row. The symbol before it moves with the length of the value.
+function budgetTopValue(value: string, color: string, icons: CardIcons, symbol?: string): string {
+  const width = value.length * 6.1;
+  return `${symbol ? icon(symbol, 66 - width - 13, 6, 10, 10, icons, color) : ""}${text(value, 66, 15, color, 10, 'text-anchor="end" font-weight="700"')}`;
+}
+
+export function describeBudgetCard(data: BudgetCardData): string {
+  const provider = budgetProviders.find((entry) => entry.id === data.provider)!;
+  const windows = data.windows.map((window) => `${window.label} ${window.percent === undefined ? "not reported" : `${Math.round(window.percent)} percent used`}${window.reset ? `, resets in ${window.reset}` : ""}`);
+  const extra = data.extra ? `; ${data.extra.kind === "topup" ? "top-up credits in use" : "extra budget in use"}, ${data.extra.amount}` : "";
+  return `${provider.title} ${data.plan ?? "plan not reported"} budget: ${windows.join("; ")}${extra}`;
+}
+
+/** The subscription budget key. It uses the canvas background like the info key. The border shows the worst level. */
+export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, icons: CardIcons): string {
+  const provider = budgetProviders.find((entry) => entry.id === data.provider)!;
+  const percents = data.windows.map((window) => window.percent).filter((value): value is number => value !== undefined);
+  const worst = percents.length ? Math.max(...percents) : undefined;
+  const binding = data.windows.find((window) => window.percent === worst);
+  const level = budgetLevel(worst);
+  const extra = data.extra;
+  const out = level === "out" && !extra;
+  const warning = palette.states["waiting-bright"];
+  const border = out ? palette.states.failed.accent : level === "low" || extra ? warning.accent : palette.badge.border;
+  const parts = [
+    `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>`,
+    `<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${border}" stroke-width="1.5"${level === "unknown" ? ' stroke-dasharray="3 3"' : ""}/>`,
+    budgetMark(provider, palette, icons),
+  ];
+  // Top right: the plan. When the budget is out, the reset time takes its place. Paid extras show their amount.
+  if (out) parts.push(budgetTopValue(binding?.reset ?? "?", palette.foreground, icons, "rotate-ccw"));
+  else if (extra) parts.push(budgetTopValue(extra.amount, warning.accent, icons));
+  else parts.push(text(data.plan ?? "?", 66, 15, palette.muted, 9.5, 'text-anchor="end" font-weight="700"'));
+  if (data.windows.length === 1) {
+    const used = data.used ?? "?";
+    parts.push(text(used, 6, 32, data.used === undefined ? palette.muted : palette.foreground, 13, 'font-weight="700"'));
+    parts.push(text(`/ ${data.total ?? "?"}`, used.length * 7.6 + 9, 32, palette.muted, 9));
+    parts.push(budgetBar(data.windows[0], 37, palette));
+  } else {
+    parts.push(budgetBar(data.windows[0] ?? { label: "5H" }, 22, palette));
+    parts.push(budgetBar(data.windows[1] ?? { label: "WK" }, 37, palette));
+  }
+  if (extra) parts.push(budgetBand(extra.kind === "topup" ? "TOP-UP" : "EXTRA", warning, extra.kind === "topup" ? "sparkles" : "triangle-alert", icons));
+  else if (out) parts.push(budgetBand("LIMIT", palette.states.failed, "triangle-alert", icons));
+  else if (level === "unknown") parts.push(text("—", 6, 64, palette.muted, 11), text("?", 66, 64, palette.muted, 12, 'text-anchor="end" font-weight="800"'));
+  else {
+    parts.push(`<g color="${palette.muted}">${icon("rotate-ccw", 6, 55.5, 9, 9, icons, palette.muted)}</g>`, text(binding?.reset ?? "?", 17.5, 63.5, palette.foreground, 9.5));
+    parts.push(text(`${Math.round(worst!)}%`, 66, 64, level === "low" ? warning.accent : palette.foreground, 11.5, 'text-anchor="end" font-weight="800"'));
+  }
+  return `<g aria-label="${escapeXml(describeBudgetCard(data))}">${parts.join("\n")}</g>`;
+}
+
+/**
+ * An unused session key: a dashed outline, the key number, and a dashed SESSION band.
+ * It shows the place of the key on the deck and in the Stream Deck app, without a state.
+ */
+export function renderSessionPlaceholder(palette: CardPalette, number?: number): string {
+  const muted = palette.muted;
+  const center = number === undefined
+    ? `<path d="M28 30h16" stroke="${palette.badge.border}" stroke-width="3" stroke-linecap="round"/>`
+    : text(number, 36, 37, muted, 20, 'text-anchor="middle" font-weight="700"');
+  return `<g aria-label="${escapeXml(`Unused session key${number === undefined ? "" : ` ${number}`}`)}">
+<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
+<rect x="1.5" y="1.5" width="69" height="69" rx="7" fill="none" stroke="${palette.badge.border}" stroke-width="1.5" stroke-dasharray="4 3"/>
+${center}
+<rect x="4" y="52" width="64" height="16" rx="4" fill="none" stroke="${palette.badge.border}" stroke-width="1.2" stroke-dasharray="3 2.5"/>
+${text("SESSION", 0, 64, muted, 10, 'transform="translate(36 0) scale(.86 1)" text-anchor="middle" font-weight="800" letter-spacing=".3"')}
+</g>`;
+}
+
+/** An unused info key: the outline of the info key with a dashed bar, and an INFO label. */
+export function renderInfoPlaceholder(palette: CardPalette): string {
+  const border = palette.badge.border;
+  const markHorizontal = infoBarLeft + (infoBarWidth * contextWarningPercent) / 100 - infoBarInset;
+  return `<g aria-label="Unused info key">
+<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
+<rect x="1.5" y="1.5" width="69" height="69" rx="7" fill="none" stroke="${border}" stroke-width="1.5" stroke-dasharray="4 3"/>
+<path d="M6 12h16M50 12h16" stroke="${border}" stroke-width="2.5" stroke-linecap="round"/>
+<rect x="${infoBarLeft}" y="22" width="${infoBarWidth}" height="18" rx="4" fill="none" stroke="${border}" stroke-width="1.5" stroke-dasharray="3 3"/>
+<line x1="${markHorizontal}" y1="21" x2="${markHorizontal}" y2="41" stroke="${border}" stroke-width="1"/>
+${text("INFO", 36, 62, palette.muted, 11, 'text-anchor="middle" font-weight="800" letter-spacing=".5"')}
+</g>`;
+}
+
+/** Monochrome symbols for the action list of the Stream Deck app. Each symbol is drawn in a 20 × 20 box. */
+export const actionIconSymbols = {
+  session: "session-key",
+  "session-info": "info-key",
+  "previous-page": "chevron-left",
+  "next-page": "chevron-right",
+  dashboard: "layout-dashboard",
+  "toggle-info-keys": "square-code",
+  "cycle-theme": "app-window",
+  "cycle-brightness": "sparkles",
+  "budget-claude": "claude",
+  "budget-openai": "openai",
+  "budget-copilot": "githubcopilot",
+  "budget-jetbrains": "jetbrains",
+} as const;
+export type ActionIconId = keyof typeof actionIconSymbols;
+
+export function renderActionIcon(id: ActionIconId, icons: CardIcons, color = "#FFFFFF"): string {
+  const symbol = actionIconSymbols[id];
+  let content: string;
+  if (symbol === "session-key") {
+    content = `<rect x="2.5" y="2.5" width="15" height="15" rx="3" fill="none" stroke="${color}" stroke-width="1.6"/><rect x="4.5" y="12" width="11" height="3.5" rx="1" fill="${color}"/>`;
+  } else if (symbol === "info-key") {
+    content = `<rect x="2" y="7" width="16" height="6" rx="1.8" fill="none" stroke="${color}" stroke-width="1.5"/><rect x="3.6" y="8.6" width="8" height="2.8" rx=".8" fill="${color}"/><path d="M14.5 5.5v9" stroke="${color}" stroke-width="1.2"/><path d="M3 3.5h5M12 3.5h5M3 16.5h4" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/>`;
+  } else if (symbol === "jetbrains") {
+    content = `<rect x="2" y="3" width="13" height="13" rx="2" fill="${color}"/>${text("IJ", 8.5, 13.2, "#000000", 8, 'text-anchor="middle" font-weight="800"')}${icon("sparkles", 13, 0.5, 7, 7, icons, color)}`;
+  } else {
+    content = icon(symbol, 2, 2, 16, 16, icons, color);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><g font-family="Arial, Helvetica, sans-serif">${content}</g></svg>\n`;
 }

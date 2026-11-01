@@ -27,6 +27,21 @@ describe("session API", () => {
     expect(mismatch.statusCode).toBe(400);
   });
 
+  it("stores subscription budgets, lists them with the sessions, and removes them", async () => {
+    const app = createApp({ webRoot: "/no-static-assets" });
+    apps.push(app);
+    const payload = { provider: "claude", source: "cli", plan: "max", windows: [{ kind: "five-hour", usedPercent: 34, resetsAt: "2026-11-01T12:00:00Z" }] };
+    const saved = await app.inject({ method: "PUT", url: "/api/budgets/claude", payload });
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json().budget).toMatchObject({ provider: "claude", plan: "max" });
+    expect((await app.inject({ method: "GET", url: "/api/sessions" })).json().budgets).toHaveLength(1);
+    expect((await app.inject({ method: "PUT", url: "/api/budgets/openai", payload })).statusCode).toBe(400);
+    expect((await app.inject({ method: "PUT", url: "/api/budgets/claude", payload: { ...payload, windows: [{ kind: "weekly", usedPercent: 140 }] } })).statusCode).toBe(400);
+    expect((await app.inject({ method: "DELETE", url: "/api/budgets/claude" })).json()).toEqual({ removed: true });
+    expect((await app.inject({ method: "DELETE", url: "/api/budgets/claude" })).statusCode).toBe(404);
+    expect((await app.inject({ method: "GET", url: "/api/budgets" })).json().budgets).toEqual([]);
+  });
+
   it("removes a session by request and reports missing sessions", async () => {
     const app = createApp({ webRoot: "/no-static-assets" });
     apps.push(app);

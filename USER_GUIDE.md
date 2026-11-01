@@ -384,7 +384,23 @@ You can add three keys to the Stream Deck. They are not on the virtual deck.
 
 Push **Toggle Info Keys** to turn the info keys on or off. Push **Cycle Theme** to select the next palette. Push **Cycle Brightness** to select the next flash intensity level. The dashboard shows the same settings.
 
-### 8.2.2 Make the plugin file for the Elgato Marketplace
+### 8.2.2 Add subscription budget keys
+
+A budget key shows how much of an AI subscription you used and when the limit resets.
+
+1. Open the Stream Deck app.
+2. In the action list, find **AI AI Captain**.
+3. Drag **AI Budget: Claude**, **AI Budget: OpenAI**, **AI Budget: GitHub Copilot**, or **AI Budget: JetBrains AI** onto a key.
+
+The OpenAI key fills itself after Codex runs once. The other keys show dashed bars and "?" until you report values. For example:
+
+```sh
+npm run report -- budget claude --plan max --five-hour-percent 34 --five-hour-reset 2h --weekly-percent 21 --weekly-reset 4d
+```
+
+Find the values on the usage page of the provider. Push the key to open that page. The hub keeps reported values in `budgets.json` in its data folder, so they stay after a restart. Refer to `INT-12` in [intagration.md](intagration.md) for all options.
+
+### 8.2.3 Make the plugin file for the Elgato Marketplace
 
 1. Edit `streamdeck/marketplace.json`. Set the author, description, and tags.
 2. Run `npm run pack:streamdeck`.

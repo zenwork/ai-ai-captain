@@ -11,6 +11,8 @@ import { SettingsStore } from "./settings.js";
 import { settingsWriteSchema } from "../shared/settings.js";
 import { palettes } from "../shared/palette.js";
 import { canonicalDashboardUrl, createDashboardController } from "./dashboard.js";
+import { BudgetStore } from "./budgets.js";
+import { budgetInputSchema } from "../shared/budget.js";
 
 export interface AppOptions {
   store?: SessionStore;
@@ -21,6 +23,9 @@ export interface AppOptions {
   dashboard?: ReturnType<typeof createDashboardController>;
   dashboardUrl?: string;
   logLevel?: HubLogLevel;
+  budgets?: BudgetStore;
+  /** Read the automatic budget sources again. */
+  refreshBudgets?: () => Promise<void>;
 }
 
 export const hubLogLevels = ["fatal", "error", "warn", "info", "debug", "trace", "silent"] as const;
@@ -31,6 +36,7 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
   const focus = options.focus ?? defaultFocusHandler;
   const clients = options.clients ?? new ClientRegistry();
   const settings = options.settings ?? new SettingsStore();
+  const budgets = options.budgets ?? new BudgetStore();
   const dashboard = options.dashboard ?? createDashboardController();
   const dashboardUrl = canonicalDashboardUrl(options.dashboardUrl ?? "http://127.0.0.1:43681/");
   const app = Fastify({ logger: { level: options.logLevel ?? "info" }, bodyLimit: 32 * 1024 });
@@ -44,7 +50,27 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     if (request.headers.origin && request.headers.origin !== new URL(dashboardUrl).origin) return reply.code(403).send({ error: "Cross-origin dashboard opening is not allowed" });
     return dashboard.open(dashboardUrl);
   });
-  app.get("/api/sessions", async () => ({ sessions: store.list(), clients: clients.list(), settings: settings.get() }));
+  app.get("/api/sessions", async () => ({ sessions: store.list(), clients: clients.list(), settings: settings.get(), budgets: budgets.list() }));
+  app.get("/api/budgets", async () => ({ budgets: budgets.list() }));
+  // The Stream Deck plugin calls this when it starts, so a reused hub reads the automatic sources again.
+  app.post("/api/budgets/refresh", async () => {
+    await options.refreshBudgets?.();
+    return { budgets: budgets.list() };
+  });
+  app.put("/api/budgets/:provider", async (request, reply) => {
+    const parsed = budgetInputSchema.safeParse(request.body);
+    const { provider } = request.params as { provider: string };
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid budget" });
+    if (provider !== parsed.data.provider) return reply.code(400).send({ error: "Path provider must match budget provider" });
+    return { budget: budgets.upsert(parsed.data) };
+  });
+  app.delete("/api/budgets/:provider", async (request, reply) => {
+    const { provider } = request.params as { provider: string };
+    const known = budgets.list().find((budget) => budget.provider === provider);
+    if (!known) return reply.code(404).send({ error: "Budget not found" });
+    budgets.remove(known.provider);
+    return { removed: true };
+  });
   app.get("/api/clients", async () => ({ clients: clients.list() }));
   app.get("/api/settings", async () => ({ settings: settings.get(), palettes: palettes.map(({ id, name, mode, contrast }) => ({ id, name, mode, contrast })) }));
   app.put("/api/settings", async (request, reply) => {
@@ -97,16 +123,18 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
       "x-accel-buffering": "no",
     });
     const send = (event: unknown) => response.write(`data: ${JSON.stringify(event)}\n\n`);
-    send({ type: "snapshot", sessions: store.list(), clients: clients.list(), settings: settings.get() });
+    send({ type: "snapshot", sessions: store.list(), clients: clients.list(), settings: settings.get(), budgets: budgets.list() });
     const unsubscribe = store.subscribe(send);
     const unsubscribeClients = clients.subscribe((snapshot) => send({ type: "clients", clients: snapshot }));
     const unsubscribeSettings = settings.subscribe((value) => send({ type: "settings", settings: value }));
+    const unsubscribeBudgets = budgets.subscribe((snapshot) => send({ type: "budgets", budgets: snapshot }));
     const heartbeat = setInterval(() => response.write(": heartbeat\n\n"), 15_000);
     const cleanup = () => {
       clearInterval(heartbeat);
       unsubscribe();
       unsubscribeClients();
       unsubscribeSettings();
+      unsubscribeBudgets();
     };
     request.raw.on("close", cleanup);
   });
@@ -117,5 +145,6 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
   }
   app.addHook("onClose", async () => store.close());
   app.addHook("onClose", async () => settings.close());
+  app.addHook("onClose", async () => budgets.close());
   return app;
 }
