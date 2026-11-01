@@ -20,7 +20,7 @@ This file intentionally uses the requested name `intagration.md`. It owns integr
 | Junie in IntelliJ IDEA              | `~/.junie/sessions` index, status events, and open IntelliJ project registration            | Needs a running IDEA process; approval waits are not recorded, so WAITING is not shown                 |
 | Other harness hooks                 | Generic CLI/HTTP reporter                                                                   | Requires the harness to invoke configured hooks                                                        |
 | Other IntelliJ tasks                | Optional manual Kotlin bridge                                                               | One manually reported task per project, not per-conversation automatic telemetry                       |
-| Claude desktop chat                 | Experimental Accessibility adapter for exposed conversation URLs and known English controls | Requires Accessibility access; hidden chats and other UI formats are not fully supported               |
+| Claude desktop chat and task        | Experimental Accessibility adapter for exposed chat and task URLs and known English controls | Requires Accessibility access; hidden chats and other UI formats are not fully supported; tasks have no model or token data |
 | ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`; shown as an APP key on Stream Deck                    | Plain conversations not automatically tracked (see INT-10 for ChatGPT research)                        |
 
 Node.js 24+ is required to build AI AI Captain and for local hub development. Stream Deck 7.1+ is required for the current plugin; its manifest targets macOS 13+, Windows 10+, and the embedded Node 20 runtime. The plugin also runs the bundled hub on that Node 20 runtime. The default hardware profile targets the XL. macOS is required for the current automatic process/lifetime adapters and focus commands, not for the generic session API itself.
@@ -85,6 +85,16 @@ Claude desktop chat inspection uses macOS Accessibility. Enable access for the a
 The inspector reads exposed conversation URLs, roles, enabled flags, and known control labels only.
 It does not read message text, composer values, cookies, authentication storage, or private errors.
 The adapter follows exposed `claude.ai/chat/<UUID>` web areas, not chat history links.
+It also follows exposed `claude.ai/cowork/cse_<ID>` (Cowork) and `claude.ai/code/session_<ID>` (Claude Code) task web areas.
+A task runs in the cloud or in an isolated VM, so it has no local `sessions/<pid>.json` registration.
+A task key uses application focus. The deep-link contract covers chats only.
+The adapter also reads each row of the "Chats and tasks" sidebar list. Each row has a status indicator.
+`Running` gives WORKING. A working task can show its current activity in place of `Running`, for example `Using the browser`. Any other status indicator label also gives WORKING. `Awaiting input` and `Awaiting answer` give WAITING. `Unread response`, `Done`, and `Completed` give DONE. `Error` gives FAILED. `Idle` and `Archived` rows are not reported.
+The inspection script changes each row title into a 64-bit hash. The title does not leave the script. The hub keeps only the hash.
+When the open page title agrees with a row title, the page joins that row. The row identity stays the same when the user opens another page.
+A hidden sidebar or a filtered list removes the rows that it does not show. A changed title gives a new row identity.
+The adapter reads the model picker label of the open page, for example `Model: Opus 5.5 Medium`. It changes the label to a model name such as `claude-opus-5-5` and does not keep the effort level.
+The hub keeps the last model of each chat or task after the user leaves its page. The app does not show tokens, context use, freedom, or approval, so the info key leaves them empty.
 Inspection is bounded to 6000 elements and four seconds. Unsupported UI formats fail to UNKNOWN or app-presence diagnostics.
 The installed desktop app must expose these controls; full UI-version coverage is not yet verified.
 
@@ -177,7 +187,7 @@ open -b <IDEA bundle ID> <absolute project directory>
 
 Do not use `-n` or `--args`; these options start a new IDEA process or pass the project path as an application argument. Opening the project as a document lets macOS reuse the selected running installation. The adapter reports project scope when the command succeeds. Other sessions use supported app-path/name, bundle-ID, optional PID, or HTTP(S) URL navigation. `AI_AI_CAPTAIN_PRECISE_FOCUS=1` enables an attempted PID-based app focus, which may need Accessibility permission; project targeting takes precedence.
 
-Focus scopes are application, project, and session. Only an identified Claude desktop chat uses session scope through its restricted deep link. A successful navigation command does not prove that the user read the result. Assessed DONE remains unimplemented.
+Focus scopes are application, project, and session. An identified Claude desktop chat uses session scope through its restricted deep link. On macOS, a Claude desktop sidebar row uses session scope when the hub opens that row. The hub finds the row through Accessibility and clicks it with a mouse event, then restores the pointer position. The app ignores the Accessibility press on sidebar rows. This click is the only action that the Claude adapter does in the app. The press reuses the inspection script with the row title key as a second argument. A successful navigation command does not prove that the user read the result. Assessed DONE remains unimplemented.
 
 ## INT-06 — Stream Deck installation and layout
 
@@ -294,6 +304,15 @@ Options:
 | Use Accessibility like Claude     | Plain chat, if the UI exposes identity | Fragile; needs a stable chat identifier first                                  |
 
 Next step: run a Codex thread in the ChatGPT app. Check if the Codex adapter shows it. Report the result before any new code.
+
+## INT-11 — Claude desktop adapter on Windows
+
+**Proposed.** Do not implement without approval from the user.
+
+The Claude desktop adapter and sidebar row focus use macOS Accessibility only. Windows has UI Automation. PowerShell can read it and can invoke a button.
+The Claude app uses Chromium, so it probably shows a similar tree. Nobody has verified the names, the status indicators, or the page URLs on Windows.
+
+Next step: on a Windows computer, open the Claude app with some running tasks. Run `scripts/claude-uia-tree.ps1 > logs\claude-uia-tree.txt`. Remove titles, message text, and personal names. Add the result as a test fixture. Then write the PowerShell inspector so that it gives the same JSON snapshot as the macOS script.
 
 ## INT-12 — Subscription budget keys
 

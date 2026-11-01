@@ -6,21 +6,60 @@ import type { ProcessInfo } from "./processes.js";
 
 const execute = promisify(execFile);
 const inspectionTimeoutMilliseconds = 4000;
+const sessionStateSchema = z.enum(["working", "waiting", "done", "failed", "unknown"]);
+// A title key is a hash that the inspection script makes from a sidebar or page title. The title does not leave the script.
+const titleKeySchema = z.string().regex(/^[0-9a-f]{16}(?:-\d{1,2})?$/);
+// The label of the model picker in the open page, for example "Opus 5.5 Medium".
+const modelLabelSchema = z.string().trim().min(1).max(120);
+const chatSessionSchema = z.object({
+  kind: z.literal("chat").default("chat"),
+  sessionId: z.string().uuid().toLowerCase(),
+  titleKey: titleKeySchema.optional(),
+  model: modelLabelSchema.optional(),
+  state: sessionStateSchema,
+});
+// Cowork tasks use claude.ai/cowork/cse_<ID> URLs. Claude Code tasks use claude.ai/code/session_<ID> URLs.
+const taskSessionSchema = z.object({
+  kind: z.literal("task"),
+  sessionId: z.string().regex(/^(?:cse|session)_[0-9A-Za-z]{20,40}$/),
+  titleKey: titleKeySchema.optional(),
+  model: modelLabelSchema.optional(),
+  state: sessionStateSchema,
+});
+// A sidebar row is a chat or a task in the "Chats and tasks" list. Idle rows are not reported.
+const rowSessionSchema = z.object({
+  kind: z.literal("row"),
+  sessionId: titleKeySchema,
+  state: sessionStateSchema,
+});
 const snapshotSchema = z.object({
   status: z.enum(["available", "permission-denied", "unavailable"]),
-  sessions: z.array(z.object({
-    sessionId: z.string().uuid().toLowerCase(),
-    state: z.enum(["working", "waiting", "done", "unknown"]),
-  })).max(100),
+  sessions: z.array(z.union([rowSessionSchema, taskSessionSchema, chatSessionSchema])).max(200),
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
+type ObservedSession = Snapshot["sessions"][number] & { conversationId?: string; model?: string };
+
+/** Change a model picker label such as "Opus 5.5 Medium" to a model name such as "claude-opus-5-5". The effort level is not kept. */
+export function claudeModelName(label: string): string {
+  const match = label.match(/^(opus|sonnet|haiku|fable)\s+(\d+(?:\.\d+)?)\b/i);
+  return match ? `claude-${match[1].toLowerCase()}-${match[2].replace(".", "-")}` : label;
+}
 type Inspector = (processIdentifier: number) => Promise<unknown>;
 
+/**
+ * Inspect the Claude desktop app. With a second argument (a row title key), the script brings the app to the front,
+ * clicks that sidebar row, and prints "open" or "clicked". It throws when the row does not open.
+ */
 export const claudeDesktopInspectionScript = String.raw`
 ObjC.import("AppKit");
 ObjC.import("ApplicationServices");
+ObjC.import("CoreGraphics");
 function run(argv) {
-  function snapshot(status, sessions) { return JSON.stringify({ status: status, sessions: sessions || [] }); }
+  var pressKey = argv.length > 1 ? String(argv[1]) : null;
+  function snapshot(status, sessions) {
+    if (pressKey) throw new Error("ROW_NOT_PRESSED");
+    return JSON.stringify({ status: status, sessions: sessions || [] });
+  }
   if (!$.AXIsProcessTrusted()) return snapshot("permission-denied");
   function attribute(element, name) {
     var output = Ref();
@@ -44,44 +83,173 @@ function run(argv) {
     for (var index = 0; index < array.count; index++) result.push(array.objectAtIndex(index));
     return result;
   }
+  function hex(value) { return ("0000000" + (value >>> 0).toString(16)).slice(-8); }
+  // Two FNV-1a variants give a 64-bit key. Only the key leaves the script.
+  function titleKey(text) {
+    var first = 0x811c9dc5, second = 0x050c5d1f;
+    for (var index = 0; index < text.length; index++) {
+      var code = text.charCodeAt(index);
+      first = Math.imul(first ^ code, 16777619);
+      second = Math.imul(second ^ code, 2246822507);
+    }
+    return hex(first) + hex(second);
+  }
+  var rowStates = {
+    "Running": "working", "Awaiting input": "waiting", "Awaiting answer": "waiting", "Unread response": "done",
+    "Done": "done", "Completed": "done", "Error": "failed", "Idle": "idle", "Archived": "idle",
+  };
+  var count = 0;
+  var pause = typeof delay === "function" ? delay : function() {};
+  // Find the title key of the open claude.ai page. Return null when no page is open.
+  function openPageKey(root) {
+    var pending = children(root, "AXWindows");
+    var visited = 0;
+    while (pending.length && visited++ < 400) {
+      var element = pending.shift();
+      var role = scalar(element, "AXRole");
+      if (role === "AXWebArea") {
+        var location = scalar(element, "AXURL");
+        var title = scalar(element, "AXTitle");
+        if (typeof location === "string" && /^https:\/\/claude\.ai\//.test(location) && typeof title === "string" && / - Claude$/.test(title)) return titleKey(title.replace(/ - Claude$/, ""));
+        if (typeof location === "string" && /^https:\/\/claude\.ai\//.test(location)) return null;
+        continue;
+      }
+      if (["AXStaticText", "AXTextArea", "AXTextField", "AXImage", "AXButton"].indexOf(role) !== -1) continue;
+      children(element).forEach(function(child) { pending.push(child); });
+    }
+    return null;
+  }
+  function opened(root, key, attempts) {
+    for (var attempt = 0; attempt < attempts; attempt++) {
+      if (openPageKey(root) === key.replace(/-\d+$/, "")) return true;
+      pause(0.15);
+    }
+    return false;
+  }
+  // Read an AXValue point or size from its description, for example "x:10.0 y:20.0" or "w:10.0 h:20.0".
+  function numbers(element, name, first, second) {
+    var value = attribute(element, name);
+    if (!value) return null;
+    var text = ObjC.unwrap(ObjC.castRefToObject(value).description);
+    var match = typeof text === "string" && text.match(new RegExp(first + ":(-?[0-9.]+) " + second + ":(-?[0-9.]+)"));
+    return match ? [Number(match[1]), Number(match[2])] : null;
+  }
+  // Click the center of the row with the mouse. Then put the pointer back where it was.
+  function click(element) {
+    var position = numbers(element, "AXPosition", "x", "y");
+    var size = numbers(element, "AXSize", "w", "h");
+    if (!position || !size) return false;
+    var point = { x: position[0] + size[0] / 2, y: position[1] + size[1] / 2 };
+    var previous = $.CGEventGetLocation($.CGEventCreate(null));
+    [5, 1, 2].forEach(function(type) {
+      $.CGEventPost(0, $.CGEventCreateMouseEvent(null, type, point, 0));
+      pause(0.05);
+    });
+    $.CGWarpMouseCursorPosition(previous);
+    return true;
+  }
+  // Open a sidebar row with a mouse click. The app ignores the Accessibility press on sidebar rows.
+  function openRow(root, element, key) {
+    $.NSRunningApplication.runningApplicationWithProcessIdentifier(Number(argv[0])).activateWithOptions($.NSApplicationActivateIgnoringOtherApps);
+    if (opened(root, key, 1)) return "open";
+    pause(0.2);
+    if (click(element) && opened(root, key, 6)) return "clicked";
+    throw new Error("ROW_NOT_OPENED");
+  }
+  // Read the status indicator of a sidebar row. Do not read static text.
+  function inspectRow(button, title) {
+    var labels = [];
+    var state = null;
+    var pending = children(button).map(function(child) { return { element: child, depth: 1 }; });
+    while (pending.length && count++ < 6000) {
+      var item = pending.pop();
+      var role = scalar(item.element, "AXRole");
+      if (role === "AXStaticText" || role === "AXTextArea" || role === "AXTextField") continue;
+      var label = scalar(item.element, "AXDescription");
+      if (typeof label === "string" && label) {
+        labels.push(label);
+        var indicator = scalar(item.element, "AXSubrole") === "AXApplicationStatus";
+        if (rowStates.hasOwnProperty(label) && (role === "AXImage" || indicator)) state = rowStates[label];
+        // A working task shows its current activity, for example "Using the browser", in place of "Running".
+        else if (indicator && !state) state = "working";
+      }
+      if (item.depth < 3) children(item.element).forEach(function(child) { pending.push({ element: child, depth: item.depth + 1 }); });
+    }
+    if (!state) return null;
+    for (var index = 0; index < labels.length; index++) {
+      if (title.indexOf(labels[index] + " ") === 0) return { state: state, title: title.slice(labels[index].length + 1) };
+    }
+    return { state: state, title: title };
+  }
   try {
     var root = $.AXUIElementCreateApplication(Number(argv[0]));
     $.AXUIElementSetMessagingTimeout(root, 0.2);
-    var pending = children(root, "AXWindows").map(function(window) { return { element: window, session: null }; });
-    var count = 0;
+    var pending = children(root, "AXWindows").map(function(window) { return { element: window, session: null, sidebar: false }; });
     var sessions = [];
+    var rows = [];
+    var seen = {};
     while (pending.length && count++ < 6000) {
       var item = pending.pop();
       var element = item.element;
       var role = scalar(element, "AXRole");
       if (["AXStaticText", "AXMenu", "AXMenuBar", "AXImage"].indexOf(role) !== -1 || scalar(element, "AXHidden") === true) continue;
       var session = item.session;
+      var sidebar = item.sidebar;
       if (role === "AXWebArea") {
         var location = scalar(element, "AXURL");
-        var match = typeof location === "string" && location.match(/^https:\/\/claude\.ai\/chat\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#]|$)/i);
-        if (!match) continue;
-        session = { sessionId: match[1], working: false, waiting: false, composer: false, send: false };
+        var chat = typeof location === "string" && location.match(/^https:\/\/claude\.ai\/chat\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#]|$)/i);
+        var task = !chat && typeof location === "string" && location.match(/^https:\/\/claude\.ai\/(?:cowork\/(cse_[0-9A-Za-z]{20,40})|code\/(session_[0-9A-Za-z]{20,40}))(?:[/?#]|$)/);
+        // Other claude.ai pages, such as a new chat, still hold the sidebar.
+        if (!chat && !task && !(typeof location === "string" && /^https:\/\/claude\.ai\//.test(location))) continue;
+      }
+      if (role === "AXWebArea" && (chat || task)) {
+        var pageTitle = scalar(element, "AXTitle");
+        session = { kind: chat ? "chat" : "task", sessionId: chat ? chat[1] : task[1] || task[2], working: false, waiting: false, composer: false, send: false };
+        if (typeof pageTitle === "string" && / - Claude$/.test(pageTitle)) session.titleKey = titleKey(pageTitle.replace(/ - Claude$/, ""));
         sessions.push(session);
       }
-      if (session && role === "AXButton") {
+      if (role === "AXGroup" && scalar(element, "AXSubrole") === "AXLandmarkComplementary" && scalar(element, "AXDescription") === "Sidebar") sidebar = true;
+      if (sidebar && role === "AXButton") {
+        var rowTitle = scalar(element, "AXTitle");
+        var row = typeof rowTitle === "string" && rowTitle ? inspectRow(element, rowTitle) : null;
+        if (row) {
+          var key = titleKey(row.title);
+          seen[key] = (seen[key] || 0) + 1;
+          if (seen[key] > 1) key = key + "-" + seen[key];
+          if (pressKey && key === pressKey) return openRow(root, element, key);
+          if (row.state !== "idle") rows.push({ kind: "row", sessionId: key, state: row.state });
+        }
+        continue;
+      }
+      if (session && !sidebar && (role === "AXPopUpButton" || role === "AXButton")) {
+        var picker = scalar(element, "AXDescription");
+        if (typeof picker === "string" && /^Model: ./.test(picker)) session.model = picker.slice(7, 127);
+      }
+      if (session && !sidebar && role === "AXButton") {
         var label = scalar(element, "AXTitle") || scalar(element, "AXDescription");
         var enabled = scalar(element, "AXEnabled") !== false;
         if (typeof label === "string") {
           if (enabled && /^(Stop|Stop response|Stop generating|Stop Claude)$/i.test(label)) session.working = true;
-          if (enabled && /^(Allow once|Allow always|Approve|Approve once|Approve tool use)$/i.test(label)) session.waiting = true;
+          if (enabled && /^(Allow|Allow once|Allow always|Approve|Approve once|Approve tool use)$/i.test(label)) session.waiting = true;
           if (/^(Send|Send message|Send prompt)$/i.test(label)) session.send = true;
         }
       }
-      if (session && role === "AXTextArea" && scalar(element, "AXEnabled") !== false) session.composer = true;
+      if (session && !sidebar && role === "AXTextArea" && scalar(element, "AXEnabled") !== false) session.composer = true;
       if (["AXTextArea", "AXTextField", "AXSecureTextField"].indexOf(role) !== -1) continue;
       var descendants = children(element);
-      for (var index = 0; index < descendants.length; index++) pending.push({ element: descendants[index], session: session });
+      for (var index = 0; index < descendants.length; index++) pending.push({ element: descendants[index], session: session, sidebar: sidebar });
     }
     if (pending.length) return snapshot("unavailable");
-    return snapshot("available", sessions.map(function(session) {
-      return { sessionId: session.sessionId, state: session.waiting ? "waiting" : session.working ? "working" : session.composer && session.send ? "done" : "unknown" };
-    }));
-  } catch (error) { return snapshot("unavailable"); }
+    return snapshot("available", rows.concat(sessions.map(function(session) {
+      var result = { kind: session.kind, sessionId: session.sessionId, state: session.waiting ? "waiting" : session.working ? "working" : session.composer && session.send ? "done" : "unknown" };
+      if (session.titleKey) result.titleKey = session.titleKey;
+      if (session.model) result.model = session.model;
+      return result;
+    })));
+  } catch (error) {
+    if (pressKey) throw error;
+    return snapshot("unavailable");
+  }
 }`;
 
 async function inspectDesktop(processIdentifier: number): Promise<unknown> {
@@ -92,10 +260,50 @@ async function inspectDesktop(processIdentifier: number): Promise<unknown> {
   return JSON.parse(result.stdout);
 }
 
+function identifierOf(session: ObservedSession): string {
+  if (session.kind === "row") return `claude-row:${session.sessionId}`;
+  return `${session.kind === "chat" ? "claude-chat" : "claude-task"}:${session.sessionId}`;
+}
+
+function labelOf(session: ObservedSession): string {
+  if (session.kind === "row") return `Claude · ${session.sessionId.slice(0, 6)}`;
+  return `${session.kind === "chat" ? "Claude chat" : "Claude task"} · ${session.sessionId.slice(-6)}`;
+}
+
+/**
+ * Merge open pages into their sidebar rows. A row keeps one identity when the user opens or leaves it.
+ * The sidebar status is preferred. The page status is used when the row status is unknown.
+ */
+function merge(sessions: Snapshot["sessions"]): Map<string, ObservedSession> {
+  const observed = new Map<string, ObservedSession>();
+  const add = (session: ObservedSession) => {
+    const identifier = identifierOf(session);
+    const previous = observed.get(identifier);
+    observed.set(identifier, previous && previous.state !== session.state ? { ...session, state: "unknown" } : session);
+  };
+  const rows = new Map<string, ObservedSession>();
+  for (const session of sessions) if (session.kind === "row") rows.set(session.sessionId, session);
+  for (const session of sessions) {
+    if (session.kind === "row") continue;
+    const row = session.titleKey ? rows.get(session.titleKey) : undefined;
+    if (!row) {
+      add(session);
+      continue;
+    }
+    if (row.state === "unknown") row.state = session.state;
+    if (session.model) row.model = session.model;
+    if (session.kind === "chat") row.conversationId = session.sessionId;
+  }
+  for (const row of rows.values()) add(row);
+  return observed;
+}
+
 export class ClaudeDesktopTracker {
   readonly #tracked = new Set<string>();
   readonly #signatures = new Map<string, string>();
   readonly #observations = new Map<string, { state: string; transitionAt: string }>();
+  // The model is visible only while a page is open. Keep the last model for each session.
+  readonly #models = new Map<string, string>();
   status: Snapshot["status"] = "unavailable";
 
   constructor(private readonly store: SessionStore, private readonly inspect: Inspector = inspectDesktop) {}
@@ -111,6 +319,7 @@ export class ClaudeDesktopTracker {
       this.#tracked.clear();
       this.#signatures.clear();
       this.#observations.clear();
+      this.#models.clear();
       this.status = "unavailable";
       return;
     }
@@ -120,16 +329,12 @@ export class ClaudeDesktopTracker {
       this.unavailable(snapshot.status === "permission-denied" ? "ACCESSIBILITY_DENIED" : "ACCESSIBILITY_UNAVAILABLE");
       return;
     }
-    const observed = new Map<string, Snapshot["sessions"][number]>();
-    for (const session of snapshot.sessions) {
-      const previous = observed.get(session.sessionId);
-      observed.set(session.sessionId, previous && previous.state !== session.state ? { ...session, state: "unknown" } : session);
-    }
     const present = new Set<string>();
-    for (const session of observed.values()) {
-      const identifier = `claude-chat:${session.sessionId}`;
+    for (const [identifier, session] of merge(snapshot.sessions)) {
       present.add(identifier);
-      const signature = JSON.stringify([session, application.pid, application.startedAt]);
+      if (session.model) this.#models.set(identifier, claudeModelName(session.model));
+      const model = this.#models.get(identifier);
+      const signature = JSON.stringify([session, model, application.pid, application.startedAt]);
       if (this.#signatures.get(identifier) === signature) continue;
       const observedAt = new Date().toISOString();
       const previous = this.store.get(identifier);
@@ -137,18 +342,25 @@ export class ClaudeDesktopTracker {
         ? { state: previous.state, transitionAt: previous.stateChangedAt ?? previous.lastActivityAt } : undefined);
       const transitionAt = known?.state === session.state ? known.transitionAt : observedAt;
       if (session.state !== "unknown") this.#observations.set(identifier, { state: session.state, transitionAt });
+      // The deep-link contract covers chats only. Tasks and unmatched rows use application focus.
+      const conversationId = session.kind === "chat" ? session.sessionId : session.conversationId;
+      const rowKey = session.kind === "row" ? session.sessionId : undefined;
+      const evidence = session.kind === "row" ? "Claude sidebar row with a status indicator"
+        : session.kind === "chat" ? "Exposed Claude chat with a conversation URL" : "Exposed Claude task with a session URL";
       this.store.upsert({
         id: identifier,
         source: "claude-desktop",
         harness: "claude-app",
-        label: `Claude chat · ${session.sessionId.slice(-6)}`,
+        ...(model ? { model } : {}),
+        label: labelOf(session),
         state: session.state,
         ended: false,
         focusTarget: {
           appName: "Claude",
           bundleId: "com.anthropic.claudefordesktop",
           pid: application.pid,
-          claudeConversationId: session.sessionId,
+          ...(conversationId ? { claudeConversationId: conversationId } : {}),
+          ...(rowKey && !conversationId ? { claudeRowKey: rowKey } : {}),
         },
         metadata: {
           sessionId: session.sessionId,
@@ -157,10 +369,10 @@ export class ClaudeDesktopTracker {
           tracking: "claude-accessibility",
           stateEvent: `desktop.${session.state}`,
           telemetryStatus: session.state === "unknown" ? "unrecognized" : "available",
-          telemetryLocation: "Claude desktop Accessibility controls",
+          telemetryLocation: session.kind === "row" ? "Claude desktop sidebar" : "Claude desktop Accessibility controls",
           lastTelemetryAt: observedAt,
           hostLifetime: "open",
-          hostEvidence: "Exposed Claude chat with a conversation URL",
+          hostEvidence: evidence,
         },
       }, observedAt, transitionAt);
       this.#signatures.set(identifier, signature);
@@ -172,6 +384,7 @@ export class ClaudeDesktopTracker {
       this.#tracked.delete(identifier);
       this.#signatures.delete(identifier);
       this.#observations.delete(identifier);
+      this.#models.delete(identifier);
     }
   }
 

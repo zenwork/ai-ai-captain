@@ -36,6 +36,28 @@ describe("project-aware focus", () => {
     expect((await focus({ claudeConversationId: "../../new?q=private" })).focused).toBe(false);
     expect(run).toHaveBeenCalledTimes(1);
   });
+  it("presses a Claude desktop sidebar row and falls back to application focus", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "darwin", run });
+    const row = { appName: "Claude", bundleId: "com.anthropic.claudefordesktop", pid: 42, claudeRowKey: "0123456789abcdef" };
+    expect(await focus(row)).toEqual({ focused: true, scope: "session" });
+    expect(run).toHaveBeenCalledOnce();
+    expect(run.mock.calls[0][0]).toBe("/usr/bin/osascript");
+    expect(run.mock.calls[0][1].slice(0, 2)).toEqual(["-l", "JavaScript"]);
+    expect(run.mock.calls[0][1].slice(-3)).toEqual(["--", "42", "0123456789abcdef"]);
+    run.mockResolvedValueOnce({ focused: false, reason: "not found" });
+    expect(await focus(row)).toEqual({ focused: true, scope: "application" });
+    expect(run).toHaveBeenLastCalledWith("/usr/bin/osascript", ["-e", 'tell application "Claude" to activate']);
+    expect(focusTargetSchema.safeParse({ claudeRowKey: "Ping; rm -rf" }).success).toBe(false);
+  });
+
+  it("does not press Claude rows on other systems", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "win32", run });
+    await focus({ appName: "Claude", pid: 42, claudeRowKey: "0123456789abcdef" });
+    expect(run.mock.calls.every(([command]) => command !== "/usr/bin/osascript")).toBe(true);
+  });
+
   it.skipIf(process.platform === "win32")("targets different projects in the same IDEA installation before PID-only activation", async () => {
     const paths = await projects();
     const run = successfulRunner();

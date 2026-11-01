@@ -53,11 +53,11 @@ The reader opens only the end of the transcript, to keep the model name and toke
 
 ## Claude desktop chat
 
-The experimental desktop adapter uses read-only macOS Accessibility inspection for exposed `claude.ai/chat/<UUID>` conversations.
+The experimental desktop adapter uses read-only macOS Accessibility inspection for exposed `claude.ai/chat/<UUID>` conversations and `claude.ai/cowork/cse_<ID>` or `claude.ai/code/session_<ID>` tasks.
 It follows known English Stop, approval, composer, and Send controls. It does not inspect message text or composer values.
 Enable Accessibility access for the application that runs the hub. Then restart the hub.
 
-Hidden chats, remote Code runtimes, unsupported UI formats, and additional languages do not have full coverage.
+Hidden chats and tasks, unsupported UI formats, and additional languages do not have full coverage.
 A failed inspection makes known chats UNKNOWN. App closure or removal of an exposed conversation removes its key.
 An app without an exposed conversation ID remains under **Other detected apps**, with a tracking explanation.
 

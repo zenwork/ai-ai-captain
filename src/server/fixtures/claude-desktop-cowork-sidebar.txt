@@ -1,0 +1,590 @@
+AXWindow Subrole="AXStandardWindow" Title="Claude"
+  AXGroup Title="Claude"
+    AXGroup
+      AXGroup
+        AXGroup
+          AXGroup
+            AXGroup
+              AXWebArea URL="file:///Applications/Claude.app/Contents/Resources/app.asar/.vite/renderer/main_window/index.html"
+                AXGroup Subrole="AXEmptyGroup"
+            AXGroup
+              AXGroup
+                AXWebArea Title="Task 2 - Claude" URL="https://claude.ai/cowork/cse_000000000000000000000001"
+                  AXGroup
+                    AXGroup
+                      AXGroup
+                        AXHeading Title="Claude"
+                          AXStaticText
+                        AXGroup
+                          AXGroup Subrole="AXLandmarkComplementary" Description="Sidebar"
+                            AXButton Description="Hide sidebar"
+                            AXButton Description="Back"
+                            AXButton Description="Forward" disabled
+                            AXRadioGroup Description="Mode"
+                              AXRadioButton Description="Chat and Cowork"
+                              AXRadioButton Description="Code"
+                            AXGroup
+                              AXHeading Title="Navigation"
+                                AXStaticText
+                              AXGroup
+                                AXGroup
+                                  AXGroup
+                                    AXButton Title="New"
+                                    AXButton Description="Quick task"
+                                  AXButton Title="Search"
+                                  AXGroup
+                                    AXButton Title="Projects"
+                                    AXGroup
+                                      AXPopUpButton Description="Create project"
+                                  AXGroup
+                                    AXButton Title="Artifacts"
+                                    AXGroup
+                                      AXPopUpButton Description="New from a template"
+                                  AXGroup
+                                    AXButton Title="Scheduled"
+                                    AXGroup
+                                      AXPopUpButton Description="New task"
+                                  AXButton Title="Design"
+                                  AXButton Title="Customize"
+                                  AXHeading Title="Pinned"
+                                    AXButton Title="Pinned"
+                                  AXGroup
+                                    AXGroup
+                                      AXGroup
+                                        AXButton Description="Task 1"
+                                          AXGroup
+                                            AXStaticText
+                                        AXGroup
+                                          AXPopUpButton Description="More options for Task 1"
+                                  AXHeading Title="Chats and tasks"
+                                    AXButton Title="Chats and tasks"
+                                  AXPopUpButton Description="Filter and group recents"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Running Task 2"
+                                        AXGroup
+                                          AXGroup Subrole="AXApplicationStatus" Description="Running"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 2"
+                                    AXGroup Subrole="AXEmptyGroup"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Running Task 3"
+                                        AXGroup
+                                          AXGroup Subrole="AXApplicationStatus" Description="Running"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 3"
+                                    AXGroup Subrole="AXEmptyGroup"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Running Task 4"
+                                        AXGroup
+                                          AXGroup Subrole="AXApplicationStatus" Description="Running"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 4"
+                                    AXGroup Subrole="AXEmptyGroup"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Mark as unread Task 5"
+                                        AXButton Description="Mark as unread"
+                                          AXImage Description="Done"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 5"
+                                    AXGroup Subrole="AXEmptyGroup"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Mark as unread Task 6"
+                                        AXButton Description="Mark as unread"
+                                          AXImage Description="Done"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 6"
+                                    AXGroup Subrole="AXEmptyGroup"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Mark as unread Task 7"
+                                        AXButton Description="Mark as unread"
+                                          AXImage Description="Done"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 7"
+                                    AXGroup Subrole="AXEmptyGroup"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Awaiting input Task 8"
+                                        AXGroup Subrole="AXApplicationStatus" Description="Awaiting input"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 8"
+                                    AXGroup Subrole="AXEmptyGroup"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Idle Task 9"
+                                        AXImage Description="Idle"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 9"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Idle Task 10"
+                                        AXImage Description="Idle"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 10"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Idle Task 11"
+                                        AXImage Description="Idle"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 11"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Idle Task 12"
+                                        AXImage Description="Idle"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 12"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Idle Task 13"
+                                        AXImage Description="Idle"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 13"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Idle Task 14"
+                                        AXImage Description="Idle"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 14"
+                                  AXGroup
+                                    AXGroup
+                                      AXButton Title="Idle Task 15"
+                                        AXImage Description="Idle"
+                                        AXGroup
+                                          AXStaticText
+                                      AXGroup
+                                        AXPopUpButton Description="More options for Task 15"
+                                  AXButton Title="View all"
+                                  AXGroup Subrole="AXApplicationStatus"
+                              AXGroup
+                                AXGroup
+                                  AXPopUpButton Title="User"
+                                  AXGroup
+                                    AXLink Description="Get apps and extensions" URL="https://claude.ai/downloads"
+                            AXSplitter Description="Resize sidebar"
+                          AXGroup Subrole="AXLandmarkMain"
+                            AXGroup
+                              AXGroup Subrole="AXLandmarkRegion" Description="Primary pane"
+                                AXGroup
+                                  AXGroup
+                                    AXGroup
+                                      AXGroup
+                                        AXGroup
+                                          AXToolbar Description="Page tools"
+                                            AXGroup
+                                              AXGroup Subrole="AXApplicationStatus"
+                                                AXStaticText
+                                                AXButton Description="Computer, Connected"
+                                                AXGroup
+                                                  AXStaticText
+                                              AXHeading Title="Task 2"
+                                                AXButton Description="Task 2, rename session"
+                                                  AXGroup
+                                                    AXStaticText
+                                              AXGroup Subrole="AXEmptyGroup"
+                                              AXPopUpButton Description="More options for Task 2"
+                                            AXGroup Subrole="AXEmptyGroup"
+                                            AXCheckBox Subrole="AXToggleButton" Description="Browser"
+                                            AXCheckBox Subrole="AXToggleButton" Description="Activity panel"
+                                            AXGroup Subrole="AXEmptyGroup"
+                                        AXGroup
+                                          AXGroup
+                                            AXGroup Subrole="AXEmptyGroup"
+                                              AXGroup Subrole="AXApplicationStatus"
+                                            AXGroup Subrole="AXApplicationGroup" Description="Chat messages"
+                                              AXGroup
+                                                AXStaticText
+                                              AXGroup
+                                                AXButton Title="Load earlier messages"
+                                                AXGroup
+                                                  AXGroup Subrole="AXDocumentArticle" Description="Message 10 of 16"
+                                                    AXGroup
+                                                      AXHeading Title="Message"LIFE.UML\", one 1620×2160 sheet with six connected UML diagrams in the same ruler-and-ink style"
+                                                        AXStaticText
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                        AXButton Title="Ran 5 commands, read a file, and 2 more tools"
+                                                        AXButton Description="Screenshot 1 of 3"
+                                                        AXGroup
+                                                          AXStaticText
+                                                        AXButton Description="Screenshot 2 of 3"
+                                                        AXGroup
+                                                          AXStaticText
+                                                        AXButton Description="Screenshot 3 of 3"
+                                                        AXGroup
+                                                          AXStaticText
+                                                      AXGroup Subrole="AXApplicationStatus"
+                                                        AXStaticText
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                          AXList Subrole="AXContentList"
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                          AXGroup
+                                                            AXStaticText
+                                                          AXGroup
+                                                            AXStaticText
+                                                          AXList Subrole="AXContentList"
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                          AXGroup
+                                                            AXStaticText
+                                                          AXGroup
+                                                            AXStaticText
+                                                          AXList Subrole="AXContentList"
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                          AXGroup
+                                                            AXCheckBox Subrole="AXToggleButton" Description="View output-file"
+                                                            AXGroup
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXStaticText
+                                                              AXStaticText
+                                                              AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXGroup
+                                                                AXGroup Subrole="AXApplicationGroup" Description="Download and open"
+                                                                  AXButton Title="Download and open"
+                                                                  AXPopUpButton Description="More ways to open"
+                                                                  AXGroup Subrole="AXEmptyGroup"
+                                                      AXButton Description="Message"LIFE.UML\", one 1620×2160 sheet with six connected UML diagrams in the"
+                                                AXGroup
+                                                  AXGroup Subrole="AXDocumentArticle" Description="Message 11 of 16"
+                                                    AXHeading Title="Message"
+                                                      AXStaticText
+                                                    AXGroup
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                    AXButton Description="Message"
+                                                    AXGroup Subrole="AXApplicationStatus"
+                                                AXGroup
+                                                  AXGroup Subrole="AXDocumentArticle" Description="Message 12 of 16"
+                                                    AXGroup
+                                                      AXHeading Title="Message"LIFE.UML\"."
+                                                        AXStaticText
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                        AXButton Title="Ran 3 commands, read a file, shared files"
+                                                        AXButton Description="Screenshot"
+                                                        AXGroup
+                                                          AXStaticText
+                                                      AXGroup Subrole="AXApplicationStatus"
+                                                        AXStaticText
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                          AXList Subrole="AXContentList"
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                              AXGroup Subrole="AXCodeStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                              AXGroup Subrole="AXCodeStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXListMarker
+                                                              AXGroup Subrole="AXStrongStyleGroup"
+                                                                AXStaticText
+                                                              AXStaticText
+                                                          AXGroup
+                                                            AXCheckBox Subrole="AXToggleButton" Description="View output-file"
+                                                            AXGroup
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXStaticText
+                                                              AXStaticText
+                                                              AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXGroup
+                                                                AXGroup Subrole="AXApplicationGroup" Description="Download and open"
+                                                                  AXButton Title="Download and open"
+                                                                  AXPopUpButton Description="More ways to open"
+                                                                  AXGroup Subrole="AXEmptyGroup"
+                                                      AXButton Description="Message"LIFE.UML\"."
+                                                AXGroup
+                                                  AXGroup Subrole="AXDocumentArticle" Description="Message 13 of 16"
+                                                    AXHeading Title="Message"
+                                                      AXStaticText
+                                                    AXGroup
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                    AXButton Description="Message"
+                                                    AXGroup Subrole="AXApplicationStatus"
+                                                AXGroup
+                                                  AXGroup Subrole="AXDocumentArticle" Description="Message 14 of 16"
+                                                    AXGroup
+                                                      AXHeading Title="Message"
+                                                        AXStaticText
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                        AXButton Title="Ran a command, shared files"
+                                                      AXGroup Subrole="AXApplicationStatus"
+                                                        AXStaticText
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                          AXGroup
+                                                            AXCheckBox Subrole="AXToggleButton" Description="View output-file"
+                                                            AXGroup
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXStaticText
+                                                              AXStaticText
+                                                              AXStaticText
+                                                              AXStaticText
+                                                            AXGroup
+                                                              AXGroup
+                                                                AXGroup Subrole="AXApplicationGroup" Description="Download and open"
+                                                                  AXButton Title="Download and open"
+                                                                  AXPopUpButton Description="More ways to open"
+                                                                  AXGroup Subrole="AXEmptyGroup"
+                                                      AXToolbar Description="Message actions"
+                                                        AXButton Description="Copy"
+                                                        AXGroup Subrole="AXApplicationStatus"
+                                                        AXButton Description="Read aloud"
+                                                        AXCheckBox Subrole="AXToggleButton" Description="Good response"
+                                                        AXCheckBox Subrole="AXToggleButton" Description="Bad response"
+                                                        AXGroup Subrole="AXTimeGroup"
+                                                          AXStaticText
+                                                AXGroup
+                                                  AXGroup Subrole="AXDocumentArticle" Description="Message 15 of 16"
+                                                    AXHeading Title="Message"
+                                                      AXStaticText
+                                                    AXGroup
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                    AXButton Description="Message"
+                                                    AXGroup Subrole="AXApplicationStatus"
+                                                AXGroup
+                                                  AXGroup Subrole="AXDocumentArticle" Description="Currently streaming message"
+                                                    AXGroup
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXStaticText
+                                                        AXGroup
+                                                          AXStaticText
+                                                        AXButton Title="Working on it running"
+                                                        AXButton Description="Screenshot"
+                                                        AXGroup
+                                                          AXStaticText
+                                                      AXGroup Subrole="AXApplicationStatus"
+                                                        AXStaticText
+                                                      AXGroup Subrole="AXEmptyGroup"
+                                                        AXGroup Subrole="AXEmptyGroup"
+                                                          AXGroup Subrole="AXEmptyGroup"
+                                            AXGroup Subrole="AXEmptyGroup"
+                                              AXGroup Subrole="AXEmptyGroup"
+                                            AXGroup Subrole="AXEmptyGroup"
+                                              AXGroup Subrole="AXApplicationStatus"
+                                            AXGroup
+                                              AXGroup Subrole="AXEmptyGroup"
+                                              AXGroup Subrole="AXApplicationGroup"
+                                                AXGroup Subrole="AXApplicationStatus"
+                                                AXGroup
+                                                  AXGroup Subrole="AXApplicationStatus"
+                                                    AXGroup
+                                                      AXStaticText
+                                                      AXStaticText
+                                                      AXButton Title="View memory"
+                                                      AXButton Description="Dismiss"
+                                                AXGroup Subrole="AXApplicationStatus"
+                                                AXGroup Subrole="AXEmptyGroup"
+                                                  AXGroup Subrole="AXApplicationStatus"
+                                                AXGroup Subrole="AXApplicationStatus"
+                                                AXGroup
+                                                  AXGroup
+                                                    AXGroup
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXTextArea
+                                                            AXGroup Subrole="AXApplicationStatus"
+                                                          AXGroup Subrole="AXEmptyGroup"
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXPopUpButton Description="Add files, connectors, and more"
+                                                        AXGroup
+                                                          AXGroup
+                                                            AXGroup
+                                                              AXButton Description="Stop response"
+                                                            AXGroup
+                                                              AXGroup Subrole="AXApplicationGroup" Description="Dictate"
+                                                                AXButton Description="Dictate"
+                                                                AXPopUpButton Description="Microphone"
+                                                    AXGroup
+                                                      AXButton Title="Add folder"
+                                                        AXGroup
+                                                          AXStaticText
+                                                      AXGroup
+                                                        AXPopUpButton Title="Manual"
+                                                      AXGroup
+                                                        AXGroup
+                                                          AXPopUpButton Description="Model: Opus 5.5 Medium"
+                                                            AXStaticText
+                                                            AXStaticText
+                                                            AXStaticText
+                                      AXGroup
+                                        AXSplitter Description="Resize file viewer"
+                                      AXGroup
+                                        AXGroup Subrole="AXApplicationGroup" Description="output-file · PNG"
+                                          AXToolbar Description="output-file · PNG controls"
+                                            AXHeading Title="output-file · PNG"
+                                              AXGroup
+                                                AXStaticText
+                                                AXStaticText
+                                                AXStaticText
+                                            AXGroup
+                                              AXGroup Subrole="AXApplicationGroup" Description="Download and open"
+                                                AXButton Title="Download and open"
+                                                AXPopUpButton Description="More ways to open"
+                                                AXGroup Subrole="AXEmptyGroup"
+                                            AXButton Description="Expand"
+                                            AXButton Description="Close"
+                                          AXImage Description="output-file.png" URL="blob:https://claude.ai/00000000-0000-0000-0000-000000000000"
+                                      AXGroup Subrole="AXApplicationStatus"
+                                        AXStaticText
+                              AXGroup Subrole="AXEmptyGroup"
+                      AXGroup Subrole="AXApplicationStatus"
+                    AXGroup Subrole="AXEmptyGroup"
+                    AXGroup Subrole="AXEmptyGroup"
+                    AXGroup
+                      AXGroup
+                        AXGroup
+                          AXGroup Subrole="AXApplicationStatus"
+                          AXGroup Subrole="AXLandmarkRegion" Description="Notifications"
+                            AXGroup Subrole="AXApplicationDialog" Title="Downloaded output-file_1.png" Description="Downloaded output-file_1.png"
+                              AXHeading Title="Downloaded output-file_1.png"
+                                AXStaticText
+                              AXGroup
+                                AXButton Title="Show in Finder"
+                    AXGroup Subrole="AXApplicationStatus"
+                    AXGroup Subrole="AXEmptyGroup"
+                      AXGroup Subrole="AXApplicationStatus"
+  AXButton Subrole="AXCloseButton"
+  AXButton Subrole="AXFullScreenButton" Help="this button also has an action to zoom the window"
+    AXGroup
+      AXGroup
+  AXButton Subrole="AXMinimizeButton"

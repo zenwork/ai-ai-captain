@@ -11,6 +11,8 @@ export const focusTargetSchema = z.object({
   bundleId: z.string().trim().min(1).max(200).optional(),
   pid: z.number().int().positive().optional(),
   claudeConversationId: z.string().uuid().optional(),
+  // The title key of a Claude desktop sidebar row. Focus presses that row through macOS Accessibility.
+  claudeRowKey: z.string().regex(/^[0-9a-f]{16}(?:-\d{1,2})?$/).optional(),
   url: z.string().url().refine((value) => value.startsWith("http://") || value.startsWith("https://"), "Focus URLs must use HTTP or HTTPS").optional(),
 }).refine((value) => Object.keys(value).length > 0, "At least one focus target is required");
 export type FocusTarget = z.infer<typeof focusTargetSchema>;

@@ -461,12 +461,12 @@ The Claude mark identifies the assistant. Its badge identifies the terminal, Int
 Claude desktop chat support is experimental:
 
 1. Give Accessibility permission to the application that runs the hub. Refer to [8.4](#84-give-accessibility-permission).
-2. Open an existing chat in the Claude desktop app.
+2. Open an existing chat, Claude Code task, or Cowork task in the Claude desktop app.
 3. Check the dashboard for the session and its state details.
 
-The app must show the conversation URL and English controls. Hidden chats and remote Code sessions are not tracked. If no conversation ID is available, Claude stays under **Other detected apps** on the dashboard and shows an APP key.
+The app must show the conversation URL or task URL and English controls. Each chat or task in the sidebar list that is running, waiting, or done also gets a key. Idle items, a hidden sidebar, and items outside the visible list are not tracked. If no conversation ID is available, Claude stays under **Other detected apps** on the dashboard and shows an APP key.
 
-A chat key opens that conversation through its Claude link. AI AI Captain does not read message text or change Claude settings.
+A chat key opens that conversation through its Claude link. A task key opens that task in the sidebar and brings the Claude app to the front. If the task is not visible in the sidebar, the key only brings the app to the front. Keys show a short code, not the chat or task title. AI AI Captain does not read message text or change Claude settings.
 
 #### Other assistants
 
