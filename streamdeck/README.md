@@ -36,7 +36,7 @@ INFO is a separate, manually placed action. It is **not** automatically added af
 2. In the Stream Deck app, find **AI AI Captain → Open AI AI Captain Dashboard** in the action list.
 3. Drag that action onto your preferred key, replacing an **AI Session** key if needed. You can also place it on another page.
 
-The purple **INFO** key stays at your chosen location as sessions arrive, close, or change pages. Press it to open the web dashboard and state explanations in your default browser. It works even when the hub is unreachable, opening the configured `AI_AI_CAPTAIN_URL` so you can inspect the dashboard's connection state. The default profile is unchanged; linking/reloading the plugin does not replace your customized assignments. Reinstalling or reimporting the profile is unnecessary.
+The **INFO** key stays at your chosen location as sessions arrive, close, or change pages. Press it to open the web dashboard and state explanations in your default browser. It works even when the hub is unreachable, opening the configured `AI_AI_CAPTAIN_URL` so you can inspect the dashboard's connection state. The default profile is unchanged; linking/reloading the plugin does not replace your customized assignments. Reinstalling or reimporting the profile is unnecessary.
 
 Dashboard session cards include a state explanation and expandable **State details & evidence**. UNKNOWN entries expand automatically, distinguishing missing telemetry, read errors, unreadable/unsupported events, and process-discovery failures. Evidence includes timestamps, event/adapter, telemetry location/error code, model/project availability, and runtime/host PIDs. Raw transcripts and private error messages are never rendered.
 
@@ -89,11 +89,11 @@ Linked development installs do not need reinstalling after a build. When using i
 
 Three optional actions change hub settings from the physical deck. They are not in the virtual deck. Place them by hand, as for INFO.
 
- Action           | Function                                                     |
- ---------------- | ------------------------------------------------------------ |
- Toggle Info Keys | Turn **Show info keys** on or off. The key shows ON or OFF.  |
- Cycle Theme      | Select the next icon palette. The key shows the palette.     |
- Cycle Brightness | Select the next flash intensity level, 0 to 4, then 0 again. |
+ Action           | Function                                                                                   |
+ ---------------- | ------------------------------------------------------------------------------------------ |
+ Toggle Info Keys | Turn **Show info keys** on or off. The key shows a switch and ON or OFF.                    |
+ Cycle Theme      | Select the next icon palette. The key shows four colors of the palette and its name.      |
+ Cycle Brightness | Select the next flash intensity level, 0 to 4, then 0 again. The key shows a meter and the level. |
 
 Each key sends the new value to the hub. The hub saves it in `settings.json`, as for the dashboard.
 

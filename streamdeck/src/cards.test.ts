@@ -72,9 +72,15 @@ describe("setting keys", () => {
     expect(settingControlImage("info-keys", { ...state, showInfoKeys: false })).toContain(">OFF<");
   });
 
-  it("shows the palette name and the brightness level", () => {
-    expect(settingControlImage("theme", { ...state, palette: "nocturne" })).toContain(">Nocturne<");
-    expect(settingControlImage("brightness", state)).toContain(">BRIGHT 2/4<");
+  it("shows the palette name and the flash level, with the name of the setting", () => {
+    const theme = settingControlImage("theme", { ...state, palette: "nocturne" });
+    expect(theme).toContain(">Nocturne<");
+    expect(theme).toContain(">THEME<");
+    const flash = settingControlImage("brightness", state);
+    expect(flash).toContain(">2/4<");
+    expect(flash).toContain(">FLASH<");
+    expect(flash).toContain("Flash intensity 2 of 4");
+    expect(settingControlImage("info-keys", state)).toContain(">INFO KEYS<");
   });
 
   it("changes the signature when a setting changes", () => {

@@ -248,6 +248,7 @@ function budgetLevel(percent: number | undefined): BudgetLevel {
 // the bars, the border, and the bands keep the state colors.
 /**
  * How a budget key shows its brand, so that it stands out from session and info keys (design study, docs/design).
+ * The default is "tab". The other styles stay for the design study.
  * - stripe: brand mark and a thin brand stripe at the top (the first design).
  * - tint: the stripe, and a light brand wash on the whole key.
  * - tab: a solid brand header with the mark and the plan in the canvas color.
@@ -311,7 +312,7 @@ export function describeBudgetCard(data: BudgetCardData): string {
 }
 
 /** The subscription budget key. It uses the canvas background like the info key. The border shows the worst level. */
-export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, icons: CardIcons, style: BudgetStyle = "stripe"): string {
+export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, icons: CardIcons, style: BudgetStyle = "tab"): string {
   const provider = budgetProviders.find((entry) => entry.id === data.provider)!;
   const percents = data.windows.map((window) => window.percent).filter((value): value is number => value !== undefined);
   const worst = percents.length ? Math.max(...percents) : undefined;
@@ -414,7 +415,7 @@ export function renderActionIcon(id: ActionIconId, icons: CardIcons, color = "#F
 
 /**
  * The three setting keys: info keys on or off, the palette, and the flash intensity.
- * Design study (docs/design/setting-key-styles.svg):
+ * Design study (docs/design/setting-key-styles.svg). The default is "value". The other styles stay for the study.
  * - current: the control layout of INFO, PREV, and NEXT, with a caption at the top.
  * - minimal: the same layout, with a symbol for the setting and the value in the band.
  * - panel: the control colors, with the value drawn as a switch, swatches, or a meter, and the name in a small band.
@@ -480,7 +481,7 @@ export function describeSettingCard(data: SettingCardData): string {
   return `Flash intensity ${data.level ?? 0} of ${data.maximumLevel ?? 4}`;
 }
 
-export function renderSettingCard(data: SettingCardData, palette: CardPalette, icons: CardIcons, style: SettingStyle = "current"): string {
+export function renderSettingCard(data: SettingCardData, palette: CardPalette, icons: CardIcons, style: SettingStyle = "value"): string {
   const colors = palette.controls;
   const level = data.level ?? 0;
   const maximum = data.maximumLevel ?? 4;
@@ -525,4 +526,16 @@ ${visual}
 ${label(value, 63, palette.foreground, 12)}`;
   }
   return `<g aria-label="${escapeXml(describeSettingCard(data))}">${content}</g>`;
+}
+
+/**
+ * The Stream Deck key frame covers a thin edge of the key display, and the display can sit a little off center.
+ * A full-size key image then looks too big or shifted. Draw each key at 94% size in the center of the image,
+ * so that the frame never touches the key outline. The margin is transparent and shows as black on the device.
+ */
+export const keySafeScale = 0.94;
+
+export function inKeySafeArea(content: string): string {
+  const offset = (72 * (1 - keySafeScale)) / 2;
+  return `<g transform="translate(${offset.toFixed(2)} ${offset.toFixed(2)}) scale(${keySafeScale})">${content}</g>`;
 }

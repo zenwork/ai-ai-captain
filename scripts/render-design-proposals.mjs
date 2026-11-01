@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cardStates as states, cardIdentities as identities, renderBudgetCard, renderCard, renderControl, renderHostBadge } from "../src/shared/card-design.ts";
+import { cardStates as states, cardIdentities as identities, renderBudgetCard, renderCard, renderControl, renderDashboardKey, renderHostBadge, renderInfoCard, renderInfoPlaceholder, renderSessionPlaceholder, renderSettingCard } from "../src/shared/card-design.ts";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const directory = join(root, "docs", "design");
@@ -38,7 +38,7 @@ function tile(identity, state, palette, number, horizontal, vertical, scale, pre
 
 function control(icon, label, palette, horizontal, vertical) {
   return `<g transform="translate(${horizontal} ${vertical}) scale(1.25)" aria-label="${label} control">
-${renderControl(icon, label, palette, icons)}
+${icon === "layout-dashboard" ? renderDashboardKey(palette, icons) : renderControl(icon, label, palette, icons)}
 </g>`;
 }
 
@@ -256,6 +256,132 @@ function budgetStudy(palette) {
   return frame(`AI AI Captain subscription budget key, ${palette.name}`, "A 72 by 72 key for each AI subscription: Claude, OpenAI, GitHub Copilot, and JetBrains AI. Bars show the percent used of each limit window, with an 80 percent mark. Bands show LIMIT and paid extras.", width, y + 30, palette, parts.join("\n"));
 }
 
+const budgetStyleRows = [
+  { style: "stripe", title: "CURRENT · STRIPE", detail: ["Brand mark and a thin top stripe.", "Same canvas and border as the info key."] },
+  { style: "tint", title: "A · TINT", detail: ["A light brand wash on the whole key.", "The key reads as one brand color block."] },
+  { style: "tab", title: "B · TAB", detail: ["A solid brand header with the mark and plan.", "Session keys have a band at the bottom;", "budget keys have one at the top."] },
+  { style: "edge", title: "C · EDGE", detail: ["A brand bar along the left side.", "Quiet, but a new shape on the deck."] },
+  { style: "tab-tint", title: "D · TAB + TINT", detail: ["The tab and the light wash together.", "The strongest separation."] },
+];
+const budgetStyleSamples = [
+  { provider: "claude", plan: "MAX 5×", windows: [{ label: "5H", percent: 34, reset: "2h05" }, { label: "WK", percent: 21, reset: "4d" }] },
+  { provider: "openai", plan: "PLUS", windows: [{ label: "5H", percent: 82, reset: "0h35" }, { label: "WK", percent: 60, reset: "5d" }] },
+  { provider: "copilot", plan: "PRO", used: "1.5K", total: "1.5K", windows: [{ label: "MO", percent: 100, reset: "6d" }] },
+  { provider: "jetbrains", plan: undefined, windows: [{ label: "MO" }] },
+];
+
+function budgetStyleStudy(palette) {
+  const width = 1520;
+  const scale = 1.5;
+  const cell = 72 * scale;
+  const keyX = (index) => 300 + index * 128;
+  const deckX = 830;
+  const parts = [];
+  parts.push(text(`AI AI CAPTAIN / BUDGET KEY STUDY / ${palette.name.toUpperCase()}`, 36, 30, palette.muted, 11, 'font-weight="700" letter-spacing="2"'));
+  parts.push(text("Make the budget keys stand out", 36, 68, palette.foreground, 30, 'font-weight="700"'));
+  parts.push(text("Proposal. Five ways to show the brand on a budget key. The levels stay the same in each: the border, the bar colors, and the LIMIT band.", 36, 94, palette.muted, 13));
+  parts.push(text("Left: budget keys at 1.5× (normal, low, limit, not reported). Right: the same key on a deck at 72 px, next to session, info, unused, and setting keys.", 36, 116, palette.foreground, 13));
+  ["NORMAL", "LOW", "LIMIT", "NOT REPORTED"].forEach((label, index) => parts.push(text(label, keyX(index) + cell / 2, 160, palette.foreground, 11, 'text-anchor="middle" font-weight="700" letter-spacing="1"')));
+  parts.push(text("ON THE DECK (72 PX)", deckX, 160, palette.foreground, 11, 'font-weight="700" letter-spacing="1"'));
+  const identity = (id) => identities.find((entry) => entry.id === id);
+  const state = (id) => states.find((entry) => entry.id === id);
+  let y = 178;
+  for (const row of budgetStyleRows) {
+    parts.push(text(row.title, 36, y + 34, palette.foreground, 13, 'font-weight="700" letter-spacing=".5"'));
+    row.detail.forEach((line, index) => parts.push(text(line, 36, y + 56 + index * 17, palette.muted, 11.5)));
+    budgetStyleSamples.forEach((sample, index) => {
+      parts.push(`<g id="style-${row.style}-${index}" transform="translate(${keyX(index)} ${y}) scale(${scale})">${renderBudgetCard(sample, palette, icons, row.style)}</g>`);
+    });
+    // A deck row: a budget key between the other key types.
+    const deck = [
+      card(identity("claude-cli"), state("working"), palette, 1),
+      renderBudgetCard(budgetStyleSamples[0], palette, icons, row.style),
+      renderInfoCard({ model: "claude-opus-5-5", tokensUsed: 42_000, contextUsedPercent: 18 }, palette),
+      card(identity("codex-cli"), state("done-bright"), palette, 2),
+      renderBudgetCard(budgetStyleSamples[1], palette, icons, row.style),
+      renderSessionPlaceholder(palette, 3),
+      renderInfoPlaceholder(palette),
+      renderDashboardKey(palette, icons),
+    ];
+    const deckY = y + (cell - 72) / 2;
+    parts.push(`<rect x="${deckX - 10}" y="${deckY - 10}" width="${deck.length * 80 + 12}" height="92" rx="12" fill="${palette.badge.background}"/>`);
+    deck.forEach((art, index) => parts.push(`<g transform="translate(${deckX + index * 80} ${deckY})">${art}</g>`));
+    y += cell + 34;
+  }
+  y += 4;
+  parts.push(`<line x1="36" y1="${y}" x2="${width - 36}" y2="${y}" stroke="${palette.badge.border}" stroke-width="1"/>`);
+  y += 30;
+  parts.push(text("Notes", 36, y, palette.foreground, 17, 'font-weight="700"'));
+  const notes = [
+    "All styles use only palette tokens: the brand tokens, the canvas, and the state colors. The tint is the brand color at 16% opacity.",
+    "On the tab, the mark and the plan use the canvas color on the brand color. The brand tokens already meet the text contrast target against the canvas.",
+    "The tint lowers the contrast of muted text a little. Check it with the contrast report before a style becomes the default.",
+    "Brand color never shows a level. Claude terracotta and the warning amber stay apart because the level also has a label, a border, and a band.",
+  ];
+  notes.forEach((note, index) => parts.push(text(note, 36, y + 28 + index * 22, palette.muted, 12.5)));
+  y += 28 + notes.length * 22 + 10;
+  return frame(`AI AI Captain budget key study, ${palette.name}`, "Proposal. Five ways to make the budget keys stand out from session, info, unused, and setting keys: stripe, tint, tab, edge, and tab with tint.", width, y + 20, palette, parts.join("\n"));
+}
+
+const settingStyleRows = [
+  { style: "current", title: "CURRENT", detail: ["The layout of INFO, PREV, and NEXT.", "The value is small text at the top,", "or not shown."] },
+  { style: "minimal", title: "A · MINIMAL", detail: ["The same layout. A switch, swatches,", "or a sun show the setting.", "The band shows the value."] },
+  { style: "panel", title: "B · PANEL", detail: ["Control colors. The value is a switch,", "swatches, or a meter, with its value.", "A small band names the setting."] },
+  { style: "value", title: "C · VALUE FIRST", detail: ["Canvas with a control outline, no band.", "The value is large in the middle.", "A new shape next to the nav keys."] },
+];
+
+function settingStyleStudy(palette) {
+  const width = 1600;
+  const scale = 1.5;
+  const cell = 72 * scale;
+  const keyX = (index) => 290 + index * 122;
+  const deckX = 1040;
+  const samples = [
+    { kind: "info-keys", on: true }, { kind: "info-keys", on: false }, { kind: "theme", paletteName: palette.name },
+    { kind: "brightness", level: 0, maximumLevel: 4 }, { kind: "brightness", level: 2, maximumLevel: 4 }, { kind: "brightness", level: 4, maximumLevel: 4 },
+  ];
+  const parts = [];
+  parts.push(text(`AI AI CAPTAIN / SETTING KEY STUDY / ${palette.name.toUpperCase()}`, 36, 30, palette.muted, 11, 'font-weight="700" letter-spacing="2"'));
+  parts.push(text("Redesign the setting keys", 36, 68, palette.foreground, 30, 'font-weight="700"'));
+  parts.push(text("Proposal. Toggle Info Keys, Cycle Theme, and Cycle Brightness now look like the INFO, PREV, and NEXT keys, and their value is hard to read.", 36, 94, palette.muted, 13));
+  parts.push(text("Each style shows what the key changes and its current value. Right: the keys on a deck at 72 px, next to the navigation keys.", 36, 116, palette.foreground, 13));
+  ["INFO ON", "INFO OFF", "THEME", "FLASH 0", "FLASH 2", "FLASH 4"].forEach((label, index) => parts.push(text(label, keyX(index) + cell / 2, 160, palette.foreground, 11, 'text-anchor="middle" font-weight="700" letter-spacing="1"')));
+  parts.push(text("ON THE DECK (72 PX)", deckX, 160, palette.foreground, 11, 'font-weight="700" letter-spacing="1"'));
+  const identity = (id) => identities.find((entry) => entry.id === id);
+  const state = (id) => states.find((entry) => entry.id === id);
+  let y = 178;
+  for (const row of settingStyleRows) {
+    parts.push(text(row.title, 36, y + 30, palette.foreground, 13, 'font-weight="700" letter-spacing=".5"'));
+    row.detail.forEach((line, index) => parts.push(text(line, 36, y + 52 + index * 17, palette.muted, 11.5)));
+    samples.forEach((sample, index) => parts.push(`<g id="setting-${row.style}-${index}" transform="translate(${keyX(index)} ${y}) scale(${scale})">${renderSettingCard(sample, palette, icons, row.style)}</g>`));
+    const deck = [
+      card(identity("codex-cli"), state("working"), palette, 1),
+      renderControl("chevron-left", "PREV", palette, icons, "1/2"),
+      renderDashboardKey(palette, icons),
+      renderSettingCard(samples[0], palette, icons, row.style),
+      renderSettingCard(samples[2], palette, icons, row.style),
+      renderSettingCard(samples[4], palette, icons, row.style),
+    ];
+    const deckY = y + (cell - 72) / 2;
+    parts.push(`<rect x="${deckX - 10}" y="${deckY - 10}" width="${deck.length * 80 + 12}" height="92" rx="12" fill="${palette.badge.background}"/>`);
+    deck.forEach((art, index) => parts.push(`<g transform="translate(${deckX + index * 80} ${deckY})">${art}</g>`));
+    y += cell + 34;
+  }
+  y += 4;
+  parts.push(`<line x1="36" y1="${y}" x2="${width - 36}" y2="${y}" stroke="${palette.badge.border}" stroke-width="1"/>`);
+  y += 30;
+  parts.push(text("Notes", 36, y, palette.foreground, 17, 'font-weight="700"'));
+  const notes = [
+    "All styles use only palette tokens: the control colors, the canvas, and the state colors of the palette for the theme swatches.",
+    "The swatches show the WORKING, WAITING, DONE, and FAILED colors of the selected palette, so the key previews the palette.",
+    "The meter has one bar for each level from 1 to 4. Level 0 (palette colors) fills no bar. A switch shows ON with a filled track, and OFF with an outline. A label also shows each value.",
+    "Pushing a key does not change: Toggle Info Keys turns the info keys on or off, Cycle Theme selects the next palette, and Cycle Brightness selects the next level.",
+  ];
+  notes.forEach((note, index) => parts.push(text(note, 36, y + 28 + index * 22, palette.muted, 12.5)));
+  y += 28 + notes.length * 22 + 10;
+  return frame(`AI AI Captain setting key study, ${palette.name}`, "Proposal. Three redesigns of the setting keys (info keys, theme, flash intensity) compared with the current design: minimal, panel, and value first.", width, y + 20, palette, parts.join("\n"));
+}
+
 function luminance(color) {
   assert.match(color, /^#[0-9a-f]{6}$/i, "Invalid color token");
   const channels = [1, 3, 5].map((index) => parseInt(color.slice(index, index + 2), 16) / 255)
@@ -306,6 +432,10 @@ const outputs = new Map([
   ["done-assessment.svg", assessment()],
   ["subscription-budget-key.svg", budgetStudy(preview)],
   ["subscription-budget-key-porcelain.svg", budgetStudy(specification.palettes.find((palette) => palette.id === "porcelain"))],
+  ["budget-key-styles.svg", budgetStyleStudy(preview)],
+  ["budget-key-styles-porcelain.svg", budgetStyleStudy(specification.palettes.find((palette) => palette.id === "porcelain"))],
+  ["setting-key-styles.svg", settingStyleStudy(preview)],
+  ["setting-key-styles-porcelain.svg", settingStyleStudy(specification.palettes.find((palette) => palette.id === "porcelain"))],
   ...specification.palettes.map((palette) => [`palettes/${palette.id}.svg`, fullSheet(palette)]),
 ]);
 const keyImageState = states.find((state) => state.id === "done-bright");
