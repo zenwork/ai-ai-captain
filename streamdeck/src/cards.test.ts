@@ -115,10 +115,11 @@ describe("budget keys", () => {
 });
 
 describe("placeholder keys", () => {
-  it("shows the key number and SESSION on an unused session key", () => {
+  it("shows only a faint outline and the key number on an unused session key", () => {
     const image = sessionPlaceholderImage(7, "fjord");
     expect(image).toContain(">7<");
-    expect(image).toContain(">SESSION<");
+    expect(image).not.toContain(">SESSION<");
+    expect(image).toContain('opacity=".45"');
     expect(image).toContain("Unused session key 7");
     expect(sessionPlaceholderImage(undefined, "fjord")).not.toContain(">undefined<");
   });

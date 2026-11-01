@@ -101,7 +101,7 @@ Each key sends the new value to the hub. The hub saves it in `settings.json`, as
 
 `npm run build:streamdeck` makes the images that the Stream Deck app shows in the action list (`imgs/actions/*.svg`) and on a key before the plugin draws it (`imgs/keys/*.svg`). The shared renderer in `src/shared/card-design.ts` draws them in the default palette.
 
-An unused session key shows a dashed outline, its key number, and a dashed SESSION band. An unused info key shows the dashed outline of the info key and INFO. Then you can see the layout in the Stream Deck app when no session is open.
+An unused session key shows a faint dashed outline and its key number. An unused info key shows a faint dashed outline, the outline of the context bar, and a small INFO label. Both stay in the background next to live keys. Then you can see the layout in the Stream Deck app when no session is open.
 
 ## Budget keys
 
