@@ -67,4 +67,22 @@ describe("Codex budget", () => {
     expect(budget).toMatchObject({ provider: "openai", updatedAt: "2026-10-26T21:00:00.000Z", windows: [{ usedPercent: 30 }, { usedPercent: 8 }] });
     expect(JSON.stringify(store.list())).not.toContain("private");
   });
+
+  it("reads a resumed conversation that writes into an old day folder", async () => {
+    const home = await mkdtemp(join(tmpdir(), "ai-ai-captain-codex-"));
+    directories.push(home);
+    const old = join(home, "sessions", "2026", "06", "15");
+    const days = ["2026/10/24", "2026/10/25", "2026/10/26"].map((day) => join(home, "sessions", ...day.split("/")));
+    for (const directory of [old, ...days]) await mkdir(directory, { recursive: true });
+    for (const [index, directory] of days.entries()) {
+      const path = join(directory, "rollout-new.jsonl");
+      await writeFile(path, `${JSON.stringify(event(`2026-10-2${4 + index}T10:00:00Z`, 10, 5))}\n`);
+      await utimes(path, new Date(`2026-10-2${4 + index}T10:00:00Z`), new Date(`2026-10-2${4 + index}T10:00:00Z`));
+    }
+    // The June conversation was resumed later, so its file is the newest.
+    await writeFile(join(old, "rollout-resumed.jsonl"), `${JSON.stringify(event("2026-10-27T09:00:00Z", 55, 20))}\n`);
+    const store = new BudgetStore();
+    await new CodexBudgetReader(store, home).scan();
+    expect(store.list()[0]).toMatchObject({ updatedAt: "2026-10-27T09:00:00.000Z", windows: [{ usedPercent: 55 }, { usedPercent: 20 }] });
+  });
 });

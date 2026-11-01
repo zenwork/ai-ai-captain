@@ -10,6 +10,7 @@ import { ClaudeDesktopTracker } from "./claude-desktop.js";
 import { HostLifetimes } from "./lifetimes.js";
 import { listProcesses, type ProcessInfo } from "./processes.js";
 import { SessionStore } from "./store.js";
+import type { BudgetStore } from "./budgets.js";
 
 
 const supportedPlatforms: NodeJS.Platform[] = ["darwin", "linux", "win32"];
@@ -52,14 +53,14 @@ export function codexHomeDirectory(): string {
   return process.env.AI_AI_CAPTAIN_CODEX_HOME ?? process.env.CODEX_HOME ?? join(homedir(), ".codex");
 }
 
-export function startSessionDiscovery(store: SessionStore, clients: ClientRegistry, dataDirectory?: string): ReturnType<typeof setInterval> | undefined {
+export function startSessionDiscovery(store: SessionStore, clients: ClientRegistry, dataDirectory?: string, budgets?: BudgetStore): ReturnType<typeof setInterval> | undefined {
   if (!supportedPlatforms.includes(process.platform)) return undefined;
   const codexHome = codexHomeDirectory();
   const copilot = new CopilotTracker(store, join(process.env.AI_AI_CAPTAIN_COPILOT_HOME ?? join(homedir(), ".copilot"), "session-state"));
   const codex = new CodexTracker(store, codexHome);
   const claude = new ClaudeTracker(store, process.env.AI_AI_CAPTAIN_CLAUDE_HOME ?? process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"));
   const junie = new JunieTracker(store, process.env.AI_AI_CAPTAIN_JUNIE_HOME ?? join(homedir(), ".junie", "sessions"));
-  const claudeDesktop = new ClaudeDesktopTracker(store);
+  const claudeDesktop = new ClaudeDesktopTracker(store, undefined, undefined, budgets);
   const hosts = new HostLifetimes(process.env.AI_AI_CAPTAIN_JETBRAINS_INSTANCES ?? join(homedir(), ".junie", "instances"), dataDirectory ? join(dataDirectory, "host-lifetimes.json") : undefined);
   let scanning = false;
   const scan = async () => {

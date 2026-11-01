@@ -2,6 +2,8 @@
 // Usage: osascript -l JavaScript scripts/claude-ax-tree.js "$(pgrep -x Claude | head -1)" > /tmp/claude-ax-tree.txt
 // The script prints roles, labels, URLs, and flags. It does not print static text values or composer values.
 // Task titles can appear in labels. Remove them before you share the output if necessary.
+// With --usage as the second argument, the script also prints short static texts that hold a number or a percent sign
+// (for example "23% used" or "Resets in 2 hr"), and the values of progress bars. Other static texts show only their length.
 ObjC.import("AppKit");
 ObjC.import("ApplicationServices");
 function run(argv) {
@@ -27,10 +29,18 @@ function run(argv) {
     for (var index = 0; index < array.count; index++) result.push(array.objectAtIndex(index));
     return result;
   }
+  var usage = argv[1] === "--usage";
+  // Print a static text in usage mode only when it is short and holds a number. Show other texts as their length.
+  function usageText(element) {
+    var value = scalar(element, "AXValue");
+    if (typeof value !== "string" || !value.trim()) return null;
+    var text = value.trim();
+    return text.length <= 40 && /[0-9%]/.test(text) ? JSON.stringify(text) : "<text " + text.length + ">";
+  }
   var lines = [];
   var count = 0;
   function visit(element, depth) {
-    if (count++ > 8000) return;
+    if (count++ > 12000) return;
     var role = scalar(element, "AXRole");
     var parts = [role];
     ["AXSubrole", "AXTitle", "AXDescription", "AXHelp", "AXRoleDescription", "AXURL", "AXDOMIdentifier"].forEach(function(name) {
@@ -48,6 +58,13 @@ function run(argv) {
     if (scalar(element, "AXSelected") === true) parts.push("selected");
     if (scalar(element, "AXEnabled") === false) parts.push("disabled");
     if (scalar(element, "AXBusy") === true) parts.push("busy");
+    if (usage && role === "AXStaticText") { var shown = usageText(element); if (shown) parts.push("text=" + shown); }
+    if (usage && (role === "AXProgressIndicator" || role === "AXLevelIndicator" || scalar(element, "AXSubrole") === "AXMeter")) {
+      ["AXValue", "AXMinValue", "AXMaxValue", "AXValueDescription"].forEach(function(name) {
+        var number = scalar(element, name);
+        if (number !== null && number !== "") parts.push(name.slice(2) + "=" + JSON.stringify(String(number).slice(0, 40)));
+      });
+    }
     lines.push(new Array(depth + 1).join("  ") + parts.join(" "));
     // Do not enter text containers. They hold prompts and responses.
     if (role === "AXStaticText" || role === "AXTextArea" || role === "AXTextField") return;

@@ -3,6 +3,8 @@ import { promisify } from "node:util";
 import { z } from "zod";
 import { SessionStore } from "./store.js";
 import type { ProcessInfo } from "./processes.js";
+import type { BudgetStore } from "./budgets.js";
+import { claudeUsageBudget } from "./claude-usage.js";
 
 const execute = promisify(execFile);
 const inspectionTimeoutMilliseconds = 4000;
@@ -34,7 +36,9 @@ const rowSessionSchema = z.object({
   // The app shows the row as read ("Done", "Completed"), not "Unread response". The user has opened the result.
   seen: z.literal(true).optional(),
 });
+const usageMeterSchema = z.object({ percent: z.number().finite().min(0).max(100), reset: z.string().max(60).optional() });
 const snapshotSchema = z.object({
+  usage: z.object({ session: usageMeterSchema.optional(), week: usageMeterSchema.optional() }).optional(),
   // "partial": the inspection reached its element limit. The sessions that it found are correct, but others can be missing.
   status: z.enum(["available", "partial", "permission-denied", "unavailable"]),
   sessions: z.array(z.union([rowSessionSchema, taskSessionSchema, chatSessionSchema])).max(200),
@@ -59,9 +63,11 @@ ObjC.import("ApplicationServices");
 ObjC.import("CoreGraphics");
 function run(argv) {
   var pressKey = argv.length > 1 ? String(argv[1]) : null;
-  function snapshot(status, sessions) {
+  function snapshot(status, sessions, usage) {
     if (pressKey) throw new Error("ROW_NOT_PRESSED");
-    return JSON.stringify({ status: status, sessions: sessions || [] });
+    var result = { status: status, sessions: sessions || [] };
+    if (usage && (usage.session || usage.week)) result.usage = usage;
+    return JSON.stringify(result);
   }
   if (!$.AXIsProcessTrusted()) return snapshot("permission-denied");
   function attribute(element, name) {
@@ -196,6 +202,9 @@ function run(argv) {
     var sessions = [];
     var rows = [];
     var seen = {};
+    // The Usage page (Settings, Usage) shows the plan limits as two meters, each next to a "Resets ..." text.
+    var usage = {};
+    var meters = { "Current session": "session", "This week": "week" };
     while (pending.length && count++ < 6000) {
       var item = pending.pop();
       var element = item.element;
@@ -215,6 +224,26 @@ function run(argv) {
         session = { kind: chat ? "chat" : "task", sessionId: chat ? chat[1] : task[1] || task[2], working: false, waiting: false, composer: false, send: false };
         if (typeof pageTitle === "string" && / - Claude$/.test(pageTitle)) session.titleKey = titleKey(pageTitle.replace(/ - Claude$/, ""));
         sessions.push(session);
+      }
+      if (role === "AXLevelIndicator") {
+        var meterTitle = scalar(element, "AXTitle");
+        var slot = typeof meterTitle === "string" && meters.hasOwnProperty(meterTitle) ? meters[meterTitle] : null;
+        var percent = slot ? parseFloat(String(scalar(element, "AXValue"))) : NaN;
+        if (slot && isFinite(percent)) {
+          var reset = null;
+          var parent = attribute(element, "AXParent");
+          // Both meters can share one group. Use the nearest "Resets ..." text before this meter, and read no other text.
+          var siblings = parent ? children(parent) : [];
+          for (var position = 0; position < siblings.length; position++) {
+            var siblingRole = scalar(siblings[position], "AXRole");
+            if (siblingRole === "AXLevelIndicator" && scalar(siblings[position], "AXTitle") === meterTitle) break;
+            if (siblingRole !== "AXStaticText") continue;
+            var label = scalar(siblings[position], "AXValue");
+            if (typeof label === "string" && label.length <= 60 && /^\s*Resets /.test(label)) reset = label.trim();
+          }
+          usage[slot] = reset ? { percent: percent, reset: reset } : { percent: percent };
+        }
+        continue;
       }
       if (role === "AXGroup" && scalar(element, "AXSubrole") === "AXLandmarkComplementary" && scalar(element, "AXDescription") === "Sidebar") sidebar = true;
       if (sidebar && role === "AXButton") {
@@ -253,7 +282,7 @@ function run(argv) {
       if (session.titleKey) result.titleKey = session.titleKey;
       if (session.model) result.model = session.model;
       return result;
-    })));
+    })), usage);
   } catch (error) {
     if (pressKey) throw error;
     return snapshot("unavailable");
@@ -320,7 +349,13 @@ export class ClaudeDesktopTracker {
   readonly #missingSince = new Map<string, number>();
   status: Snapshot["status"] = "unavailable";
 
-  constructor(private readonly store: SessionStore, private readonly inspect: Inspector = inspectDesktop, private readonly now: () => number = Date.now) {}
+  constructor(
+    private readonly store: SessionStore,
+    private readonly inspect: Inspector = inspectDesktop,
+    private readonly now: () => number = Date.now,
+    // With a budget store, the Usage page of the app updates the Claude budget while the page is open.
+    private readonly budgets?: BudgetStore,
+  ) {}
 
   get hasSessions(): boolean {
     return this.#tracked.size > 0 && (this.status === "available" || this.status === "partial");
@@ -343,6 +378,11 @@ export class ClaudeDesktopTracker {
     if (snapshot.status !== "available" && snapshot.status !== "partial") {
       this.unavailable(snapshot.status === "permission-denied" ? "ACCESSIBILITY_DENIED" : "ACCESSIBILITY_UNAVAILABLE");
       return;
+    }
+    if (snapshot.usage && this.budgets) {
+      // The page does not show the plan. Keep the plan that the status line or a reporter gave.
+      const budget = claudeUsageBudget(snapshot.usage, this.budgets.get("claude")?.plan, this.now());
+      if (budget) this.budgets.upsert(budget, new Date(this.now()).toISOString());
     }
     const present = new Set<string>();
     for (const [identifier, session] of merge(snapshot.sessions)) {

@@ -325,13 +325,13 @@ The hub keeps the newest budget of each provider in `budgets.json` in its data f
 | Provider       | Values                                                | Source                                                                       | Status          |
 |----------------|-------------------------------------------------------|------------------------------------------------------------------------------|-----------------|
 | OpenAI         | Plan, 5-hour and weekly percent used, resets, credits | `rate_limits` in Codex rollout `token_count` events. Verified on macOS        | **Implemented** |
-| Claude         | 5-hour and weekly percent used, reset times           | Reporter or API. `~/.claude.json` has no usage numbers                        | Reporter only   |
+| Claude         | 5-hour and weekly percent used, reset times           | Claude Code status line (`integrations/claude-statusline.mjs`), the Usage page of the Claude desktop app, reporter, or API | **Implemented** (status line, Usage page) |
 | GitHub Copilot | AI Credits used of the allowance, extra spend         | Reporter or API. Usage data needs a GitHub token                              | Reporter only   |
 | JetBrains AI   | Credits used, reset date, top-up balance              | Reporter or API. The IDE widget shows the values. No local source is known    | Reporter only   |
 
 ### Codex source
 
-Every 30 seconds, the hub reads the end (256 KiB) of the four newest rollout files in the three newest day folders under `sessions/`. It uses the newest `token_count` event with `rate_limits`, when `limit_id` is `codex` or empty. It reads no other event.
+Every 30 seconds, the hub reads the end (256 KiB) of the four newest rollout files under `sessions/`, by change time. A resumed conversation writes into the day folder where it started, so the hub checks the change time of the files in all day folders. It uses the newest `token_count` event with `rate_limits`, when `limit_id` is `codex` or empty. It reads no other event.
 
 | Codex field                         | Budget field                                                                                |
 |-------------------------------------|---------------------------------------------------------------------------------------------|
@@ -341,6 +341,22 @@ Every 30 seconds, the hub reads the end (256 KiB) of the four newest rollout fil
 | `credits.balance`, `has_credits`    | `extra.kind` `topup`. In use when a window is at 100% or `rate_limit_reached_type` is set |
 
 The snapshot changes only when Codex runs. After its reset time, a window starts again at 0%, because Codex writes a new snapshot each time it runs. Use on another computer shows only after Codex runs on this computer.
+
+### Claude status line source
+
+Claude Code gives its status line command `rate_limits.five_hour` and `rate_limits.seven_day` on stdin, with `used_percentage` (0–100) and `resets_at` (Unix seconds). The fields are present only for claude.ai Pro and Max plans, and only after the first API response of a session. `integrations/claude-statusline.mjs` sends these numbers to `PUT /api/budgets/claude` and prints a short status line. It sends no prompt, path, or token. The hub does not change Claude settings: the user sets the status line in `~/.claude/settings.json`:
+
+```json
+"statusLine": { "type": "command", "command": "node /path/to/ai-ai-captain/integrations/claude-statusline.mjs --plan max" }
+```
+
+The values update when Claude Code runs the status line, after each response. Use in the Claude desktop app or on claude.ai shows after the next Claude Code response, because the limits are shared. Claude Code drops a window after its reset time; the script then sends 0% for it. With `--quiet`, the script prints nothing.
+
+### Claude Usage page source
+
+On macOS, the Claude desktop adapter also reads the Usage page of the app (Settings, Usage) while it is open. The page shows two meters (Accessibility role `AXLevelIndicator`): "Current session" and "This week", with values such as `46% used`. Each meter has a text such as `Resets Mon 12:50 AM` or `Resets Sunday 5:00 PM` directly before it. The adapter reads only these meters and the nearest reset text before each meter. It reads no other text of the page.
+
+The hub changes the reset text to a local time: a weekday and a time give the next such time, a time alone gives today or tomorrow, and `Resets in 2 hr 10 min` gives a time from now. Other forms give no reset time. The page is in English only. The page does not show the plan, so the hub keeps the plan from the status line or a reporter. The Usage page and the status line both update the same Claude budget. The newest reading wins.
 
 ### Budget API and reporter
 

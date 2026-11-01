@@ -32,7 +32,7 @@ async function run(): Promise<void> {
   await refreshBudgets();
   const budgetTimer = setInterval(() => void codexBudget.scan().catch(() => undefined), budgetScanIntervalMilliseconds);
   budgetTimer.unref?.();
-  const discoveryTimer = startSessionDiscovery(store, clients, dataDirectory);
+  const discoveryTimer = startSessionDiscovery(store, clients, dataDirectory, budgets);
   const webRoot = process.env.AI_AI_CAPTAIN_WEB_DIR ?? join(process.cwd(), "web");
   const port = Number(process.env.AI_AI_CAPTAIN_PORT ?? 43681);
   const logLevel = logLevelSchema.parse(process.env.AI_AI_CAPTAIN_LOG_LEVEL);

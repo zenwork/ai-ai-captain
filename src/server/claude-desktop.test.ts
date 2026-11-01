@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
 import { ClaudeDesktopTracker, claudeDesktopInspectionScript, claudeModelName } from "./claude-desktop.js";
 import { SessionStore } from "./store.js";
+import { BudgetStore } from "./budgets.js";
 import { doneAttention } from "../shared/attention.js";
 
 const sessionId = "6ef2c5c7-a520-49a1-b6fb-5b3831863a22";
@@ -66,6 +67,15 @@ function parseTree(text: string): NativeElement[] {
   return roots;
 }
 
+function parentOf(nodes: NativeElement[], child: NativeElement, parent?: NativeElement): NativeElement | undefined {
+  for (const node of nodes) {
+    if (node === child) return parent;
+    const found = parentOf(node.children, child, node);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 interface InspectOptions {
   trusted?: boolean;
   location?: string;
@@ -113,11 +123,13 @@ function inspect(controls: NativeElement[], options: InspectOptions = {}) {
       if (attribute === "AXRole") value = entry.role;
       else if (attribute === "AXWindows") value = array(windows);
       else if (attribute === "AXChildren") value = array(entry.children);
+      else if (attribute === "AXParent") value = parentOf(windows, entry);
       else if (attribute === "AXPosition" || attribute === "AXSize") value = entry.attributes[attribute] === undefined ? undefined : { description: entry.attributes[attribute] };
       else if (attribute === "AXURL") value = entry.attributes.AXURL === undefined ? undefined : { isKindOfClass: () => true, absoluteString: entry.attributes.AXURL };
       else value = entry.attributes[attribute];
       if (value === undefined) return -25205;
-      output[0] = reference(value);
+      // An element reference (AXParent) is used as it is, like the elements in a children array.
+      output[0] = attribute === "AXParent" ? value : reference(value);
       return 0;
     },
   });
@@ -287,6 +299,32 @@ describe("Claude desktop chat inspection", () => {
     });
   });
 
+  it("reads the two limit meters of the Usage page and only the reset texts next to them", () => {
+    const meter = (title: string, value: string, reset: string) => element("AXGroup", {}, [
+      element("AXStaticText", { AXValue: reset }),
+      element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: title, AXValue: value }),
+      element("AXStaticText", { AXValue: value }),
+    ]);
+    const result = inspect([
+      element("AXHeading", { AXTitle: "Your usage" }),
+      meter("Current session", "46% used", "Resets Mon 12:50 AM"),
+      meter("This week", "8% used", "Resets Sunday 5:00 PM"),
+      meter("Claude Code", "1%", "private 12%"),
+      element("AXStaticText", { AXValue: "private message with 99%" }),
+    ], { location: `https://claude.ai/cowork/${taskId}#settings/usage` });
+    expect(result.snapshot.usage).toEqual({ session: { percent: 46, reset: "Resets Mon 12:50 AM" }, week: { percent: 8, reset: "Resets Sunday 5:00 PM" } });
+    // On the real page, both meters share one group. Each one takes the reset text just before it.
+    const shared = inspect([element("AXGroup", {}, [
+      element("AXStaticText", { AXValue: "Resets Mon 12:50 AM" }),
+      element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: "Current session", AXValue: "46% used" }),
+      element("AXStaticText", { AXValue: "Resets Sunday 5:00 PM" }),
+      element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: "This week", AXValue: "8% used" }),
+    ])], { location: `https://claude.ai/cowork/${taskId}#settings/usage` });
+    expect(shared.snapshot.usage).toEqual({ session: { percent: 46, reset: "Resets Mon 12:50 AM" }, week: { percent: 8, reset: "Resets Sunday 5:00 PM" } });
+    expect(JSON.stringify(result.snapshot)).not.toContain("private");
+    expect(inspect([], { location: `https://claude.ai/cowork/${taskId}` }).snapshot.usage).toBeUndefined();
+  });
+
   it("does not create sessions from app presence, sidebar links, or denied permissions", () => {
     expect(inspect([], { trusted: false }).snapshot).toEqual({ status: "permission-denied", sessions: [] });
     expect(inspect([element("AXLink", { AXURL: `https://claude.ai/chat/${sessionId}` })], { location: "https://claude.ai/new" }).snapshot.sessions).toEqual([]);
@@ -369,6 +407,23 @@ describe("Claude desktop chat tracking", () => {
     clock += 1000;
     await tracker.scan([application]);
     expect(store.get("claude-row:0123456789abcdef")?.metadata?.completionAttention).toBeUndefined();
+  });
+
+  it("updates the Claude budget from the Usage page and keeps the plan of the status line", async () => {
+    const store = new SessionStore();
+    stores.push(store);
+    const budgets = new BudgetStore();
+    budgets.upsert({ provider: "claude", source: "claude-statusline", plan: "max", windows: [{ kind: "five-hour", usedPercent: 10 }] });
+    const now = new Date(2026, 10, 1, 22, 0).getTime();
+    const tracker = new ClaudeDesktopTracker(store, async () => ({ status: "available", sessions: [], usage: { session: { percent: 46, reset: "Resets Mon 12:50 AM" }, week: { percent: 8, reset: "Resets Sunday 5:00 PM" } } }), () => now, budgets);
+    await tracker.scan([application]);
+    expect(budgets.get("claude")).toMatchObject({
+      source: "claude-desktop-usage", plan: "max",
+      windows: [
+        { kind: "five-hour", usedPercent: 46, resetsAt: new Date(2026, 10, 2, 0, 50).toISOString() },
+        { kind: "weekly", usedPercent: 8, resetsAt: new Date(2026, 10, 8, 17, 0).toISOString() },
+      ],
+    });
   });
 
   it("retains UNKNOWN on denied inspection, then recovers without restarting completion attention", async () => {
