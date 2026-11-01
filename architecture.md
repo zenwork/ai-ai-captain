@@ -33,6 +33,8 @@ flowchart LR
     F --> OS[macOS application or project navigation]
 ```
 
+![Architecture of AI AI Captain: local evidence and reporters feed the hub; the SessionStore feeds the Stream Deck plugin, the dashboard, and the virtual deck; key pushes go through the focus adapter to the host apps](docs/images/architecture.svg)
+
 The hub owns session identity, lifecycle evidence, persistence, and OS navigation. Consumers do not inspect harness transcripts or implement independent discovery. The browser and Stream Deck are projections of the same normalized inventory.
 
 ### Hub process lifetime

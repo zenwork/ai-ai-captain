@@ -42,7 +42,8 @@ The specifications and the design documents are the authority for all work. Read
 | [streamdeck/README.md](streamdeck/README.md)           | Stream Deck plugin, layout, key states, attention timing                |
 | [intellij-bridge/README.md](intellij-bridge/README.md) | Optional manual IntelliJ bridge                                         |
 | [README.md](README.md)                                 | Overview, local run, session API, development commands                  |
-| [USER_GUIDE.md](USER_GUIDE.md)                         | Build, install, run, and configure instructions for users               |
+| [USER_GUIDE.md](USER_GUIDE.md)                         | Install, use, and configure instructions for Stream Deck plugin users   |
+| [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)               | Build, run, configure, and package instructions for the GitHub project  |
 
 NOTE: The file name `intagration.md` is correct. Do not rename it.
 
@@ -56,7 +57,7 @@ NOTE: The file name `intagration.md` is correct. Do not rename it.
 - Do not mark an item **Implemented** without runtime code and tests.
 - Do not implement a **Proposed** item without approval from the user.
 - When you change a behavior, a contract, or a visual, update the applicable specification and its acceptance criteria in the same change.
-- Keep `README.md` and `USER_GUIDE.md` correct after each change to commands, settings, or installation.
+- Keep `README.md`, `USER_GUIDE.md`, and `DEVELOPER_GUIDE.md` correct after each change to commands, settings, or installation.
 
 ### 2.2 Rules for the design
 

@@ -1,6 +1,11 @@
 # AI AI Captain
 
-New users: start with [Quick Start](#quick-start), or the [User Guide](USER_GUIDE.md). It has the build, install, run, and configure steps.
+> [!NOTE]
+> **Help wanted: Windows integration testing.** AI AI Captain is developed and tested on macOS. On Windows, some session sources do not work yet, for example Codex, GitHub Copilot, and Junie sessions. Refer to the known limitations in the [User Guide](USER_GUIDE.md#83-windows). If you use a Stream Deck on Windows, please test the plugin and open an [issue](https://github.com/zenwork/ai-ai-captain/issues) with what you find. Pull requests are welcome.
+
+Stream Deck users: start with the [User Guide](USER_GUIDE.md). It has the install, use, and configure steps for the plugin.
+
+Developers: start with [Quick start](#quick-start), or the [Developer Guide](DEVELOPER_GUIDE.md). It has the build, install, run, and package steps for the GitHub project.
 
 <table border="0">
 <tr>
@@ -59,7 +64,8 @@ Optional **AI Budget** keys show how much of your Claude, OpenAI, GitHub Copilot
 
 | Document                                         | Content                                                  |
 | ------------------------------------------------ | -------------------------------------------------------- |
-| [USER_GUIDE.md](USER_GUIDE.md)                   | Build, install, run, configure, and troubleshoot         |
+| [USER_GUIDE.md](USER_GUIDE.md)                   | Install, use, and configure the Stream Deck plugin       |
+| [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)         | Build, run, configure, and package the GitHub project    |
 | [architecture.md](architecture.md)               | Component boundaries, technology, privacy constraints    |
 | [functionality.md](functionality.md)             | Session behavior, lifecycle states, acceptance scenarios |
 | [design.md](design.md)                           | Visual language, state wording, palettes                 |
@@ -88,7 +94,7 @@ Install the Stream Deck plugin:
 
 4. In the Stream Deck app, select the profile **AI AI Captain XL**.
 
-Do not move the project folder after you install the plugin. Refer to [USER_GUIDE.md](USER_GUIDE.md) for details.
+Do not move the project folder after you install the plugin. Refer to [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for details.
 
 ## Run locally
 
@@ -103,7 +109,7 @@ Open <http://127.0.0.1:43681>.
 
 ## Virtual deck (no Stream Deck)
 
-Open <http://127.0.0.1:43681/deck.html>, or use the "Open deck only" link on the dashboard, to see a virtual Stream Deck XL. Install it as a standalone app from the browser. Refer to [USER_GUIDE.md](USER_GUIDE.md) section 6.2.
+Open <http://127.0.0.1:43681/deck.html>, or use the "Open deck only" link on the dashboard, to see a virtual Stream Deck XL. Install it as a standalone app from the browser. Refer to [USER_GUIDE.md](USER_GUIDE.md) section 4.3.
 
 In a browser that supports Document Picture-in-Picture, click **Keep on top** to open an always-on-top deck window. Keep the original page open. Click **Return to deck**, or close the floating window, to return the deck to the original page.
 
@@ -125,7 +131,7 @@ Push Ctrl+C to stop the hub. Set `AI_AI_CAPTAIN_DECK_WINDOW_SIZE` (default `420,
 npm run demo:keys
 ```
 
-The command shows 24 demo keys and cycles their states. Push Ctrl+C to remove every demo key, including leftover keys from a previous demo. Use `npm run demo:keys -- --brightness` to compare WAITING and DONE flash intensity 0 through 4. Higher levels make bright phases brighter and dim phases darker. Refer to [USER_GUIDE.md](USER_GUIDE.md) section 7.7.
+The command shows 24 demo keys and cycles their states. Push Ctrl+C to remove every demo key, including leftover keys from a previous demo. Use `npm run demo:keys -- --brightness` to compare WAITING and DONE flash intensity 0 through 4. Higher levels make bright phases brighter and dim phases darker. Refer to [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) section 9.
 
 ## Report a session
 
