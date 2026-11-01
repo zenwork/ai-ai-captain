@@ -8,6 +8,12 @@ import { SessionStore } from "./store.js";
 import { SettingsStore } from "./settings.js";
 import { watchParentProcess } from "./parent-process.js";
 import { resolveDataDirectory } from "./data-directory.js";
+import { BudgetStore } from "./budgets.js";
+import { CodexBudgetReader } from "./codex-budget.js";
+import { codexHomeDirectory } from "./discovery.js";
+
+// Codex writes a rate-limit snapshot with each token count. Read it less often than the session files.
+const budgetScanIntervalMilliseconds = 30_000;
 
 const logLevelSchema = z.enum(hubLogLevels).default("info");
 
@@ -18,12 +24,20 @@ async function run(): Promise<void> {
   const settings = new SettingsStore(join(dataDirectory, "settings.json"));
   await settings.load();
   const clients = new ClientRegistry();
+  const budgets = new BudgetStore(join(dataDirectory, "budgets.json"));
+  await budgets.load();
+  // Read the Codex budget at once, so a restart of the hub or the Stream Deck app shows current values.
+  const codexBudget = new CodexBudgetReader(budgets, codexHomeDirectory());
+  const refreshBudgets = () => codexBudget.scan(true).catch(() => undefined);
+  await refreshBudgets();
+  const budgetTimer = setInterval(() => void codexBudget.scan().catch(() => undefined), budgetScanIntervalMilliseconds);
+  budgetTimer.unref?.();
   const discoveryTimer = startSessionDiscovery(store, clients, dataDirectory);
   const webRoot = process.env.AI_AI_CAPTAIN_WEB_DIR ?? join(process.cwd(), "web");
   const port = Number(process.env.AI_AI_CAPTAIN_PORT ?? 43681);
   const logLevel = logLevelSchema.parse(process.env.AI_AI_CAPTAIN_LOG_LEVEL);
-  const app = createApp({ store, webRoot, clients, settings, logLevel, dashboardUrl: `http://127.0.0.1:${port}/` });
-  app.addHook("onClose", async () => { if (discoveryTimer) clearInterval(discoveryTimer); });
+  const app = createApp({ store, webRoot, clients, settings, budgets, refreshBudgets, logLevel, dashboardUrl: `http://127.0.0.1:${port}/` });
+  app.addHook("onClose", async () => { if (discoveryTimer) clearInterval(discoveryTimer); clearInterval(budgetTimer); });
   await app.listen({ host: "127.0.0.1", port });
   console.info(`AI AI Captain hub listening on http://127.0.0.1:${port}`);
 

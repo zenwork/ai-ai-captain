@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { defaultSettings, parseStoredSettings, settingsWriteSchema, type HubSettings, type HubSettingsWrite } from "../shared/settings.js";
 
 /** Windows can refuse to rename over a file that another program holds open. Then write the file directly. */
-async function replaceFile(temporary: string, destination: string, content: string): Promise<void> {
+export async function replaceFile(temporary: string, destination: string, content: string): Promise<void> {
   try {
     await rename(temporary, destination);
   } catch (error) {

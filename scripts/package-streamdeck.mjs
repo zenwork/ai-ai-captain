@@ -7,6 +7,8 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { budgetProviders, renderActionIcon, renderBudgetCard, renderControl, renderInfoPlaceholder, renderSessionPlaceholder } from "../src/shared/card-design.ts";
+import { cardIcons, designPalettes, defaultPaletteId } from "../src/shared/card-assets.ts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const source = join(root, "streamdeck");
@@ -103,11 +105,31 @@ function iconPng(kind, scale = 1) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
 }
 
-for (const icon of ["plugin", "session", "previous", "next", "dashboard"]) {
-  await writeFile(join(destination, "imgs", `${icon}.png`), iconPng(icon));
-  if (icon !== "plugin") await writeFile(join(destination, "imgs", `${icon}@2x.png`), iconPng(icon, 2));
-}
+await writeFile(join(destination, "imgs", "plugin.png"), iconPng("plugin"));
 await writeFile(join(destination, "imgs", "plugin@2x.png"), iconPng("plugin", 2));
+
+// The Stream Deck app shows these images in the action list and on a key before the plugin draws it.
+// They use the shared renderer and the default palette, so they look like the live keys.
+const keyPalette = designPalettes.find((palette) => palette.id === defaultPaletteId);
+const keySvg = (content) => `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 72 72"><g font-family="Arial, Helvetica, sans-serif">${content}</g></svg>\n`;
+const notReported = (provider) => ({ provider, windows: provider === "copilot" || provider === "jetbrains" ? [{ label: "MO" }] : [{ label: "5H" }, { label: "WK" }] });
+const keyImages = {
+  session: renderSessionPlaceholder(keyPalette),
+  "session-info": renderInfoPlaceholder(keyPalette),
+  "previous-page": renderControl("chevron-left", "PREV", keyPalette, cardIcons),
+  "next-page": renderControl("chevron-right", "NEXT", keyPalette, cardIcons),
+  dashboard: renderControl("layout-dashboard", "INFO", keyPalette, cardIcons),
+  "toggle-info-keys": renderControl("square-code", "ON", keyPalette, cardIcons, "INFO"),
+  "cycle-theme": renderControl("app-window", "THEME", keyPalette, cardIcons, keyPalette.name),
+  "cycle-brightness": renderControl("sparkles", "LEVEL", keyPalette, cardIcons, "BRIGHT"),
+  ...Object.fromEntries(budgetProviders.map((provider) => [`budget-${provider.id}`, renderBudgetCard(notReported(provider.id), keyPalette, cardIcons)])),
+};
+await mkdir(join(destination, "imgs", "actions"), { recursive: true });
+await mkdir(join(destination, "imgs", "keys"), { recursive: true });
+for (const [id, content] of Object.entries(keyImages)) {
+  await writeFile(join(destination, "imgs", "actions", `${id}.svg`), renderActionIcon(id, cardIcons));
+  await writeFile(join(destination, "imgs", "keys", `${id}.svg`), keySvg(content));
+}
 
 const profileId = randomUUID().toUpperCase();
 const pageId = randomUUID();

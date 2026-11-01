@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { stdin } from "node:process";
 import { sessionInputSchema, type SessionState } from "./shared/session.js";
 import { hookEndsSession, hookSessionId, stateForHook } from "./shared/hooks.js";
+import { budgetFromOptions } from "./budget-options.js";
 
 function option(args: string[], name: string): string | undefined {
   const index = args.indexOf(name);
@@ -12,6 +13,8 @@ function usage(): never {
   console.error("Usage: npm run report -- upsert --source codex --state working --label 'Code review' [--id ID --model MODEL --tokens-used N --context-percent N --freedom limited|full --approval asks|never --project PATH --app APP --bundle-id ID --pid PID]");
   console.error("       npm run report -- end --id ID [--state done|failed]");
   console.error("       npm run report -- hook claude-code|codex-cli|copilot-cli EVENT");
+  console.error("       npm run report -- budget claude|openai|copilot|jetbrains [--plan NAME] [--five-hour-percent N --five-hour-reset TIME] [--weekly-percent N --weekly-reset TIME] [--monthly-percent N --monthly-reset TIME] [--credits-used N --credits-total N] [--extra-used N --extra-limit N --extra-usd] [--top-up N] [--extra-active] [--source NAME]");
+  console.error("       npm run report -- budget PROVIDER --remove");
   process.exit(2);
 }
 
@@ -50,6 +53,18 @@ async function main(): Promise<void> {
     const state = option(args, "--state") ?? "done";
     if (state !== "done" && state !== "failed") usage();
     await request(`${baseUrl}/api/sessions/${encodeURIComponent(id)}/end`, "POST", { state });
+    return;
+  }
+  if (command === "budget") {
+    const [provider] = args;
+    if (!provider) usage();
+    if (args.includes("--remove")) {
+      const response = await fetch(`${baseUrl}/api/budgets/${encodeURIComponent(provider)}`, { method: "DELETE" });
+      if (!response.ok && response.status !== 404) throw new Error(`AI AI Captain returned ${response.status}: ${await response.text()}`);
+      return;
+    }
+    const budget = budgetFromOptions(provider, args);
+    await request(`${baseUrl}/api/budgets/${encodeURIComponent(budget.provider)}`, "PUT", budget);
     return;
   }
   if (command === "hook") {

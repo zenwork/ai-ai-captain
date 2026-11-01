@@ -3,11 +3,13 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Client, Session } from "../../src/shared/session.js";
+import type { Budget } from "../../src/shared/budget.js";
+import { budgetProviders, type BudgetProviderId } from "../../src/shared/card-design.js";
 import { doneAttention } from "../../src/shared/attention.js";
 import { defaultPaletteId, getPalette, paletteIds, type PaletteId } from "../../src/shared/palette.js";
 import { defaultFlashIntensity, defaultShowInfoKeys, flashIntensityMax, flashIntensityMin, type HubSettings } from "../../src/shared/settings.js";
 import { isFlashIntensity } from "../../src/shared/flash-intensity.js";
-import { appImage, appSignature, dashboardImage, emptyImage, infoImage, infoSignature, pagerImage, sessionImage, sessionSignature, settingControlImage, settingControlSignature, waitingPulseIntervalMs, type SettingControlKind } from "./cards.js";
+import { appImage, appSignature, budgetImage, budgetSignature, dashboardImage, infoImage, infoPlaceholderImage, infoSignature, pagerImage, sessionImage, sessionPlaceholderImage, sessionSignature, settingControlImage, settingControlSignature, waitingPulseIntervalMs, type SettingControlKind } from "./cards.js";
 import { svgDataUri } from "./images.js";
 import { HubSupervisor, isHubHealthy, localHubPort, spawnHubProcess } from "./hub-supervisor.js";
 
@@ -26,6 +28,10 @@ let flashIntensity = defaultFlashIntensity;
 let showInfoKeys = defaultShowInfoKeys;
 let sessions: Session[] = [];
 let clients: Client[] = [];
+let budgets: Budget[] = [];
+const budgetActions = new Map<string, { provider: BudgetProviderId; action: KeyAction<SessionSettings> }>();
+// After a start or a reload of the plugin, ask the hub once to read the budget sources again.
+let budgetRefreshRequested = false;
 const pages = new Map<string, number>();
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 let refreshInFlight: Promise<void> | undefined;
@@ -84,7 +90,12 @@ async function readSessions(): Promise<void> {
   try {
     const response = await fetch(`${hubUrl}/api/sessions`, { signal: AbortSignal.timeout(4000) });
     if (!response.ok) throw new Error(`Hub returned ${response.status}`);
-    const payload = await response.json() as { sessions: Session[]; clients?: Client[]; settings?: HubSettings };
+    const payload = await response.json() as { sessions: Session[]; clients?: Client[]; settings?: HubSettings; budgets?: Budget[] };
+    budgets = payload.budgets ?? [];
+    if (!budgetRefreshRequested && budgetActions.size) {
+      budgetRefreshRequested = true;
+      void requestBudgetRefresh();
+    }
     sessions = payload.sessions;
     palette = getPalette(payload.settings?.palette).id;
     const nextFlashIntensity = payload.settings?.flashIntensity;
@@ -102,7 +113,7 @@ function stopRefreshWhenHidden(): void {
     updatePulseTimer(false);
     updateDoneTimer();
   }
-  if (visibleKeys.size || pagerActions.size || dashboardActions.size || infoKeys.size || settingActions.size || !refreshTimer) return;
+  if (visibleKeys.size || pagerActions.size || dashboardActions.size || infoKeys.size || settingActions.size || budgetActions.size || !refreshTimer) return;
   clearInterval(refreshTimer);
   refreshTimer = undefined;
 }
@@ -171,9 +182,9 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
     const completion = session && doneAttention(session, options.now);
     if (completion?.nextChangeAt !== undefined) nextDoneAt = Math.min(nextDoneAt ?? Infinity, completion.nextChangeAt);
     const keyNumber = index + 1;
-    const signature = session ? sessionSignature(session, keyNumber, options) : client ? appSignature(client, keyNumber, palette) : `empty:${palette}`;
+    const signature = session ? sessionSignature(session, keyNumber, options) : client ? appSignature(client, keyNumber, palette) : `empty:${keyNumber}:${palette}`;
     if (renderedCards.get(key.id) !== signature) {
-      const image = session ? sessionImage(session, keyNumber, options) : client ? appImage(client, keyNumber, palette) : emptyImage(palette);
+      const image = session ? sessionImage(session, keyNumber, options) : client ? appImage(client, keyNumber, palette) : sessionPlaceholderImage(keyNumber, palette);
       await key.setImage(svgDataUri(image));
       await key.setTitle("");
       renderedCards.set(key.id, signature);
@@ -181,6 +192,7 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
     }
   }
   await renderInfoKeys(ordered);
+  await renderBudgetKeys();
   updatePulseTimer(hasWaiting);
   updateDoneTimer(nextDoneAt);
   if (updatedKeys && logUpdates) streamDeck.logger.info(`Updated ${updatedKeys} session keys; ${ordered.length} sessions available`);
@@ -204,12 +216,89 @@ function sessionAbove(infoKey: KeyAction<SessionSettings>, ordered: Session[]): 
 async function renderInfoKeys(ordered: Session[]): Promise<void> {
   for (const key of infoKeys.values()) {
     const session = showInfoKeys ? sessionAbove(key, ordered) : undefined;
-    const signature = session ? infoSignature(session, palette) : `empty:${palette}`;
+    const signature = session ? infoSignature(session, palette) : `info-empty:${palette}`;
     if (renderedCards.get(key.id) === signature) continue;
-    await key.setImage(svgDataUri(session ? infoImage(session, palette) : emptyImage(palette)));
+    await key.setImage(svgDataUri(session ? infoImage(session, palette) : infoPlaceholderImage(palette)));
     await key.setTitle("");
     renderedCards.set(key.id, signature);
   }
+}
+
+async function requestBudgetRefresh(): Promise<void> {
+  try {
+    const response = await fetch(`${hubUrl}/api/budgets/refresh`, { method: "POST", signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error(`Hub returned ${response.status}`);
+    budgets = ((await response.json()) as { budgets?: Budget[] }).budgets ?? budgets;
+    await renderBudgetKeys();
+  } catch {
+    // An older hub has no refresh route. Its normal 30-second read still updates the keys.
+    streamDeck.logger.warn("The hub could not read the budgets again");
+  }
+}
+
+async function renderBudgetKeys(): Promise<void> {
+  const now = Date.now();
+  for (const { provider, action } of budgetActions.values()) {
+    const budget = budgets.find((entry) => entry.provider === provider);
+    const signature = budgetSignature(provider, budget, palette, now);
+    if (renderedControls.get(action.id) === signature) continue;
+    await action.setImage(svgDataUri(budgetImage(provider, budget, palette, now)));
+    await action.setTitle("");
+    renderedControls.set(action.id, signature);
+  }
+}
+
+/** A budget key shows one subscription. Pressing it opens the usage page of the provider. */
+class BudgetAction extends SingletonAction<SessionSettings> {
+  constructor(private readonly provider: BudgetProviderId) {
+    super();
+  }
+
+  async onWillAppear(event: WillAppearEvent<SessionSettings>): Promise<void> {
+    if (!event.action.isKey()) return;
+    budgetActions.set(event.action.id, { provider: this.provider, action: event.action });
+    renderedControls.delete(event.action.id);
+    await renderBudgetKeys();
+    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    await refresh();
+  }
+
+  onWillDisappear(event: WillDisappearEvent<SessionSettings>): void {
+    budgetActions.delete(event.action.id);
+    renderedControls.delete(event.action.id);
+    stopRefreshWhenHidden();
+  }
+
+  async onKeyDown(event: KeyDownEvent<SessionSettings>): Promise<void> {
+    if (!event.action.isKey()) return;
+    const provider = budgetProviders.find((entry) => entry.id === this.provider)!;
+    try {
+      await streamDeck.system.openUrl(provider.usageUrl);
+    } catch {
+      streamDeck.logger.warn(`Could not open the usage page of ${provider.title}`);
+      await event.action.showAlert();
+    }
+  }
+}
+
+@action({ UUID: "com.local.ai-ai-captain.budget-claude" })
+class ClaudeBudgetAction extends BudgetAction {
+  constructor() { super("claude"); }
+}
+
+@action({ UUID: "com.local.ai-ai-captain.budget-openai" })
+class OpenAiBudgetAction extends BudgetAction {
+  constructor() { super("openai"); }
+}
+
+@action({ UUID: "com.local.ai-ai-captain.budget-copilot" })
+class CopilotBudgetAction extends BudgetAction {
+  constructor() { super("copilot"); }
+}
+
+@action({ UUID: "com.local.ai-ai-captain.budget-jetbrains" })
+class JetBrainsBudgetAction extends BudgetAction {
+  constructor() { super("jetbrains"); }
 }
 
 async function reuseDashboard(): Promise<boolean> {
@@ -531,6 +620,10 @@ streamDeck.actions.registerAction(new SessionInfoKey());
 streamDeck.actions.registerAction(new ToggleInfoKeysAction());
 streamDeck.actions.registerAction(new CycleThemeAction());
 streamDeck.actions.registerAction(new CycleBrightnessAction());
+streamDeck.actions.registerAction(new ClaudeBudgetAction());
+streamDeck.actions.registerAction(new OpenAiBudgetAction());
+streamDeck.actions.registerAction(new CopilotBudgetAction());
+streamDeck.actions.registerAction(new JetBrainsBudgetAction());
 void streamDeck.connect().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;

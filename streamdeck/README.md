@@ -97,6 +97,16 @@ Three optional actions change hub settings from the physical deck. They are not 
 
 Each key sends the new value to the hub. The hub saves it in `settings.json`, as for the dashboard.
 
+## Action icons and placeholder keys
+
+`npm run build:streamdeck` makes the images that the Stream Deck app shows in the action list (`imgs/actions/*.svg`) and on a key before the plugin draws it (`imgs/keys/*.svg`). The shared renderer in `src/shared/card-design.ts` draws them in the default palette.
+
+An unused session key shows a dashed outline, its key number, and a dashed SESSION band. An unused info key shows the dashed outline of the info key and INFO. Then you can see the layout in the Stream Deck app when no session is open.
+
+## Budget keys
+
+Four optional actions show the use of an AI subscription: **AI Budget: Claude**, **AI Budget: OpenAI**, **AI Budget: GitHub Copilot**, and **AI Budget: JetBrains AI**. Place them by hand, as for INFO. Each key shows the percent used of each limit window and the time until the reset. Push the key to open the usage page of the provider. The OpenAI key fills itself from Codex. The other keys need a report. Refer to `INT-12` in [intagration.md](../intagration.md) and [the design notes](../docs/design/README.md#subscription-budget-key).
+
 ## Session info key
 
 The **AI Session Info** action shows the model, the tokens used, the context used, the freedom mode, and the approval mode. Place it directly below an **AI Session** key. It shows the session of the key above it. If no session key is above it, the key stays empty. See [the design notes](../docs/design/README.md#session-info-key) for the symbols.

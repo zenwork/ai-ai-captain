@@ -52,6 +52,8 @@ The theme, brightness, and info key toggle settings apply to the whole hub. They
 
 Change the settings in the dashboard. On a physical Stream Deck, you can also use the **Toggle Info Keys**, **Cycle Theme**, and **Cycle Brightness** keys. Refer to [streamdeck/README.md](streamdeck/README.md).
 
+Optional **AI Budget** keys show how much of your Claude, OpenAI, GitHub Copilot, or JetBrains AI subscription you used and when it resets. The OpenAI key reads Codex automatically. The other keys take values from the `report budget` command. Refer to [USER_GUIDE.md](USER_GUIDE.md#822-add-subscription-budget-keys).
+
 ## Documentation
 
 | Document                                         | Content                                                  |

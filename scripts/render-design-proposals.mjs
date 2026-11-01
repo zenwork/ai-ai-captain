@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cardStates as states, cardIdentities as identities, renderCard, renderControl, renderHostBadge } from "../src/shared/card-design.ts";
+import { cardStates as states, cardIdentities as identities, renderBudgetCard, renderCard, renderControl, renderHostBadge } from "../src/shared/card-design.ts";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const directory = join(root, "docs", "design");
@@ -127,6 +127,135 @@ ${text("New work resets assessment. App/project activation alone cannot assess e
 ${text("Static design frames · No palette selection, runtime deployment or visit-detection implementation is implied.", 36, 1244, neutral.muted, 11)}`);
 }
 
+const budgetExamples = {
+  claude: [
+    ["Normal", { windows: [{ label: "5H", percent: 34, reset: "2h05" }, { label: "WK", percent: 21, reset: "4d" }] }],
+    ["Session window low", { windows: [{ label: "5H", percent: 86, reset: "1h12" }, { label: "WK", percent: 40, reset: "4d" }] }],
+    ["Weekly window low", { windows: [{ label: "5H", percent: 12, reset: "4h30" }, { label: "WK", percent: 91, reset: "2d" }] }],
+    ["Limit reached", { windows: [{ label: "5H", percent: 100, reset: "0h52" }, { label: "WK", percent: 58, reset: "4d" }] }],
+    ["Not reported", { plan: undefined, windows: [{ label: "5H" }, { label: "WK" }] }],
+  ],
+  openai: [
+    ["Normal", { windows: [{ label: "5H", percent: 18, reset: "3h40" }, { label: "WK", percent: 47, reset: "5d" }] }],
+    ["Session window low", { windows: [{ label: "5H", percent: 82, reset: "0h35" }, { label: "WK", percent: 60, reset: "5d" }] }],
+    ["Bought credits in use", { windows: [{ label: "5H", percent: 100, reset: "0h35" }, { label: "WK", percent: 60, reset: "5d" }], extra: { kind: "topup", amount: "106 cr" } }],
+    ["Limit reached", { windows: [{ label: "5H", percent: 64, reset: "1h05" }, { label: "WK", percent: 100, reset: "1d" }] }],
+    ["Not reported", { plan: undefined, windows: [{ label: "5H" }, { label: "WK" }] }],
+  ],
+  copilot: [
+    ["Normal", { used: "420", total: "1.5K", windows: [{ label: "MO", percent: 28, reset: "19d" }] }],
+    ["Credits low", { used: "1.3K", total: "1.5K", windows: [{ label: "MO", percent: 87, reset: "6d" }] }],
+    ["Extra budget in use", { used: "1.5K", total: "1.5K", windows: [{ label: "MO", percent: 100, reset: "6d" }], extra: { kind: "extra", amount: "$12/20" } }],
+    ["Limit reached, no extra budget", { used: "1.5K", total: "1.5K", windows: [{ label: "MO", percent: 100, reset: "6d" }] }],
+    ["Not reported", { plan: undefined, windows: [{ label: "MO" }] }],
+  ],
+  jetbrains: [
+    ["Normal", { used: "6.1", total: "20", windows: [{ label: "MO", percent: 31, reset: "22d" }] }],
+    ["Credits low", { used: "17.4", total: "20", windows: [{ label: "MO", percent: 87, reset: "4d" }] }],
+    ["Top-up credits in use", { used: "20", total: "20", windows: [{ label: "MO", percent: 100, reset: "4d" }], extra: { kind: "topup", amount: "+4.2" } }],
+    ["Limit reached, no top-up", { used: "20", total: "20", windows: [{ label: "MO", percent: 100, reset: "4d" }] }],
+    ["Not reported", { plan: undefined, windows: [{ label: "MO" }] }],
+  ],
+};
+const budgetRows = [
+  { id: "claude", plan: "MAX 5×", title: "CLAUDE", detail: "Claude subscription · 5-hour and weekly windows" },
+  { id: "openai", plan: "PLUS", title: "OPENAI", detail: "ChatGPT plan, used by Codex · 5-hour and weekly" },
+  { id: "copilot", plan: "PRO", title: "GITHUB COPILOT", detail: "AI Credits · monthly · extra budget" },
+  { id: "jetbrains", plan: "AI PRO", title: "JETBRAINS AI", detail: "AI credits · every 30 days · top-up" },
+];
+
+function budgetKey(data, palette) {
+  return renderBudgetCard(data, palette, icons);
+}
+
+function budgetStudy(palette) {
+  const width = 1300;
+  const scale = 1.5;
+  const cell = 72 * scale;
+  const columnX = (index) => 330 + index * 196;
+  const parts = [];
+  parts.push(text(`AI AI CAPTAIN / SUBSCRIPTION BUDGET KEY / ${palette.name.toUpperCase()}`, 36, 30, palette.muted, 11, 'font-weight="700" letter-spacing="2"'));
+  parts.push(text("Subscription budget key", 36, 68, palette.foreground, 30, 'font-weight="700"'));
+  parts.push(text("One key for each subscription. It shows how much of the plan is used and when it resets. Drawn at 1.5× scale with the runtime renderer.", 36, 94, palette.muted, 13));
+  parts.push(text("Same family as the info key: canvas background, 80% mark, warning color from 80%. The border and a state band show LOW, LIMIT, and paid extras. Dashed + ?: not reported.", 36, 116, palette.foreground, 13));
+  ["NORMAL", "LOW", "LOW OR PAID EXTRA", "LIMIT", "NOT REPORTED"].forEach((label, index) => {
+    parts.push(text(label, columnX(index) + cell / 2, 160, palette.foreground, 11, 'text-anchor="middle" font-weight="700" letter-spacing="1"'));
+  });
+  let y = 182;
+  for (const row of budgetRows) {
+    parts.push(text(row.title, 36, y + 44, palette.foreground, 13, 'font-weight="700" letter-spacing=".5"'));
+    parts.push(text(row.detail, 36, y + 64, palette.muted, 11.5));
+    budgetExamples[row.id].forEach(([caption, example], index) => {
+      const data = { provider: row.id, plan: row.plan, ...example };
+      parts.push(`<g id="budget-${row.id}-${index}" transform="translate(${columnX(index)} ${y}) scale(${scale})">${budgetKey(data, palette)}</g>`);
+      parts.push(text(caption, columnX(index) + cell / 2, y + cell + 18, palette.muted, 11, 'text-anchor="middle"'));
+    });
+    y += cell + 46;
+  }
+  y += 6;
+  parts.push(`<line x1="36" y1="${y}" x2="${width - 36}" y2="${y}" stroke="${palette.badge.border}" stroke-width="1"/>`);
+  y += 32;
+  parts.push(text("Key anatomy", 36, y, palette.foreground, 17, 'font-weight="700"'));
+  parts.push(`<g transform="translate(36 ${y + 16}) scale(2.2)">${budgetKey({ provider: "claude", plan: "MAX 5×", windows: [{ label: "5H", percent: 86, reset: "1h12" }, { label: "WK", percent: 40, reset: "4d" }] }, palette)}</g>`);
+  const notes = [
+    ["Top row", "Product mark of the subscription owner, not of the harness. Plan name on the right."],
+    ["Bars", "5H = 5-hour window, WK = weekly window, MO = monthly or 30-day credits. Mark at 80%."],
+    ["Bar color", "Normal color below 80%. Warning color from 80%. Error color at 100%."],
+    ["Bottom row", "Reset time of the window that is nearest to its limit, and its percent used."],
+    ["Border", "Normal border below 80%. Warning border from 80% or when paid extras are in use."],
+    ["LIMIT band", "Error band with a warning triangle. The reset time moves to the top row."],
+    ["Paid extras", "Warning band EXTRA or TOP-UP. The top row shows extra spend or credits left."],
+    ["Not reported", "Dashed border and bars, “?” for the plan and the percent. After a reset, a window starts at 0%."],
+  ];
+  notes.forEach(([term, detail], index) => {
+    parts.push(text(term, 230, y + 34 + index * 22, palette.foreground, 12.5, 'font-weight="700"'));
+    parts.push(text(detail, 340, y + 34 + index * 22, palette.muted, 12.5));
+  });
+  y += 34 + notes.length * 22 + 26;
+  parts.push(text("Next to session keys at 72 px", 36, y, palette.foreground, 17, 'font-weight="700"'));
+  const identity = (id) => identities.find((entry) => entry.id === id);
+  const state = (id) => states.find((entry) => entry.id === id);
+  const strip = [
+    card(identity("claude-cli"), state("working"), palette),
+    budgetKey({ provider: "claude", plan: "MAX 5×", windows: [{ label: "5H", percent: 34, reset: "2h05" }, { label: "WK", percent: 21, reset: "4d" }] }, palette),
+    card(identity("codex-cli"), state("waiting-bright"), palette),
+    budgetKey({ provider: "openai", plan: "PLUS", windows: [{ label: "5H", percent: 82, reset: "0h35" }, { label: "WK", percent: 60, reset: "5d" }] }, palette),
+    card(identity("copilot-cli"), state("done-bright"), palette),
+    budgetKey({ provider: "copilot", plan: "PRO", used: "1.5K", total: "1.5K", windows: [{ label: "MO", percent: 100, reset: "6d" }] }, palette),
+    card(identity("intellij-ai"), state("working"), palette),
+    budgetKey({ provider: "jetbrains", plan: "AI PRO", used: "20", total: "20", windows: [{ label: "MO", percent: 100, reset: "4d" }], extra: { kind: "topup", amount: "+4.2" } }, palette),
+  ];
+  strip.forEach((art, index) => parts.push(`<g transform="translate(${36 + index * 84} ${y + 16})">${art}</g>`));
+  const paletteX = 36 + strip.length * 84 + 40;
+  parts.push(text("Every palette", paletteX, y, palette.foreground, 17, 'font-weight="700"'));
+  specification.palettes.forEach((other, index) => {
+    const art = budgetKey({ provider: "claude", plan: "MAX 5×", windows: [{ label: "5H", percent: 86, reset: "1h12" }, { label: "WK", percent: 40, reset: "4d" }] }, other);
+    parts.push(`<g transform="translate(${paletteX + index * 84} ${y + 16})"><rect x="-6" y="-6" width="84" height="84" rx="10" fill="${other.canvas}"/>${art}</g>`);
+    parts.push(text(other.name, paletteX + index * 84 + 36, y + 106, palette.muted, 10, 'text-anchor="middle"'));
+  });
+  y += 130;
+  parts.push(`<line x1="36" y1="${y}" x2="${width - 36}" y2="${y}" stroke="${palette.badge.border}" stroke-width="1"/>`);
+  y += 32;
+  parts.push(text("Data sources", 36, y, palette.foreground, 17, 'font-weight="700"'));
+  const sources = [
+    ["OpenAI", "Automatic", "Codex rollout token_count events: rate_limits primary, secondary, credits, plan_type."],
+    ["Claude", "Reporter or API", "No verified local source yet. Report with `report budget claude` or PUT /api/budgets/claude."],
+    ["GitHub Copilot", "Reporter or API", "No local source. Report with `report budget copilot` or PUT /api/budgets/copilot."],
+    ["JetBrains AI", "Reporter or API", "No local source. Report with `report budget jetbrains` or PUT /api/budgets/jetbrains."],
+  ];
+  sources.forEach(([name, status, where], index) => {
+    const rowY = y + 30 + index * 24;
+    parts.push(text(name, 36, rowY, palette.foreground, 12.5, 'font-weight="700"'));
+    parts.push(text(status, 170, rowY, palette.muted, 12.5));
+    parts.push(text(where, 330, rowY, palette.muted, 12.5));
+  });
+  y += 30 + sources.length * 24 + 18;
+  parts.push(text("The hub keeps only numbers, plan names, and reset times (ARCH-08). Pressing a budget key opens the usage page of the provider.", 36, y, palette.muted, 11.5));
+  y += 22;
+  parts.push(text("Brand marks: Lobe Icons 1.100.0. Interface symbols: Lucide 0.468.0. Illustrated plans do not imply that usage data is available for every account.", 36, y, palette.muted, 10.5));
+  return frame(`AI AI Captain subscription budget key, ${palette.name}`, "A 72 by 72 key for each AI subscription: Claude, OpenAI, GitHub Copilot, and JetBrains AI. Bars show the percent used of each limit window, with an 80 percent mark. Bands show LIMIT and paid extras.", width, y + 30, palette, parts.join("\n"));
+}
+
 function luminance(color) {
   assert.match(color, /^#[0-9a-f]{6}$/i, "Invalid color token");
   const channels = [1, 3, 5].map((index) => parseInt(color.slice(index, index + 2), 16) / 255)
@@ -147,6 +276,7 @@ function validatePalette(palette) {
     controls: [[palette.controls.ink, palette.controls.accent], [palette.controls.foreground, palette.controls.background]],
     stateLabels: states.map((state) => [palette.states[state.id].ink, palette.states[state.id].accent]),
     identityMarks: states.map((state) => [palette.states[state.id].foreground, palette.states[state.id].background]),
+    brandMarks: Object.values(palette.brands).map((brand) => [brand, palette.canvas]),
   };
   const minimums = Object.fromEntries(Object.entries(pairs).map(([role, colors]) => [role, Math.min(...colors.map(([foreground, background]) => contrast(foreground, background)))]));
   for (const [role, minimum] of Object.entries(minimums)) assert(minimum >= palette.minimumTextContrast, `${palette.id}: ${role} contrast ${minimum.toFixed(2)} below target`);
@@ -174,6 +304,8 @@ const report = { scope: "Text and identity contrast checks, not a claim of compl
 const outputs = new Map([
   ["palettes/default.svg", fullSheet(preview)],
   ["done-assessment.svg", assessment()],
+  ["subscription-budget-key.svg", budgetStudy(preview)],
+  ["subscription-budget-key-porcelain.svg", budgetStudy(specification.palettes.find((palette) => palette.id === "porcelain"))],
   ...specification.palettes.map((palette) => [`palettes/${palette.id}.svg`, fullSheet(palette)]),
 ]);
 const keyImageState = states.find((state) => state.id === "done-bright");

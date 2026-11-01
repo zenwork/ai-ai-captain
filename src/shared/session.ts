@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { HubSettings } from "./settings.js";
+import type { Budget } from "./budget.js";
 
 export const sessionStates = ["starting", "working", "waiting", "done", "failed", "unknown"] as const;
 export type SessionState = (typeof sessionStates)[number];
@@ -55,7 +56,8 @@ export interface Client {
 }
 
 export type HubEvent =
-  | { type: "snapshot"; sessions: Session[]; clients?: Client[]; settings?: HubSettings }
+  | { type: "snapshot"; sessions: Session[]; clients?: Client[]; settings?: HubSettings; budgets?: Budget[] }
+  | { type: "budgets"; budgets: Budget[] }
   | { type: "settings"; settings: HubSettings }
   | { type: "clients"; clients: Client[] }
   | { type: "upsert"; session: Session }

@@ -108,7 +108,8 @@ The default base URL is `http://127.0.0.1:43681`.
 | `PUT /api/sessions/:id`        | Validated session upsert; body `id` must match URL-decoded path ID                                                                                                                                     |
 | `POST /api/sessions/:id/end`   | `{ "state": "done" }` or `{ "state": "failed" }`; explicitly closes one record                                                                                                                         |
 | `POST /api/sessions/:id/focus` | Navigation result with `focused` and optional scope/reason                                                                                                                                             |
-| `GET /api/events`              | SSE snapshot, then session/client/settings changes                                                                                                                                                     |
+| `GET /api/events`              | SSE snapshot, then session/client/settings/budget changes                                                                                                                                              |
+| `GET` / `PUT` / `DELETE /api/budgets` | Subscription budgets. Refer to `INT-12`                                                                                                                                                          |
 
 The API accepts metadata, not transcripts. Request bodies are limited to 32 KiB, with field lengths constrained by `src/shared/session.ts`. Encode session IDs when constructing URLs. Invalid input returns 400; nonexistent end/focus targets return 404. A focus operation can return HTTP 200 with `focused: false`, so clients must check the result as well as the HTTP status.
 
@@ -135,6 +136,7 @@ Messages are JSON in SSE `data:` records:
 - `remove`: one session `id`.
 - `clients`: replacement `clients` inventory.
 - `settings`: saved hub-wide `settings`, including the icon `palette` and `flashIntensity`.
+- `budgets`: the full list of subscription budgets (`INT-12`).
 
 The hub emits comment heartbeats every 15 seconds. Consumers must handle reconnection through a new full snapshot; there are no durable event IDs/replay guarantees. The browser uses SSE; Stream Deck currently polls snapshots every 1.5 seconds.
 
@@ -292,3 +294,53 @@ Options:
 | Use Accessibility like Claude     | Plain chat, if the UI exposes identity | Fragile; needs a stable chat identifier first                                  |
 
 Next step: run a Codex thread in the ChatGPT app. Check if the Codex adapter shows it. Report the result before any new code.
+
+## INT-12 — Subscription budget keys
+
+**Implemented.** The design is in `docs/design/subscription-budget-key.svg`. The Stream Deck plugin has one action for each provider: **AI Budget: Claude**, **AI Budget: OpenAI**, **AI Budget: GitHub Copilot**, and **AI Budget: JetBrains AI**. Pressing a budget key opens the usage page of the provider in the default browser.
+
+The hub keeps the newest budget of each provider in `budgets.json` in its data folder (`src/server/budgets.ts`). It keeps only numbers, plan names, and reset times. It does not keep account tokens (`ARCH-08`). Reported budgets stay after a restart. When the hub starts, it reads the Codex source at once. When the Stream Deck plugin starts or reloads, it calls `POST /api/budgets/refresh` once. Then a hub that was already running reads the automatic sources again.
+
+| Provider       | Values                                                | Source                                                                       | Status          |
+|----------------|-------------------------------------------------------|------------------------------------------------------------------------------|-----------------|
+| OpenAI         | Plan, 5-hour and weekly percent used, resets, credits | `rate_limits` in Codex rollout `token_count` events. Verified on macOS        | **Implemented** |
+| Claude         | 5-hour and weekly percent used, reset times           | Reporter or API. `~/.claude.json` has no usage numbers                        | Reporter only   |
+| GitHub Copilot | AI Credits used of the allowance, extra spend         | Reporter or API. Usage data needs a GitHub token                              | Reporter only   |
+| JetBrains AI   | Credits used, reset date, top-up balance              | Reporter or API. The IDE widget shows the values. No local source is known    | Reporter only   |
+
+### Codex source
+
+Every 30 seconds, the hub reads the end (256 KiB) of the four newest rollout files in the three newest day folders under `sessions/`. It uses the newest `token_count` event with `rate_limits`, when `limit_id` is `codex` or empty. It reads no other event.
+
+| Codex field                         | Budget field                                                                                |
+|-------------------------------------|---------------------------------------------------------------------------------------------|
+| `primary`, `window_minutes` 300     | `five-hour` window: `used_percent`, `resets_at` (Unix seconds)                               |
+| `secondary`, `window_minutes` 10080 | `weekly` window                                                                             |
+| `plan_type`                         | `plan`                                                                                      |
+| `credits.balance`, `has_credits`    | `extra.kind` `topup`. In use when a window is at 100% or `rate_limit_reached_type` is set |
+
+The snapshot changes only when Codex runs. After its reset time, a window starts again at 0%, because Codex writes a new snapshot each time it runs. Use on another computer shows only after Codex runs on this computer.
+
+### Budget API and reporter
+
+| Method and path                 | Contract                                                                        |
+|---------------------------------|---------------------------------------------------------------------------------|
+| `GET /api/budgets`              | `{ "budgets": [...] }`. `GET /api/sessions` and the SSE snapshot include them too |
+| `PUT /api/budgets/:provider`    | Validated budget. The body `provider` must agree with the path                  |
+| `DELETE /api/budgets/:provider` | Remove the budget of a provider                                                 |
+| `POST /api/budgets/refresh`     | Read the automatic sources again and return `{ "budgets": [...] }`              |
+
+The SSE stream sends a `budgets` message with the full list after each change. A budget has `provider` (`claude`, `openai`, `copilot`, `jetbrains`), `source`, optional `plan`, and `windows` (`kind` `five-hour`, `weekly`, or `monthly`, optional `usedPercent` 0–100 and `resetsAt`). It can also have `credits` (`used`, `total`) and `extra` (`kind` `extra` or `topup`, `active`, `used`, `limit`, `balance`, `currency` `usd` or `credits`).
+
+```sh
+npm run report -- budget claude --plan max --five-hour-percent 34 --five-hour-reset 2h \
+  --weekly-percent 21 --weekly-reset 4d
+npm run report -- budget copilot --plan pro --credits-used 1310 --credits-total 1500 \
+  --monthly-reset 2026-12-01T00:00:00Z --extra-used 12 --extra-limit 20 --extra-usd
+npm run report -- budget jetbrains --plan "ai pro" --credits-used 20 --credits-total 20 \
+  --monthly-reset 4d --top-up 4.2 --extra-active
+npm run report -- budget claude --remove
+```
+
+A reset time is an ISO time or a time from now (`90m`, `5h`, `4d`). Without `--monthly-percent`, the monthly bar uses the credits used over the total.
+
