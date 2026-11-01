@@ -14,7 +14,7 @@ This anchor owns visual hierarchy, wording, icon semantics, color roles, attenti
 | WORKING display wording                                         | Implemented                                                                                           |
 | Branded/consistent SVG icon system and full state wording       | Implemented in the shared renderer                                                                    |
 | Claude Desktop visual variant                                   | Implemented; local Code registrations and experimental exposed-chat tracking use the app-window badge |
-| Darkest, double-check assessed DONE                             | Required refinement, illustrated but not implemented                                                  |
+| Darkest, double-check assessed DONE                             | Implemented for a press on a DONE key; automatic visit detection is not implemented                   |
 | Fjord, Nocturne, Ember & Ice, Signal, Porcelain palettes        | Implemented and selectable in the web UI; Fjord is the default; the last two target high contrast     |
 
 Design studies may be refreshed together when requested, but must identify their preview palette and must not silently select a palette or change the running plugin. Selecting a palette and deploying a design are separate decisions.
@@ -27,7 +27,7 @@ Each session key has these priorities:
 
 1. **Main symbol:** the client/harness, with a bold monochrome silhouette.
 2. **State band and color:** what the session is doing and whether user action is needed.
-3. **Neutral host badge:** CLI, IntelliJ, or desktop app.
+3. **Host badge:** CLI, IntelliJ, or desktop app. Each host has its own color for the glyph and the outline: lime for CLI, pink for IntelliJ, and cyan for desktop apps (`hosts` tokens). The badge background stays dark, so a host color never looks like a state band. The glyph also differs, so color is not the only cue.
 4. **Small logical key number:** a reference to readable browser details, not a session title.
 
 No project names, session titles, model names, or tiny explanatory prose belong on physical session keys. The browser owns those details. State wording must remain a single readable line without clipping, wrapping, or collisions with its symbol. The full-label SVG uses modest horizontal condensation, shared by the runtime and reference sheets. Physical-device readability still needs verification on the user's display.
@@ -88,7 +88,7 @@ All four remain DONE. Assessment does not close, remove, or disable a session. N
 
 Assessed DONE must be distinguishable from merely old DONE without relying only on a tiny color difference. Its double check and darkest band provide separate cues. Dim the surface/identity intentionally; do not apply a whole-card opacity that makes text unreadable.
 
-The main study uses Fjord as its preview: aged DONE has band `#354B65` and assessed DONE the darker band `#1C2A3E`. Each palette has its own equivalent hierarchy. Fjord is the implemented default; the assessed-DONE values remain a design requirement rather than deployed visit detection.
+The main study uses Fjord as its preview: aged DONE has band `#354B65` and assessed DONE the darker band `#1C2A3E`. Each palette has its own equivalent hierarchy. Fjord is the implemented default; the runtime renderer uses the assessed-DONE values after a press on a DONE key.
 
 ## DSN-05 — Attention timing
 
@@ -116,7 +116,7 @@ The hub setting `flashIntensity` is an integer from 0 to 4. The default is 2. Le
 | 3     | 85%        | High contrast          |
 | 4     | 100%       | Full color range       |
 
-Both recent DONE phases must remain visibly brighter than aged DONE. Metadata updates, polling, page changes, and restarts cannot restart a completion's clock. Assessed DONE must cancel its attention timer immediately once implemented.
+Both recent DONE phases must remain visibly brighter than aged DONE. Metadata updates, polling, page changes, and restarts cannot restart a completion's clock. Assessed DONE cancels its attention timer immediately.
 
 WORKING, STARTING, FAILED, and UNK remain steady in the current behavior; the spinner-shaped symbol does not itself require introducing another animation. Browser reduced-motion preferences remove WAITING/DONE flashing while preserving state and aging. Animation must not generate extra hub requests or frame-by-frame operational logs.
 
@@ -178,4 +178,4 @@ Any adopted visual update must reach both card previews and hardware rendering. 
 | [Design notes](docs/design/README.md)                          | Study semantics and assessment details                                                                                                          |
 | [Third-party notices](docs/design/THIRD_PARTY_NOTICES.txt)     | Artwork provenance and licensing                                                                                                                |
 
-The icon artwork, full wording, controls, and palette configuration are implemented. The reference sheets also illustrate assessed DONE, which still lacks runtime visit detection. Claude Desktop artwork/classification does not imply automatic conversation tracking.
+The icon artwork, full wording, controls, and palette configuration are implemented. Assessed DONE is implemented for a press on a DONE key; automatic visit detection is not. Claude Desktop artwork/classification does not imply automatic conversation tracking.

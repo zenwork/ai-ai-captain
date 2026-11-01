@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Client, Session } from "../../src/shared/session.js";
-import { appIconName, appImage, appSignature, budgetImage, budgetSignature, infoImage, infoPlaceholderImage, sessionPlaceholderImage, infoSignature, settingControlImage, settingControlSignature } from "./cards.js";
+import { appIconName, appImage, appSignature, budgetImage, budgetSignature, infoImage, infoPlaceholderImage, sessionPlaceholderImage, infoSignature, settingControlImage, settingControlSignature, dashboardImage } from "./cards.js";
 
 function client(id: string, name: string, bundleId?: string): Client {
   return { id, name, focusTarget: { appName: name, ...(bundleId ? { bundleId } : {}) }, sessionTracking: "unavailable" };
@@ -72,9 +72,15 @@ describe("setting keys", () => {
     expect(settingControlImage("info-keys", { ...state, showInfoKeys: false })).toContain(">OFF<");
   });
 
-  it("shows the palette name and the brightness level", () => {
-    expect(settingControlImage("theme", { ...state, palette: "nocturne" })).toContain(">Nocturne<");
-    expect(settingControlImage("brightness", state)).toContain(">BRIGHT 2/4<");
+  it("shows the palette name and the flash level, with the name of the setting", () => {
+    const theme = settingControlImage("theme", { ...state, palette: "nocturne" });
+    expect(theme).toContain(">Nocturne<");
+    expect(theme).toContain(">THEME<");
+    const flash = settingControlImage("brightness", state);
+    expect(flash).toContain(">2/4<");
+    expect(flash).toContain(">FLASH<");
+    expect(flash).toContain("Flash intensity 2 of 4");
+    expect(settingControlImage("info-keys", state)).toContain(">INFO KEYS<");
   });
 
   it("changes the signature when a setting changes", () => {
@@ -115,10 +121,11 @@ describe("budget keys", () => {
 });
 
 describe("placeholder keys", () => {
-  it("shows the key number and SESSION on an unused session key", () => {
+  it("shows only a faint outline and the key number on an unused session key", () => {
     const image = sessionPlaceholderImage(7, "fjord");
     expect(image).toContain(">7<");
-    expect(image).toContain(">SESSION<");
+    expect(image).not.toContain(">SESSION<");
+    expect(image).toContain('opacity=".45"');
     expect(image).toContain("Unused session key 7");
     expect(sessionPlaceholderImage(undefined, "fjord")).not.toContain(">undefined<");
   });
@@ -127,5 +134,12 @@ describe("placeholder keys", () => {
     const image = infoPlaceholderImage("porcelain");
     expect(image).toContain(">INFO<");
     expect(image).toContain("stroke-dasharray");
+  });
+
+  it("draws the INFO key with the frame of the setting keys", () => {
+    const image = dashboardImage("fjord");
+    expect(image).toContain(">INFO<");
+    expect(image).toContain(">DASHBOARD<");
+    expect(image).not.toContain('height="18" rx="4"');
   });
 });

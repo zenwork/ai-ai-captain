@@ -7,7 +7,7 @@
       "target": 4.5,
       "minimums": {
         "captions": 8.361,
-        "hostBadges": 17.056,
+        "hostBadges": 9.113,
         "controls": 8.121,
         "stateLabels": 6.871,
         "identityMarks": 7.609,
@@ -20,7 +20,7 @@
       "target": 4.5,
       "minimums": {
         "captions": 8.793,
-        "hostBadges": 16.87,
+        "hostBadges": 9.134,
         "controls": 8.435,
         "stateLabels": 5.694,
         "identityMarks": 7.345,
@@ -33,7 +33,7 @@
       "target": 4.5,
       "minimums": {
         "captions": 8.723,
-        "hostBadges": 15.961,
+        "hostBadges": 8.61,
         "controls": 9.431,
         "stateLabels": 6.33,
         "identityMarks": 7.892,
@@ -46,7 +46,7 @@
       "target": 7,
       "minimums": {
         "captions": 12.307,
-        "hostBadges": 20.191,
+        "hostBadges": 12.183,
         "controls": 13.082,
         "stateLabels": 8.284,
         "identityMarks": 11.724,
@@ -59,7 +59,7 @@
       "target": 7,
       "minimums": {
         "captions": 7.438,
-        "hostBadges": 16.22,
+        "hostBadges": 9.787,
         "controls": 11.019,
         "stateLabels": 8.112,
         "identityMarks": 11.447,

@@ -70,6 +70,29 @@ describe("session API", () => {
     expect(store.upsert({ ...working, state: "done" }, "2026-11-01T10:20:00Z", "2026-11-01T10:20:00Z").dismissedAt).toBeUndefined();
   });
 
+  it("marks a DONE session as attended until its state changes", async () => {
+    const store = new SessionStore();
+    const app = createApp({ webRoot: "/no-static-assets", store });
+    apps.push(app);
+    const working = { id: "codex:1", source: "codex", label: "Review", state: "working" as const };
+    store.upsert(working, "2026-11-01T09:00:00Z", "2026-11-01T09:00:00Z");
+    expect((await app.inject({ method: "POST", url: "/api/sessions/none/attend" })).statusCode).toBe(404);
+    // Only a DONE session can be attended.
+    expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/attend" })).statusCode).toBe(409);
+    store.upsert({ ...working, state: "failed" });
+    expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/attend" })).statusCode).toBe(409);
+    store.upsert({ ...working, state: "done" }, "2026-11-01T10:00:00Z", "2026-11-01T10:00:00Z");
+    expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/attend" })).json().session.attendedAt).toBeDefined();
+    // A new report of the same completion keeps it.
+    expect(store.upsert({ ...working, state: "done" }, "2026-11-01T10:05:00Z", "2026-11-01T10:00:00Z").attendedAt).toBeDefined();
+    // Any state change clears it.
+    expect(store.upsert({ ...working, state: "working" }).attendedAt).toBeUndefined();
+    store.upsert({ ...working, state: "done" }, "2026-11-01T10:10:00Z", "2026-11-01T10:10:00Z");
+    store.attend("codex:1");
+    // A new completion time clears it too.
+    expect(store.upsert({ ...working, state: "done" }, "2026-11-01T10:20:00Z", "2026-11-01T10:20:00Z").attendedAt).toBeUndefined();
+  });
+
   it("removes a session by request and reports missing sessions", async () => {
     const app = createApp({ webRoot: "/no-static-assets" });
     apps.push(app);

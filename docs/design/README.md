@@ -20,7 +20,8 @@ Signal and Porcelain target at least 7:1 text and identity contrast in every pha
 
 - Matrix: eleven client/host combinations × ten state/brightness examples = 110 tiles, including Claude Desktop with its own app-window badge alongside Claude CLI and IntelliJ.
 - State labels: STARTING, WORKING, WAITING bright/dim, DONE bright/dim/aged/assessed, FAILED, and UNK. Longer labels remain on one line within the state band. Assessed DONE stays labeled DONE but uses a double check and a darker midnight-blue palette.
-- Large monochrome product marks identify the client or harness, not the selected model. Neutral host badges distinguish CLI, IntelliJ, and desktop apps.
+- Every key type has the same border: 1.5 units wide, fully inside the 72 × 72 key, with an 8-unit corner radius (`keyBorder` in `src/shared/card-design.ts`). Only the color and the dash pattern change.
+- Large monochrome product marks identify the client or harness, not the selected model. Host badges distinguish CLI, IntelliJ, and desktop apps by glyph and by color: lime `>_` for CLI, pink `IJ` for IntelliJ, and a cyan window for desktop apps. The `hosts` tokens give one value for each palette, and the design check verifies their contrast against the badge background.
 - Codex uses code brackets rather than a second terminal symbol or a mark resembling ChatGPT. JetBrains AI uses a neutral IJ monogram with a sparkle.
 - A raised hand means user action is required; a check mark means work has finished. Colors, explicit labels, and symbols reinforce each other.
 - The final strip displays seven tiles at 72 × 72 SVG pixels, including assessed DONE and Claude Desktop; the main matrix enlarges them to 90 × 90 for comparison. Screen zoom and display scaling affect physical size.
@@ -45,7 +46,7 @@ The proposed behavior is:
 - The completion timestamp remains unchanged. A separate assessment timestamp should be tied to that completion and persisted, so hub/plugin restarts do not restore an already-assessed alert.
 - Assessed conversations remain open and focusable. Assessment neither removes a session nor changes closure behavior.
 
-The full state wording, harness/host artwork, controls, and selectable palettes are implemented in the shared runtime renderer. Claude Desktop classification is supported for reported sessions, but automatic conversation tracking and assessed DONE visit detection remain unimplemented. These reference sheets do not change session detection or Stream Deck layout. Illustrating a product does not imply automatic conversation tracking is available for it.
+The full state wording, harness/host artwork, controls, and selectable palettes are implemented in the shared runtime renderer. Claude Desktop classification is supported for reported sessions, but automatic conversation tracking remains unimplemented. Assessed DONE is implemented: a single press on a DONE key marks that completion. Automatic visit detection is not implemented. These reference sheets do not change session detection or Stream Deck layout. Illustrating a product does not imply automatic conversation tracking is available for it.
 
 ## Session info key
 
@@ -102,7 +103,7 @@ The key shows how much of one AI subscription is used and when it resets. It is 
 
 | Element      | Content                                                                                  |
 |--------------|------------------------------------------------------------------------------------------|
-| Top row      | Product mark in the brand color on the left, brand stripe, plan name on the right         |
+| Top row      | Brand tab: a solid header in the brand color, with the product mark and the plan name      |
 | Bars         | `5H` 5-hour window and `WK` weekly window, or one `MO` bar for monthly or 30-day credits |
 | Credits row  | Credits used over the allowance, for Copilot and JetBrains AI only                       |
 | Bottom row   | Reset time of the window that is nearest to its limit, and its percent used              |
@@ -118,11 +119,25 @@ The key shows how much of one AI subscription is used and when it resets. It is 
 
 `EXTRA` is extra spend up to a budget, for example Copilot. `TOP-UP` is a balance of bought credits, for example JetBrains AI or Codex credits. A paid extra shows only while it is in use.
 
-Brand colors make the four keys easy to tell apart. The product mark and a thin stripe along the top edge use the brand color: Claude terracotta, OpenAI green, GitHub Copilot purple, and JetBrains AI pink. The `brands` tokens in `tokens.json` give one value for each palette. Each value meets the text contrast target of its palette against the canvas, and the design check verifies it. Brand color never shows a level. The bars, the border, and the bands keep the state colors.
+Brand colors make the four keys easy to tell apart, and the brand tab makes budget keys stand out from the other keys. Session keys have their band at the bottom; budget keys have a solid brand header at the top. The mark and the plan use the canvas color on the brand color: Claude terracotta, OpenAI green, GitHub Copilot purple, and JetBrains AI pink. The [budget key style study](budget-key-styles.svg) ([PNG](budget-key-styles.png)) compares the tab with a stripe, a tint, an edge bar, and a tab with a tint. The tab is the implemented style. The `brands` tokens in `tokens.json` give one value for each palette. Each value meets the text contrast target of its palette against the canvas, and the design check verifies it. Brand color never shows a level. The bars, the border, and the bands keep the state colors.
 
 The product mark identifies the account, not the harness. OpenAI uses the OpenAI mark because the ChatGPT plan pays for Codex. Codex session keys keep the code brackets.
 
 After its reset time, a window starts again at 0% until the next report. Any use above 0% fills at least 2 pixels of the bar. The reset time rounds down: `0h35` means 35 to 36 minutes. From one day, it shows whole days.
+
+## Setting keys
+
+The **Toggle Info Keys**, **Cycle Theme**, and **Cycle Brightness** keys use the "value first" style. The [setting key style study](setting-key-styles.svg) ([PNG](setting-key-styles.png)) compares it with the earlier control layout and two other styles.
+
+The key has the canvas color with a control-accent outline and no band, so it is different from the PREV and NEXT keys. The INFO key uses the same frame: DASHBOARD is small at the top, the dashboard symbol is in the middle, and INFO is large at the bottom. The name of the setting is small at the top. The current value is large in the middle:
+
+| Key              | Name at the top | Value                                                                                         |
+|------------------|-----------------|-----------------------------------------------------------------------------------------------|
+| Toggle Info Keys | INFO KEYS       | A switch, and ON or OFF. On: a filled track in the control accent. Off: an outline track      |
+| Cycle Theme      | THEME           | Four swatches with the WORKING, WAITING, DONE, and FAILED colors of the palette, and its name |
+| Cycle Brightness | FLASH           | A meter with one bar for each level from 1 to 4, and the level, for example `2/4`. Level 0 fills no bar |
+
+The symbol, the label, and the color show each value together. The renderer is `renderSettingCard` in `src/shared/card-design.ts`.
 
 ## Regenerating the visuals
 

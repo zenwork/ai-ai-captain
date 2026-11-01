@@ -45,6 +45,8 @@ export const sessionSchema = sessionInputSchema.extend({
   stateChangedAt: z.string().datetime().optional(),
   // The user hid this session on the Stream Deck. The hub clears it when the state or the state change time changes.
   dismissedAt: z.string().datetime().optional(),
+  // The user pressed this DONE session on the Stream Deck. The key shows assessed DONE. The hub clears it when the state or the state change time changes.
+  attendedAt: z.string().datetime().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   lastActivityAt: z.string().datetime(),

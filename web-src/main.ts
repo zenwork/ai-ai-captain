@@ -201,7 +201,7 @@ class SessionPanel extends HTMLElement {
       card.style.setProperty("--state-ink", colors.ink);
       const completion = entry && doneAttention(entry.session, options.now, options.reducedMotion);
       card.classList.toggle("done-dim", completion?.phase === "dim");
-      card.classList.toggle("done-aged", completion?.phase === "aged");
+      card.classList.toggle("done-aged", completion?.phase === "aged" || completion?.phase === "assessed");
     }
     if (nextChangeAt !== undefined) {
       this.#attentionTimer = window.setTimeout(() => this.#renderAttention(), Math.max(1, nextChangeAt - Date.now()));

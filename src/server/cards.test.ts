@@ -78,7 +78,7 @@ describe("Stream Deck design implementation", () => {
       expect(images[0]).toContain('transform="translate(21.5 19) scale(1.2083333333333333)"');
       expect(images[0]).toContain(`fill="${palette.states.working.foreground}"`);
       expect(images[0]).toContain(`stroke="${palette.states.working.ink}"`);
-      expect(images[1]).toContain(`stroke="${palette.controls.foreground}"`);
+      expect(images[1]).toContain(`stroke="${palette.controls.accent}"`);
     }
   });
 

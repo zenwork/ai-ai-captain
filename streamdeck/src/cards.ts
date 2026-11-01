@@ -1,11 +1,11 @@
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
-import { cardIdentities, cardStates, describeBudgetCard, describeInfoCard, escapeXml, renderBudgetCard, renderCard, renderControl, renderInfoCard, renderInfoPlaceholder, renderSessionPlaceholder, type BudgetProviderId, type CardColors, type CardPalette, type CardPhase, type InfoCardData } from "../../src/shared/card-design.js";
+import { cardIdentities, cardStates, describeBudgetCard, describeInfoCard, describeSettingCard, escapeXml, inKeySafeArea, renderBudgetCard, renderCard, renderControl, renderDashboardKey, renderInfoCard, renderSettingCard, type SettingCardData, renderInfoPlaceholder, renderSessionPlaceholder, type BudgetProviderId, type CardColors, type CardPalette, type CardPhase, type InfoCardData } from "../../src/shared/card-design.js";
 import { budgetCardData, type Budget } from "../../src/shared/budget.js";
 import { cardIcons } from "../../src/shared/card-assets.js";
 import { applyFlashIntensity, resolveFlashIntensity } from "../../src/shared/flash-intensity.js";
 import { getPalette, type PaletteId } from "../../src/shared/palette.js";
-import type { FlashIntensity } from "../../src/shared/settings.js";
+import { flashIntensityMax, type FlashIntensity } from "../../src/shared/settings.js";
 
 export interface CardOptions {
   palette?: PaletteId;
@@ -52,8 +52,9 @@ export function sessionColors(session: Session, options: CardOptions = {}): Card
   return boostedPhaseColors(palette, phase, resolveFlashIntensity(session.metadata, options.flashIntensity));
 }
 
+// Every key image keeps a small even margin. Refer to inKeySafeArea.
 function svg(content: string, title: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 72 72"><title>${escapeXml(title)}</title><g font-family="Arial, Helvetica, sans-serif">${content}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 72 72"><title>${escapeXml(title)}</title><g font-family="Arial, Helvetica, sans-serif">${inKeySafeArea(content)}</g></svg>`;
 }
 
 export function sessionImage(session: Session, keyNumber?: number, options: CardOptions = {}): string {
@@ -123,7 +124,7 @@ export function budgetSignature(provider: BudgetProviderId, budget: Budget | und
 }
 
 export function dashboardImage(palette?: PaletteId): string {
-  return svg(renderControl("layout-dashboard", "INFO", getPalette(palette), cardIcons), "Open AI AI Captain dashboard and state details");
+  return svg(renderDashboardKey(getPalette(palette), cardIcons), "Open AI AI Captain dashboard and state details");
 }
 
 export type SettingControlKind = "info-keys" | "theme" | "brightness";
@@ -134,15 +135,16 @@ export interface SettingControlState {
   showInfoKeys: boolean;
 }
 
-function settingControlParts(kind: SettingControlKind, state: SettingControlState): { symbol: string; label: string; caption: string } {
-  if (kind === "info-keys") return { symbol: "square-code", label: state.showInfoKeys ? "ON" : "OFF", caption: "INFO" };
-  if (kind === "theme") return { symbol: "app-window", label: "THEME", caption: getPalette(state.palette).name };
-  return { symbol: "sparkles", label: "LEVEL", caption: `BRIGHT ${state.flashIntensity}/4` };
+function settingCardData(kind: SettingControlKind, state: SettingControlState): SettingCardData {
+  if (kind === "info-keys") return { kind, on: state.showInfoKeys };
+  if (kind === "theme") return { kind, paletteName: getPalette(state.palette).name };
+  return { kind, level: state.flashIntensity, maximumLevel: flashIntensityMax };
 }
 
+/** A setting key shows its current value: a switch, the palette swatches, or a meter (setting key study, style C). */
 export function settingControlImage(kind: SettingControlKind, state: SettingControlState): string {
-  const { symbol, label, caption } = settingControlParts(kind, state);
-  return svg(renderControl(symbol, label, getPalette(state.palette), cardIcons, caption), `${caption}: ${label}`);
+  const data = settingCardData(kind, state);
+  return svg(renderSettingCard(data, getPalette(state.palette), cardIcons), describeSettingCard(data));
 }
 
 export function settingControlSignature(kind: SettingControlKind, state: SettingControlState): string {

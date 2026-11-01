@@ -21,6 +21,8 @@ export interface CardPalette {
   states: Record<string, CardColors>;
   /** Brand colors of the subscription providers, adjusted to the contrast target of the palette. Used on budget keys only. */
   brands: { claude: string; openai: string; copilot: string; jetbrains: string };
+  /** One color for each host badge, so that CLI, IntelliJ, and desktop app keys are easy to tell apart. */
+  hosts: { terminal: string; ide: string; "app-window": string };
 }
 
 export type CardIcons = Record<string, { viewBox: string; content: string }>;
@@ -74,12 +76,22 @@ function icon(name: string, horizontal: number, vertical: number, width: number,
   return `<g transform="translate(${offsetHorizontal} ${offsetVertical}) scale(${scale})">${artwork.content.replaceAll("currentColor", color)}</g>`;
 }
 
+/** Every key has the same border: 1.5 units wide, fully inside the 72 × 72 key, with the same corner radius. */
+export const keyBorderWidth = 1.5;
+
+function keyBorder(color: string, attributes = ""): string {
+  const inset = keyBorderWidth / 2;
+  return `<rect x="${inset}" y="${inset}" width="${72 - keyBorderWidth}" height="${72 - keyBorderWidth}" rx="${8 - inset}" fill="none" stroke="${color}" stroke-width="${keyBorderWidth}"${attributes}/>`;
+}
+
 export function renderHostBadge(host: string | undefined, palette: CardPalette, icons: CardIcons, horizontal = 48, vertical = 4): string {
   if (!host) return "";
+  // The glyph and the outline use the host color. The badge background stays dark, so the color never looks like a state band.
+  const color = palette.hosts[host as keyof CardPalette["hosts"]] ?? palette.badge.foreground;
   const content = host === "ide"
-    ? text("IJ", horizontal + 10, vertical + 10.8, palette.badge.foreground, 11, 'text-anchor="middle" font-weight="700"')
-    : icon(host, horizontal + 3, vertical + 1, 14, 12, icons, palette.badge.foreground);
-  return `<g color="${palette.badge.foreground}"><rect x="${horizontal}" y="${vertical}" width="20" height="14" rx="3" fill="${palette.badge.background}" stroke="${palette.badge.border}" stroke-width=".6"/>${content}</g>`;
+    ? text("IJ", horizontal + 10, vertical + 10.8, color, 11, 'text-anchor="middle" font-weight="700"')
+    : icon(host, horizontal + 3, vertical + 1, 14, 12, icons, color);
+  return `<g color="${color}"><rect x="${horizontal + .5}" y="${vertical + .5}" width="19" height="13" rx="2.6" fill="${palette.badge.background}" stroke="${color}" stroke-width="1"/>${content}</g>`;
 }
 
 export function renderCard(identity: typeof cardIdentities[number], state: typeof cardStates[number], palette: CardPalette, number: number | undefined, icons: CardIcons): string {
@@ -94,7 +106,7 @@ export function renderCard(identity: typeof cardIdentities[number], state: typeo
   const reference = number === undefined ? "" : `<rect x="4" y="4" width="16" height="14" rx="4" fill="${palette.badge.background}"/>${text(number, 12, 14.6, palette.badge.foreground, 9.5, 'text-anchor="middle" font-weight="700"')}`;
   return `<g aria-label="${escapeXml(`${identity.title}, ${identity.detail}: ${state.label}, ${state.detail}, ${palette.name}`)}">
 <rect width="72" height="72" rx="8" fill="${colors.background}"/>
-<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${colors.accent}" stroke-width="1.5"/>
+${keyBorder(colors.accent)}
 <g color="${colors.foreground}">${mark}</g>
 ${renderHostBadge(identity.host, palette, icons)}
 ${reference}
@@ -106,7 +118,7 @@ ${label}
 
 export function renderControl(symbol: string, label: string, palette: CardPalette, icons: CardIcons, page?: string): string {
   const colors = palette.controls;
-  return `<rect width="72" height="72" rx="8" fill="${colors.background}" stroke="${colors.accent}" stroke-width="1.5"/>
+  return `<rect width="72" height="72" rx="8" fill="${colors.background}"/>${keyBorder(colors.accent)}
 <g color="${colors.foreground}">${icon(symbol, 18, 14, 36, 31, icons, colors.foreground)}</g>
 ${page ? text(page, 36, 10, colors.foreground, 8, 'text-anchor="middle" font-weight="700"') : ""}
 <rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
@@ -196,7 +208,7 @@ export function renderInfoCard(data: InfoCardData, palette: CardPalette): string
   const fill = reported ? `<rect x="${infoBarLeft + infoBarInset}" y="23.5" width="${fillWidth}" height="15" rx="3" fill="${barColor}"/>` : "";
   const tokenColor = data.tokensUsed === undefined ? palette.muted : palette.foreground;
   return `<g aria-label="${escapeXml(describeInfoCard(data))}">
-<rect width="72" height="72" rx="8" fill="${palette.canvas}" stroke="${palette.badge.border}" stroke-width="1.5"/>
+<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>${keyBorder(palette.badge.border)}
 ${text(infoModelName(data.model), 6, 15, palette.muted, 10)}
 ${text(formatTokenCount(data.tokensUsed), 66, 15, tokenColor, 10, 'text-anchor="end"')}
 ${outline}${fill}
@@ -246,13 +258,31 @@ function budgetLevel(percent: number | undefined): BudgetLevel {
 
 // The product mark in the brand color, and a brand stripe along the top edge. Brand color never shows a level:
 // the bars, the border, and the bands keep the state colors.
-function budgetMark(provider: typeof budgetProviders[number], palette: CardPalette, icons: CardIcons): string {
+/**
+ * How a budget key shows its brand, so that it stands out from session and info keys (design study, docs/design).
+ * The default is "tab". The other styles stay for the design study.
+ * - stripe: brand mark and a thin brand stripe at the top (the first design).
+ * - tint: the stripe, and a light brand wash on the whole key.
+ * - tab: a solid brand header with the mark and the plan in the canvas color.
+ * - edge: the stripe, and a brand bar along the left side.
+ * - tab-tint: the tab, and the light brand wash.
+ */
+export const budgetStyles = ["stripe", "tint", "tab", "edge", "tab-tint"] as const;
+export type BudgetStyle = (typeof budgetStyles)[number];
+const budgetTintOpacity = ".16";
+
+function budgetMark(provider: typeof budgetProviders[number], palette: CardPalette, icons: CardIcons, style: BudgetStyle): string {
   const brand = palette.brands[provider.id];
-  const stripe = `<rect x="23" y="3.4" width="42" height="2.2" rx="1.1" fill="${brand}"/>`;
+  const tab = style === "tab" || style === "tab-tint";
+  // On the tab, the mark uses the canvas color on the brand color. Both meet the contrast target of the palette.
+  const ink = tab ? palette.canvas : brand;
+  const decoration = tab
+    ? `<path d="M0,8 a8,8 0 0 1 8,-8 h56 a8,8 0 0 1 8,8 v12 h-72 z" fill="${brand}"/>`
+    : `<rect x="23" y="3.4" width="42" height="2.2" rx="1.1" fill="${brand}"/>${style === "edge" ? `<rect x="1.8" y="9" width="2.6" height="54" rx="1.3" fill="${brand}"/>` : ""}`;
   if (provider.icon === "jetbrains") {
-    return `${stripe}<rect x="6" y="6" width="12" height="12" rx="2" fill="${brand}"/>${text("IJ", 12, 15.4, palette.canvas, 8, 'text-anchor="middle" font-weight="800"')}${icon("sparkles", 15.5, 3.5, 6, 6, icons, brand)}`;
+    return `${decoration}<rect x="6" y="5" width="12" height="12" rx="2" fill="${ink}"/>${text("IJ", 12, 14.4, tab ? brand : palette.canvas, 8, 'text-anchor="middle" font-weight="800"')}${icon("sparkles", 15.5, 2.5, 6, 6, icons, ink)}`;
   }
-  return `${stripe}<g color="${brand}">${icon(provider.icon, 5, 5, 14, 14, icons, brand)}</g>`;
+  return `${decoration}<g color="${ink}">${icon(provider.icon, 5, tab ? 3 : 5, 14, 14, icons, ink)}</g>`;
 }
 
 function budgetBar(window: BudgetWindowCard, vertical: number, palette: CardPalette): string {
@@ -294,7 +324,7 @@ export function describeBudgetCard(data: BudgetCardData): string {
 }
 
 /** The subscription budget key. It uses the canvas background like the info key. The border shows the worst level. */
-export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, icons: CardIcons): string {
+export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, icons: CardIcons, style: BudgetStyle = "tab"): string {
   const provider = budgetProviders.find((entry) => entry.id === data.provider)!;
   const percents = data.windows.map((window) => window.percent).filter((value): value is number => value !== undefined);
   const worst = percents.length ? Math.max(...percents) : undefined;
@@ -304,15 +334,20 @@ export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, ico
   const out = level === "out" && !extra;
   const warning = palette.states["waiting-bright"];
   const border = out ? palette.states.failed.accent : level === "low" || extra ? warning.accent : palette.badge.border;
+  const brand = palette.brands[provider.id];
+  const tab = style === "tab" || style === "tab-tint";
+  const tinted = style === "tint" || style === "tab-tint";
   const parts = [
     `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>`,
-    `<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${border}" stroke-width="1.5"${level === "unknown" ? ' stroke-dasharray="3 3"' : ""}/>`,
-    budgetMark(provider, palette, icons),
+    tinted ? `<rect width="72" height="72" rx="8" fill="${brand}" opacity="${budgetTintOpacity}"/>` : "",
+    budgetMark(provider, palette, icons, style),
+    `${keyBorder(border, level === "unknown" ? ' stroke-dasharray="3 3"' : "")}`,
   ];
   // Top right: the plan. When the budget is out, the reset time takes its place. Paid extras show their amount.
-  if (out) parts.push(budgetTopValue(binding?.reset ?? "?", palette.foreground, icons, "rotate-ccw"));
-  else if (extra) parts.push(budgetTopValue(extra.amount, warning.accent, icons));
-  else parts.push(text(data.plan ?? "?", 66, 15, palette.muted, 9.5, 'text-anchor="end" font-weight="700"'));
+  // On the tab, the top row uses the canvas color on the brand color.
+  if (out) parts.push(budgetTopValue(binding?.reset ?? "?", tab ? palette.canvas : palette.foreground, icons, "rotate-ccw"));
+  else if (extra) parts.push(budgetTopValue(extra.amount, tab ? palette.canvas : warning.accent, icons));
+  else parts.push(text(data.plan ?? "?", 66, 15, tab ? palette.canvas : palette.muted, 9.5, 'text-anchor="end" font-weight="700"'));
   if (data.windows.length === 1) {
     const used = data.used ?? "?";
     parts.push(text(used, 6, 32, data.used === undefined ? palette.muted : palette.foreground, 13, 'font-weight="700"'));
@@ -332,35 +367,29 @@ export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, ico
   return `<g aria-label="${escapeXml(describeBudgetCard(data))}">${parts.join("\n")}</g>`;
 }
 
+// Unused keys stay in the background: faint dashed outlines in the badge border color, and small muted text.
+const placeholderOpacity = ".45";
+
 /**
- * An unused session key: a dashed outline, the key number, and a dashed SESSION band.
+ * An unused session key: a faint dashed outline and the small key number.
  * It shows the place of the key on the deck and in the Stream Deck app, without a state.
  */
 export function renderSessionPlaceholder(palette: CardPalette, number?: number): string {
-  const muted = palette.muted;
-  const center = number === undefined
-    ? `<path d="M28 30h16" stroke="${palette.badge.border}" stroke-width="3" stroke-linecap="round"/>`
-    : text(number, 36, 37, muted, 20, 'text-anchor="middle" font-weight="700"');
+  const label = number === undefined ? "" : text(number, 36, 40.5, palette.muted, 12, `text-anchor="middle" font-weight="700" opacity="${placeholderOpacity}"`);
   return `<g aria-label="${escapeXml(`Unused session key${number === undefined ? "" : ` ${number}`}`)}">
 <rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
-<rect x="1.5" y="1.5" width="69" height="69" rx="7" fill="none" stroke="${palette.badge.border}" stroke-width="1.5" stroke-dasharray="4 3"/>
-${center}
-<rect x="4" y="52" width="64" height="16" rx="4" fill="none" stroke="${palette.badge.border}" stroke-width="1.2" stroke-dasharray="3 2.5"/>
-${text("SESSION", 0, 64, muted, 10, 'transform="translate(36 0) scale(.86 1)" text-anchor="middle" font-weight="800" letter-spacing=".3"')}
+${keyBorder(palette.badge.border, ` stroke-dasharray="3 4" opacity="${placeholderOpacity}"`)}
+${label}
 </g>`;
 }
 
-/** An unused info key: the outline of the info key with a dashed bar, and an INFO label. */
+/** An unused info key: a faint dashed outline, the outline of the context bar, and a small INFO label. */
 export function renderInfoPlaceholder(palette: CardPalette): string {
-  const border = palette.badge.border;
-  const markHorizontal = infoBarLeft + (infoBarWidth * contextWarningPercent) / 100 - infoBarInset;
   return `<g aria-label="Unused info key">
 <rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
-<rect x="1.5" y="1.5" width="69" height="69" rx="7" fill="none" stroke="${border}" stroke-width="1.5" stroke-dasharray="4 3"/>
-<path d="M6 12h16M50 12h16" stroke="${border}" stroke-width="2.5" stroke-linecap="round"/>
-<rect x="${infoBarLeft}" y="22" width="${infoBarWidth}" height="18" rx="4" fill="none" stroke="${border}" stroke-width="1.5" stroke-dasharray="3 3"/>
-<line x1="${markHorizontal}" y1="21" x2="${markHorizontal}" y2="41" stroke="${border}" stroke-width="1"/>
-${text("INFO", 36, 62, palette.muted, 11, 'text-anchor="middle" font-weight="800" letter-spacing=".5"')}
+${keyBorder(palette.badge.border, ` stroke-dasharray="3 4" opacity="${placeholderOpacity}"`)}
+<rect x="${infoBarLeft + 4}" y="28" width="${infoBarWidth - 8}" height="12" rx="3" fill="none" stroke="${palette.badge.border}" stroke-width="1.2" stroke-dasharray="3 3" opacity="${placeholderOpacity}"/>
+${text("INFO", 36, 58, palette.muted, 8, `text-anchor="middle" font-weight="700" letter-spacing=".5" opacity="${placeholderOpacity}"`)}
 </g>`;
 }
 
@@ -394,4 +423,145 @@ export function renderActionIcon(id: ActionIconId, icons: CardIcons, color = "#F
     content = icon(symbol, 2, 2, 16, 16, icons, color);
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><g font-family="Arial, Helvetica, sans-serif">${content}</g></svg>\n`;
+}
+
+/**
+ * The three setting keys: info keys on or off, the palette, and the flash intensity.
+ * Design study (docs/design/setting-key-styles.svg). The default is "value". The other styles stay for the study.
+ * - current: the control layout of INFO, PREV, and NEXT, with a caption at the top.
+ * - minimal: the same layout, with a symbol for the setting and the value in the band.
+ * - panel: the control colors, with the value drawn as a switch, swatches, or a meter, and the name in a small band.
+ * - value: the canvas color with a control outline and no band. The value is large in the middle.
+ */
+export const settingStyles = ["current", "minimal", "panel", "value"] as const;
+export type SettingStyle = (typeof settingStyles)[number];
+
+export interface SettingCardData {
+  kind: "info-keys" | "theme" | "brightness";
+  on?: boolean;
+  paletteName?: string;
+  level?: number;
+  maximumLevel?: number;
+}
+
+// A switch: a rounded track with a knob. On: filled track, knob on the right. Off: outline track, knob on the left.
+function settingSwitch(on: boolean, x: number, y: number, width: number, height: number, accent: string, background: string, muted: string): string {
+  const radius = height / 2;
+  const knob = on ? x + width - radius : x + radius;
+  return on
+    ? `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" fill="${accent}"/><circle cx="${knob}" cy="${y + radius}" r="${radius - 2.5}" fill="${background}"/>`
+    : `<rect x="${x + .75}" y="${y + .75}" width="${width - 1.5}" height="${height - 1.5}" rx="${radius - .75}" fill="none" stroke="${muted}" stroke-width="1.5"/><circle cx="${knob}" cy="${y + radius}" r="${radius - 3.5}" fill="${muted}"/>`;
+}
+
+// Swatches of the selected palette: the WORKING, WAITING, DONE, and FAILED colors.
+function settingSwatches(palette: CardPalette, centerX: number, y: number, radius: number, outline: string): string {
+  const colors = ["working", "waiting-bright", "done-bright", "failed"].map((state) => palette.states[state].accent);
+  const gap = radius * 2 + 3;
+  const start = centerX - (gap * (colors.length - 1)) / 2;
+  return colors.map((color, index) => `<circle cx="${start + index * gap}" cy="${y}" r="${radius}" fill="${color}" stroke="${outline}" stroke-width="1"/>`).join("");
+}
+
+// A meter of rising bars, one bar for each level above 0. Level 0 fills no bar.
+function settingMeter(level: number, maximum: number, x: number, bottom: number, width: number, height: number, accent: string, muted: string): string {
+  const count = maximum;
+  const gap = 2.5;
+  const barWidth = (width - gap * (count - 1)) / count;
+  return Array.from({ length: count }, (_unused, index) => {
+    const barHeight = height * (0.35 + (0.65 * index) / Math.max(1, count - 1));
+    const left = x + index * (barWidth + gap);
+    const top = bottom - barHeight;
+    return index < level
+      ? `<rect x="${left}" y="${top}" width="${barWidth}" height="${barHeight}" rx="1.5" fill="${accent}"/>`
+      : `<rect x="${left + .6}" y="${top + .6}" width="${barWidth - 1.2}" height="${barHeight - 1.2}" rx="1.2" fill="none" stroke="${muted}" stroke-width="1.2"/>`;
+  }).join("");
+}
+
+// A sun for the flash intensity: a circle with eight rays.
+function settingSun(centerX: number, centerY: number, radius: number, color: string): string {
+  const rays = Array.from({ length: 8 }, (_unused, index) => {
+    const angle = (Math.PI / 4) * index;
+    const inner = radius + 3;
+    const outer = radius + 7;
+    return `<line x1="${(centerX + Math.cos(angle) * inner).toFixed(2)}" y1="${(centerY + Math.sin(angle) * inner).toFixed(2)}" x2="${(centerX + Math.cos(angle) * outer).toFixed(2)}" y2="${(centerY + Math.sin(angle) * outer).toFixed(2)}" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>`;
+  }).join("");
+  return `<circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="none" stroke="${color}" stroke-width="2.4"/>${rays}`;
+}
+
+export function describeSettingCard(data: SettingCardData): string {
+  if (data.kind === "info-keys") return `Info keys ${data.on ? "on" : "off"}`;
+  if (data.kind === "theme") return `Palette ${data.paletteName ?? ""}`.trim();
+  return `Flash intensity ${data.level ?? 0} of ${data.maximumLevel ?? 4}`;
+}
+
+export function renderSettingCard(data: SettingCardData, palette: CardPalette, icons: CardIcons, style: SettingStyle = "value"): string {
+  const colors = palette.controls;
+  const level = data.level ?? 0;
+  const maximum = data.maximumLevel ?? 4;
+  const name = data.kind === "info-keys" ? "INFO KEYS" : data.kind === "theme" ? "THEME" : "FLASH";
+  const value = data.kind === "info-keys" ? (data.on ? "ON" : "OFF") : data.kind === "theme" ? (data.paletteName ?? "?") : `${level}/${maximum}`;
+  const label = (content: string, y: number, color: string, size: number) => {
+    const scaled = content.length > 7 ? ` transform="translate(36 0) scale(${Math.max(.62, 7 / content.length).toFixed(2)} 1)"` : "";
+    return text(content, scaled ? 0 : 36, y, color, size, `text-anchor="middle" font-weight="800"${scaled}`);
+  };
+  let content: string;
+  if (style === "current") {
+    const symbol = data.kind === "info-keys" ? "square-code" : data.kind === "theme" ? "app-window" : "sparkles";
+    const band = data.kind === "info-keys" ? value : data.kind === "theme" ? "THEME" : "LEVEL";
+    const caption = data.kind === "info-keys" ? "INFO" : data.kind === "theme" ? (data.paletteName ?? "") : `BRIGHT ${level}/${maximum}`;
+    content = renderControl(symbol, band, palette, icons, caption);
+  } else if (style === "minimal") {
+    const symbol = data.kind === "info-keys"
+      ? settingSwitch(data.on === true, 20, 20, 32, 17, colors.foreground, colors.background, colors.foreground)
+      : data.kind === "theme" ? settingSwatches(palette, 36, 28.5, 6, colors.background) : settingSun(36, 28, 7, colors.foreground);
+    content = `<rect width="72" height="72" rx="8" fill="${colors.background}"/>${keyBorder(colors.accent)}
+${text(name, 36, 11, colors.foreground, 7.5, 'text-anchor="middle" font-weight="700" letter-spacing=".5"')}
+${symbol}
+<rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
+${label(value, 64, colors.ink, 12)}`;
+  } else if (style === "panel") {
+    const visual = data.kind === "info-keys"
+      ? settingSwitch(data.on === true, 16, 13, 40, 21, colors.accent, colors.background, colors.foreground)
+      : data.kind === "theme" ? settingSwatches(palette, 36, 22, 6.5, colors.background) : settingMeter(level, maximum, 17, 33, 38, 22, colors.accent, colors.foreground);
+    content = `<rect width="72" height="72" rx="8" fill="${colors.background}"/>${keyBorder(colors.accent)}
+${visual}
+${label(value, 48, colors.foreground, 12)}
+<rect x="3" y="56" width="66" height="13" rx="3.5" fill="${colors.accent}"/>
+${text(name, 36, 65.6, colors.ink, 8, 'text-anchor="middle" font-weight="800" letter-spacing=".5"')}`;
+  } else {
+    const visual = data.kind === "info-keys"
+      ? settingSwitch(data.on === true, 14, 22, 44, 23, colors.accent, palette.canvas, palette.muted)
+      : data.kind === "theme" ? settingSwatches(palette, 36, 33, 6.5, palette.canvas) : settingMeter(level, maximum, 15, 44, 42, 26, colors.accent, palette.muted);
+    content = `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
+${keyBorder(colors.accent)}
+${text(name, 36, 13, palette.muted, 8, 'text-anchor="middle" font-weight="700" letter-spacing=".8"')}
+${visual}
+${label(value, 63, palette.foreground, 12)}`;
+  }
+  return `<g aria-label="${escapeXml(describeSettingCard(data))}">${content}</g>`;
+}
+
+/**
+ * The INFO key that opens the dashboard. It has the same frame as the setting keys: the canvas color with a
+ * control-accent outline and no band. The word DASHBOARD is small at the top, the symbol is in the middle,
+ * and INFO is large at the bottom.
+ */
+export function renderDashboardKey(palette: CardPalette, icons: CardIcons): string {
+  const colors = palette.controls;
+  return `<g aria-label="Open the dashboard"><rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
+${keyBorder(colors.accent)}
+${text("DASHBOARD", 36, 13, palette.muted, 8, 'text-anchor="middle" font-weight="700" letter-spacing=".8"')}
+<g color="${colors.accent}">${icon("layout-dashboard", 23, 20, 26, 26, icons, colors.accent)}</g>
+${text("INFO", 36, 63, palette.foreground, 12, 'text-anchor="middle" font-weight="800"')}</g>`;
+}
+
+/**
+ * The Stream Deck key frame covers a thin edge of the key display, and the display can sit a little off center.
+ * A full-size key image then looks too big or shifted. Draw each key at 94% size in the center of the image,
+ * so that the frame never touches the key outline. The margin is transparent and shows as black on the device.
+ */
+export const keySafeScale = 0.94;
+
+export function inKeySafeArea(content: string): string {
+  const offset = (72 * (1 - keySafeScale)) / 2;
+  return `<g transform="translate(${offset.toFixed(2)} ${offset.toFixed(2)}) scale(${keySafeScale})">${content}</g>`;
 }

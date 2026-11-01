@@ -2,7 +2,7 @@
 
 The plugin uses the official `@elgato/streamdeck` SDK. Build it from the repository root with `npm run build`; this creates `com.local.ai-ai-captain.sdPlugin` with a bundled plugin entrypoint, the bundled hub (`bin/hub.cjs`), the static dashboard (`web/`), manifest, and auto-installed XL profile. Link it into Stream Deck using Elgato's CLI: `streamdeck link streamdeck/com.local.ai-ai-captain.sdPlugin`.
 
-The default XL layout places 30 **AI Session** actions in positions 1–30 (left-to-right, top-to-bottom), then **Previous Session Page** and **Next Session Page** in positions 31 and 32. You can place these actions elsewhere and replace session slots with INFO or other controls. Sessions fill only the configured session keys in reading order, and paging uses the available number of session keys (up to 30 per device), so custom controls do not hide conversations. Session actions refresh from the hub every 1.5 seconds. Press a session key to focus it. Press a DONE, FAILED, or UNK key two times within 0.4 seconds to hide the session until its state changes. A single press on these keys focuses the session after 0.4 seconds.
+The default XL layout places 30 **AI Session** actions in positions 1–30 (left-to-right, top-to-bottom), then **Previous Session Page** and **Next Session Page** in positions 31 and 32. You can place these actions elsewhere and replace session slots with INFO or other controls. Sessions fill only the configured session keys in reading order, and paging uses the available number of session keys (up to 30 per device), so custom controls do not hide conversations. Session actions refresh from the hub every 1.5 seconds. Press a session key to focus it. Press a DONE, FAILED, or UNK key two times within 0.4 seconds to hide the session until its state changes. A single press on these keys focuses the session after 0.4 seconds. A single press on a DONE key also marks that result as seen: the key changes to assessed DONE (darkest blue, double check, no flashing) until the state changes.
 
 The profile assigns 30 session keys followed by previous/next paging keys. The plugin displays live session keys as slots fill and exposes further sessions on additional pages. Set `AI_AI_CAPTAIN_URL` only if the hub uses a non-default local port.
 
@@ -36,7 +36,7 @@ INFO is a separate, manually placed action. It is **not** automatically added af
 2. In the Stream Deck app, find **AI AI Captain → Open AI AI Captain Dashboard** in the action list.
 3. Drag that action onto your preferred key, replacing an **AI Session** key if needed. You can also place it on another page.
 
-The purple **INFO** key stays at your chosen location as sessions arrive, close, or change pages. Press it to open the web dashboard and state explanations in your default browser. It works even when the hub is unreachable, opening the configured `AI_AI_CAPTAIN_URL` so you can inspect the dashboard's connection state. The default profile is unchanged; linking/reloading the plugin does not replace your customized assignments. Reinstalling or reimporting the profile is unnecessary.
+The **INFO** key stays at your chosen location as sessions arrive, close, or change pages. Press it to open the web dashboard and state explanations in your default browser. It works even when the hub is unreachable, opening the configured `AI_AI_CAPTAIN_URL` so you can inspect the dashboard's connection state. The default profile is unchanged; linking/reloading the plugin does not replace your customized assignments. Reinstalling or reimporting the profile is unnecessary.
 
 Dashboard session cards include a state explanation and expandable **State details & evidence**. UNKNOWN entries expand automatically, distinguishing missing telemetry, read errors, unreadable/unsupported events, and process-discovery failures. Evidence includes timestamps, event/adapter, telemetry location/error code, model/project availability, and runtime/host PIDs. Raw transcripts and private error messages are never rendered.
 
@@ -89,11 +89,11 @@ Linked development installs do not need reinstalling after a build. When using i
 
 Three optional actions change hub settings from the physical deck. They are not in the virtual deck. Place them by hand, as for INFO.
 
- Action           | Function                                                     |
- ---------------- | ------------------------------------------------------------ |
- Toggle Info Keys | Turn **Show info keys** on or off. The key shows ON or OFF.  |
- Cycle Theme      | Select the next icon palette. The key shows the palette.     |
- Cycle Brightness | Select the next flash intensity level, 0 to 4, then 0 again. |
+ Action           | Function                                                                                   |
+ ---------------- | ------------------------------------------------------------------------------------------ |
+ Toggle Info Keys | Turn **Show info keys** on or off. The key shows a switch and ON or OFF.                    |
+ Cycle Theme      | Select the next icon palette. The key shows four colors of the palette and its name.      |
+ Cycle Brightness | Select the next flash intensity level, 0 to 4, then 0 again. The key shows a meter and the level. |
 
 Each key sends the new value to the hub. The hub saves it in `settings.json`, as for the dashboard.
 
@@ -101,7 +101,7 @@ Each key sends the new value to the hub. The hub saves it in `settings.json`, as
 
 `npm run build:streamdeck` makes the images that the Stream Deck app shows in the action list (`imgs/actions/*.svg`) and on a key before the plugin draws it (`imgs/keys/*.svg`). The shared renderer in `src/shared/card-design.ts` draws them in the default palette.
 
-An unused session key shows a dashed outline, its key number, and a dashed SESSION band. An unused info key shows the dashed outline of the info key and INFO. Then you can see the layout in the Stream Deck app when no session is open.
+An unused session key shows a faint dashed outline and its key number. An unused info key shows a faint dashed outline, the outline of the context bar, and a small INFO label. Both stay in the background next to live keys. Then you can see the layout in the Stream Deck app when no session is open.
 
 ## Budget keys
 

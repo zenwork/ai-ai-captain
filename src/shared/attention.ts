@@ -12,12 +12,14 @@ const stages = [
 ];
 
 export interface DoneAttention {
-  phase: "bright" | "dim" | "aged";
+  phase: "bright" | "dim" | "aged" | "assessed";
   nextChangeAt?: number;
 }
 
 export function doneAttention(session: Session, now = Date.now(), reducedMotion = false): DoneAttention | undefined {
   if (session.state !== "done") return undefined;
+  // The user pressed the key of this completion. It stays steady and dark until the state changes.
+  if (session.attendedAt) return { phase: "assessed" };
   // The adapter knows that this completion needs no attention: its time is not known, or the user has read it in the host app.
   if (session.metadata?.completionAttention === "none") return { phase: "aged" };
   const completedAt = Date.parse(session.stateChangedAt ?? session.lastActivityAt);

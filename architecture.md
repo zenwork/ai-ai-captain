@@ -159,7 +159,7 @@ The default data directory is `~/Library/Application Support/ai-ai-captain`. Whe
 
 Restored sessions remain hidden until a live adapter/reporter confirms them. Persisting a `working` value must not resurrect a running session after restart. Automatic adapters remove confirmed closed hosts/projects promptly; ordinary session closure uses the ten-second grace period described in [functionality.md](functionality.md).
 
-**Required, not implemented:** assessed DONE must be owned and persisted by the hub, associated with a particular session completion, and projected consistently to every consumer. It must not be a plugin-only local flag. Exact fields and API commands are still an implementation decision; the current schema has no assessment contract.
+**Implemented:** the hub owns assessed DONE. `POST /api/sessions/:id/attend` sets `attendedAt` on a DONE session. The store keeps it only while the state and the state change time stay the same, so it belongs to one completion. The store persists it, and the SSE stream sends it to every consumer. The plugin does not keep its own flag.
 
 ## ARCH-08 — Privacy and trust boundaries
 

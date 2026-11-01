@@ -95,6 +95,11 @@ export const designPalettes = [
       "openai": "#10A37F",
       "copilot": "#9466E7",
       "jetbrains": "#FF318C"
+    },
+    "hosts": {
+      "terminal": "#B5DE7E",
+      "ide": "#F49BC4",
+      "app-window": "#82CFF0"
     }
   },
   {
@@ -189,6 +194,11 @@ export const designPalettes = [
       "openai": "#10A37F",
       "copilot": "#9163E7",
       "jetbrains": "#FF318C"
+    },
+    "hosts": {
+      "terminal": "#B5DE7E",
+      "ide": "#F49BC4",
+      "app-window": "#82CFF0"
     }
   },
   {
@@ -283,6 +293,11 @@ export const designPalettes = [
       "openai": "#10A37F",
       "copilot": "#9568E8",
       "jetbrains": "#FF318C"
+    },
+    "hosts": {
+      "terminal": "#B5DE7E",
+      "ide": "#F49BC4",
+      "app-window": "#82CFF0"
     }
   },
   {
@@ -377,6 +392,11 @@ export const designPalettes = [
       "openai": "#26AB8B",
       "copilot": "#AA86EC",
       "jetbrains": "#FF5CA4"
+    },
+    "hosts": {
+      "terminal": "#C6EC8E",
+      "ide": "#FFB3D6",
+      "app-window": "#9BDDF7"
     }
   },
   {
@@ -471,6 +491,11 @@ export const designPalettes = [
       "openai": "#095D48",
       "copilot": "#603DA0",
       "jetbrains": "#991D54"
+    },
+    "hosts": {
+      "terminal": "#C6EC8E",
+      "ide": "#FFB3D6",
+      "app-window": "#9BDDF7"
     }
   }
 ] as const satisfies readonly CardPalette[];

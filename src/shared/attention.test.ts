@@ -40,4 +40,11 @@ describe("completion attention", () => {
     expect(doneAttention({ ...session, stateChangedAt: "invalid" }, completedAt)).toEqual({ phase: "aged" });
     expect(doneAttention(session, completedAt - 1000)).toEqual({ phase: "aged" });
   });
+
+  it("keeps an attended completion steady and dark at any age", () => {
+    const attended = { ...session, attendedAt: new Date(completedAt + 5000).toISOString() };
+    expect(doneAttention(attended, completedAt + 1000)).toEqual({ phase: "assessed" });
+    expect(doneAttention(attended, completedAt + 3_600_000)).toEqual({ phase: "assessed" });
+    expect(doneAttention({ ...attended, state: "working" }, completedAt)).toBeUndefined();
+  });
 });
