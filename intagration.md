@@ -8,20 +8,20 @@ This file intentionally uses the requested name `intagration.md`. It owns integr
 
 ## INT-01 — Coverage and prerequisites
 
-| Integration                         | Implemented evidence/path                                                                   | Limits                                                                                                 |
-| ----------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Copilot CLI                         | Live `inuse.<pid>.hold` ownership and per-session `events.jsonl`                            | Depends on installed local event/lock formats                                                          |
-| Copilot in IntelliJ                 | Same session telemetry plus IDE process ancestry/project lifetime evidence                  | Several conversations can share one runtime; ACP variants without these files need another reporter    |
-| Codex CLI                           | Live writer locks/open rollout files and supported rollout events                           | Missing rollout history yields UNKNOWN; not every approval pause is recorded                           |
-| Codex in the ChatGPT desktop app    | Same Codex ownership and rollout telemetry; the key shows the Codex desktop app badge       | Plain ChatGPT chats have no known local status source (see INT-10)                                     |
-| Codex in JetBrains AI Assistant     | Codex ownership/rollout telemetry through the installed ACP runtime                         | Does not intercept/take over JetBrains' app-server connection                                          |
-| Claude Code CLI and IntelliJ        | Live `sessions/<pid>.json` registration, validated process identity, and host lifetime      | Requires the installed registration format; approval states and models must be exported by the runtime |
-| Claude Code in the desktop app      | Same live registrations with Claude app ancestry                                            | Remote or isolated runtimes without local registrations need a reporter                                |
-| Junie in IntelliJ IDEA              | `~/.junie/sessions` index, status events, and open IntelliJ project registration            | Needs a running IDEA process; approval waits are not recorded, so WAITING is not shown                 |
-| Other harness hooks                 | Generic CLI/HTTP reporter                                                                   | Requires the harness to invoke configured hooks                                                        |
-| Other IntelliJ tasks                | Optional manual Kotlin bridge                                                               | One manually reported task per project, not per-conversation automatic telemetry                       |
+| Integration                         | Implemented evidence/path                                                                    | Limits                                                                                                                      |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Copilot CLI                         | Live `inuse.<pid>.hold` ownership and per-session `events.jsonl`                             | Depends on installed local event/lock formats                                                                               |
+| Copilot in IntelliJ                 | Same session telemetry plus IDE process ancestry/project lifetime evidence                   | Several conversations can share one runtime; ACP variants without these files need another reporter                         |
+| Codex CLI                           | Live writer locks/open rollout files and supported rollout events                            | Missing rollout history yields UNKNOWN; not every approval pause is recorded                                                |
+| Codex in the ChatGPT desktop app    | Same Codex ownership and rollout telemetry; the key shows the Codex desktop app badge        | Plain ChatGPT chats have no known local status source (see INT-10)                                                          |
+| Codex in JetBrains AI Assistant     | Codex ownership/rollout telemetry through the installed ACP runtime                          | Does not intercept/take over JetBrains' app-server connection                                                               |
+| Claude Code CLI and IntelliJ        | Live `sessions/<pid>.json` registration, validated process identity, and host lifetime       | Requires the installed registration format; approval states and models must be exported by the runtime                      |
+| Claude Code in the desktop app      | Same live registrations with Claude app ancestry                                             | Remote or isolated runtimes without local registrations need a reporter                                                     |
+| Junie in IntelliJ IDEA              | `~/.junie/sessions` index, status events, and open IntelliJ project registration             | Needs a running IDEA process; approval waits are not recorded, so WAITING is not shown                                      |
+| Other harness hooks                 | Generic CLI/HTTP reporter                                                                    | Requires the harness to invoke configured hooks                                                                             |
+| Other IntelliJ tasks                | Optional manual Kotlin bridge                                                                | One manually reported task per project, not per-conversation automatic telemetry                                            |
 | Claude desktop chat and task        | Experimental Accessibility adapter for exposed chat and task URLs and known English controls | Requires Accessibility access; hidden chats and other UI formats are not fully supported; tasks have no model or token data |
-| ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`; shown as an APP key on Stream Deck                    | Plain conversations not automatically tracked (see INT-10 for ChatGPT research)                        |
+| ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`; shown as an APP key on Stream Deck                     | Plain conversations not automatically tracked (see INT-10 for ChatGPT research)                                             |
 
 Node.js 24+ is required to build AI AI Captain and for local hub development. Stream Deck 7.1+ is required for the current plugin; its manifest targets macOS 13+, Windows 10+, and the embedded Node 20 runtime. The plugin also runs the bundled hub on that Node 20 runtime. The default hardware profile targets the XL. macOS is required for the current automatic process/lifetime adapters and focus commands, not for the generic session API itself.
 
@@ -34,7 +34,7 @@ Use `AI_AI_CAPTAIN_COPILOT_HOME`, or `~/.copilot`, as the root containing `sessi
 Reduce supported records as follows:
 
 | Evidence                                                           | Domain result                                                       |
-|--------------------------------------------------------------------|---------------------------------------------------------------------|
+| ------------------------------------------------------------------ | ------------------------------------------------------------------- |
 | `session.start` / `session.resume`                                 | starting; refresh project/model metadata                            |
 | User message, assistant turn start/message, ordinary tool activity | working, unless an input/permission request remains outstanding     |
 | Permission request, `ask_user`, or `exit_plan_mode` tool           | waiting until outstanding requests resolve                          |
@@ -47,7 +47,7 @@ Reduce supported records as follows:
 Resolve the root from `AI_AI_CAPTAIN_CODEX_HOME`, then `CODEX_HOME`, then `~/.codex`. Candidates require ownership of `thread-writer-locks/<session-id>.lock` or an applicable open `sessions/**/rollout-*-<session-id>.jsonl`. Indexing files to locate a live owner's rollout must not revive unowned history.
 
 | Evidence                                          | Domain result                                                                   |
-|---------------------------------------------------|---------------------------------------------------------------------------------|
+| ------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `session_meta`                                    | starting and project metadata                                                   |
 | `turn_context` / `thread_settings_applied`        | Metadata only; no invented activity                                             |
 | `event_msg.task_started` / `turn_started`         | working                                                                         |
@@ -107,22 +107,22 @@ Successful navigation returns `scope: "session"`; it does not set assessed DONE.
 
 The default base URL is `http://127.0.0.1:43681`.
 
-| Method and path                | Contract                                                                                                                                                                                               |
-|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `GET /health`                  | Hub process health, not proof that every adapter is operational                                                                                                                                        |
-| `GET /api/sessions`            | `{ "sessions": [...], "settings": { "palette": "fjord", "flashIntensity": 2 } }` current inventory and appearance                                                                                      |
-| `GET /api/settings`            | Current settings and supported palette IDs/names; flash intensity is an integer from 0 to 4                                                                                                            |
-| `GET /api/dashboard/browser`   | Current macOS default browser, tab adapter, and Accessibility trust status                                                                                                                             |
-| `POST /api/dashboard/open`     | Reuse the configured dashboard tab, or open through the default browser if reuse fails; returns `opened`, `reused`, browser metadata, or a safe reason; arbitrary caller URLs are ignored              |
-| `PUT /api/settings`            | Validated `{ "palette": "fjord" \| "nocturne" \| "ember-ice" \| "signal" \| "porcelain", "flashIntensity": 0 }`; optional intensity is 0–4 and stays unchanged when omitted; saves hub-wide appearance |
-| `GET /api/clients`             | `{ "clients": [...] }` detected app presence with session tracking unavailable                                                                                                                         |
-| `PUT /api/sessions/:id`        | Validated session upsert; body `id` must match URL-decoded path ID                                                                                                                                     |
-| `POST /api/sessions/:id/end`   | `{ "state": "done" }` or `{ "state": "failed" }`; explicitly closes one record                                                                                                                         |
-| `POST /api/sessions/:id/focus` | Navigation result with `focused` and optional scope/reason                                                                                                                                             |
-| `POST /api/sessions/:id/dismiss` | Hide a DONE, FAILED, or UNKNOWN session until its state or state change time changes; sets `dismissedAt`. 404 for a missing session, 409 for an active one                                   |
-| `POST /api/sessions/:id/attend` | Mark a DONE session as attended until its state or state change time changes; sets `attendedAt`. The key shows assessed DONE. 404 for a missing session, 409 for any other state |
-| `GET /api/events`              | SSE snapshot, then session/client/settings/budget changes                                                                                                                                              |
-| `GET` / `PUT` / `DELETE /api/budgets` | Subscription budgets. Refer to `INT-12`                                                                                                                                                          |
+| Method and path                       | Contract                                                                                                                                                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /health`                         | Hub process health, not proof that every adapter is operational                                                                                                                                        |
+| `GET /api/sessions`                   | `{ "sessions": [...], "settings": { "palette": "fjord", "flashIntensity": 2 } }` current inventory and appearance                                                                                      |
+| `GET /api/settings`                   | Current settings and supported palette IDs/names; flash intensity is an integer from 0 to 4                                                                                                            |
+| `GET /api/dashboard/browser`          | Current macOS default browser, tab adapter, and Accessibility trust status                                                                                                                             |
+| `POST /api/dashboard/open`            | Reuse the configured dashboard tab, or open through the default browser if reuse fails; returns `opened`, `reused`, browser metadata, or a safe reason; arbitrary caller URLs are ignored              |
+| `PUT /api/settings`                   | Validated `{ "palette": "fjord" \| "nocturne" \| "ember-ice" \| "signal" \| "porcelain", "flashIntensity": 0 }`; optional intensity is 0–4 and stays unchanged when omitted; saves hub-wide appearance |
+| `GET /api/clients`                    | `{ "clients": [...] }` detected app presence with session tracking unavailable                                                                                                                         |
+| `PUT /api/sessions/:id`               | Validated session upsert; body `id` must match URL-decoded path ID                                                                                                                                     |
+| `POST /api/sessions/:id/end`          | `{ "state": "done" }` or `{ "state": "failed" }`; explicitly closes one record                                                                                                                         |
+| `POST /api/sessions/:id/focus`        | Navigation result with `focused` and optional scope/reason                                                                                                                                             |
+| `POST /api/sessions/:id/dismiss`      | Hide a DONE, FAILED, or UNKNOWN session until its state or state change time changes; sets `dismissedAt`. 404 for a missing session, 409 for an active one                                             |
+| `POST /api/sessions/:id/attend`       | Mark a DONE session as attended until its state or state change time changes; sets `attendedAt`. The key shows assessed DONE. 404 for a missing session, 409 for any other state                       |
+| `GET /api/events`                     | SSE snapshot, then session/client/settings/budget changes                                                                                                                                              |
+| `GET` / `PUT` / `DELETE /api/budgets` | Subscription budgets. Refer to `INT-12`                                                                                                                                                                |
 
 The API accepts metadata, not transcripts. Request bodies are limited to 32 KiB, with field lengths constrained by `src/shared/session.ts`. Encode session IDs when constructing URLs. Invalid input returns 400; nonexistent end/focus targets return 404. A focus operation can return HTTP 200 with `focused: false`, so clients must check the result as well as the HTTP status.
 
@@ -220,7 +220,7 @@ For a later linked update, use `npm run reload:streamdeck`. This rebuilds the pl
 Available actions are:
 
 | Action                       | UUID                                    |
-|------------------------------|-----------------------------------------|
+| ---------------------------- | --------------------------------------- |
 | AI Session                   | `com.local.ai-ai-captain.session`       |
 | Previous Session Page        | `com.local.ai-ai-captain.previous-page` |
 | Next Session Page            | `com.local.ai-ai-captain.next-page`     |
@@ -241,23 +241,23 @@ Use **Tools → AI AI Captain** to start/update a task, mark it waiting, or end 
 
 Use **Icon palette** and **Flash intensity** in the dashboard to save shared appearance settings in `settings.json` in the data directory. The palette defaults to Fjord; flash intensity defaults to 2 and accepts levels 0 to 4. Both settings survive restarts, reach browsers through SSE, and reach Stream Deck through its normal session poll. The initial renderer upgrade needs a hub rebuild/restart and plugin reload; later appearance changes need no restart or reinstall. Artwork notices ship with the plugin and static web client.
 
-| Variable                            | Consumer                     | Default / meaning                                                                                                                                     |
-|-------------------------------------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AI_AI_CAPTAIN_DECK_PORT`           | `deck:app` hub               | `43682`; separate from the Stream Deck hub                                                                                                            |
-| `AI_AI_CAPTAIN_DECK_WINDOW_SIZE`    | `deck:app` browser           | `420,140`; Chrome or Chromium app window size                                                                                                         |
-| `AI_AI_CAPTAIN_PORT`                | Hub                          | `43681`; hub remains bound to `127.0.0.1`                                                                                                             |
-| `AI_AI_CAPTAIN_URL`                 | CLI, Stream Deck, IDE bridge | `http://127.0.0.1:43681`; set consistently when changing ports                                                                                        |
-| `AI_AI_CAPTAIN_DATA_DIR`            | Hub                          | `~/Library/Application Support/ai-ai-captain`; an earlier `ai-deck` directory moves here at first start                                               |
-| `AI_AI_CAPTAIN_WEB_DIR`             | Hub                          | Static web directory; otherwise repository `web/`. The plugin sets the plugin `web/` directory for the supervised hub |
-| `AI_AI_CAPTAIN_LOG_LEVEL`           | Hub                          | `info`; one of `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`. The plugin sets `warn` for the supervised hub                            |
-| `AI_AI_CAPTAIN_EXIT_WITH_PARENT`    | Hub                          | Internal flag set by the plugin. `1` stops the hub when its parent process stops                                                                      |
-| `AI_AI_CAPTAIN_COPILOT_HOME`        | Copilot adapter              | `~/.copilot`, containing `session-state`                                                                                                              |
-| `AI_AI_CAPTAIN_CODEX_HOME`          | Codex adapter                | Overrides `CODEX_HOME`, then `~/.codex`                                                                                                               |
-| `AI_AI_CAPTAIN_CLAUDE_HOME`         | Claude Code adapter          | `CLAUDE_CONFIG_DIR` or `~/.claude`; live session registrations                                                                                        |
-| `AI_AI_CAPTAIN_JUNIE_HOME`          | Junie adapter                | Overrides `~/.junie/sessions`                                                                                                                         |
-| `AI_AI_CAPTAIN_JETBRAINS_INSTANCES` | Lifetime inspector           | `~/.junie/instances`                                                                                                                                  |
-| `AI_AI_CAPTAIN_PRECISE_FOCUS`       | Hub focus adapter            | Opt-in `1` for attempted PID app focus                                                                                                                |
-| `AI_AI_CAPTAIN_IDEA_HOME`           | Bridge build                 | Optional local IDE installation                                                                                                                       |
+| Variable                            | Consumer                     | Default / meaning                                                                                                          |
+| ----------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `AI_AI_CAPTAIN_DECK_PORT`           | `deck:app` hub               | `43682`; separate from the Stream Deck hub                                                                                 |
+| `AI_AI_CAPTAIN_DECK_WINDOW_SIZE`    | `deck:app` browser           | `420,140`; Chrome or Chromium app window size                                                                              |
+| `AI_AI_CAPTAIN_PORT`                | Hub                          | `43681`; hub remains bound to `127.0.0.1`                                                                                  |
+| `AI_AI_CAPTAIN_URL`                 | CLI, Stream Deck, IDE bridge | `http://127.0.0.1:43681`; set consistently when changing ports                                                             |
+| `AI_AI_CAPTAIN_DATA_DIR`            | Hub                          | `~/Library/Application Support/ai-ai-captain`; an earlier `ai-deck` directory moves here at first start                    |
+| `AI_AI_CAPTAIN_WEB_DIR`             | Hub                          | Static web directory; otherwise repository `web/`. The plugin sets the plugin `web/` directory for the supervised hub      |
+| `AI_AI_CAPTAIN_LOG_LEVEL`           | Hub                          | `info`; one of `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`. The plugin sets `warn` for the supervised hub |
+| `AI_AI_CAPTAIN_EXIT_WITH_PARENT`    | Hub                          | Internal flag set by the plugin. `1` stops the hub when its parent process stops                                           |
+| `AI_AI_CAPTAIN_COPILOT_HOME`        | Copilot adapter              | `~/.copilot`, containing `session-state`                                                                                   |
+| `AI_AI_CAPTAIN_CODEX_HOME`          | Codex adapter                | Overrides `CODEX_HOME`, then `~/.codex`                                                                                    |
+| `AI_AI_CAPTAIN_CLAUDE_HOME`         | Claude Code adapter          | `CLAUDE_CONFIG_DIR` or `~/.claude`; live session registrations                                                             |
+| `AI_AI_CAPTAIN_JUNIE_HOME`          | Junie adapter                | Overrides `~/.junie/sessions`                                                                                              |
+| `AI_AI_CAPTAIN_JETBRAINS_INSTANCES` | Lifetime inspector           | `~/.junie/instances`                                                                                                       |
+| `AI_AI_CAPTAIN_PRECISE_FOCUS`       | Hub focus adapter            | Opt-in `1` for attempted PID app focus                                                                                     |
+| `AI_AI_CAPTAIN_IDEA_HOME`           | Bridge build                 | Optional local IDE installation                                                                                            |
 
 Environment variables must be available to the actual process, not merely an unrelated terminal; GUI-launched apps may not inherit shell configuration. The supervised hub gets the environment of the Stream Deck plugin process. Thus, it normally uses the default values. To use other values, start the hub manually with the variables before the plugin starts. No property-inspector URL setting is currently implemented for the Stream Deck action.
 
@@ -301,7 +301,7 @@ Findings from a local check on macOS:
 Options:
 
 | Option                            | Coverage                               | Risk                                                                           |
-|-----------------------------------|----------------------------------------|--------------------------------------------------------------------------------|
+| --------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | Use the Codex adapter for threads | Codex threads in the ChatGPT app       | Check that the app server holds the locks for each thread                      |
 | Add a `hooks.json` reporter       | Codex threads, with WAITING events     | The user must change `~/.codex/hooks.json`; AGENTS.md forbids the hub to do it |
 | Use Accessibility like Claude     | Plain chat, if the UI exposes identity | Fragile; needs a stable chat identifier first                                  |
@@ -323,22 +323,22 @@ Next step: on a Windows computer, open the Claude app with some running tasks. R
 
 The hub keeps the newest budget of each provider in `budgets.json` in its data folder (`src/server/budgets.ts`). It keeps only numbers, plan names, and reset times. It does not keep account tokens (`ARCH-08`). Reported budgets stay after a restart. When the hub starts, it reads the Codex source at once. When the Stream Deck plugin starts or reloads, it calls `POST /api/budgets/refresh` once. Then a hub that was already running reads the automatic sources again.
 
-| Provider       | Values                                                | Source                                                                       | Status          |
-|----------------|-------------------------------------------------------|------------------------------------------------------------------------------|-----------------|
-| OpenAI         | Plan, 5-hour and weekly percent used, resets, credits | `rate_limits` in Codex rollout `token_count` events. Verified on macOS        | **Implemented** |
+| Provider       | Values                                                | Source                                                                                                                     | Status                                    |
+| -------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| OpenAI         | Plan, 5-hour and weekly percent used, resets, credits | `rate_limits` in Codex rollout `token_count` events. Verified on macOS                                                     | **Implemented**                           |
 | Claude         | 5-hour and weekly percent used, reset times           | Claude Code status line (`integrations/claude-statusline.mjs`), the Usage page of the Claude desktop app, reporter, or API | **Implemented** (status line, Usage page) |
-| GitHub Copilot | AI Credits used of the allowance, extra spend         | Reporter or API. Usage data needs a GitHub token                              | Reporter only   |
-| JetBrains AI   | Credits used, reset date, top-up balance              | Reporter or API. The IDE widget shows the values. No local source is known    | Reporter only   |
+| GitHub Copilot | AI Credits used of the allowance, extra spend         | Reporter or API. Usage data needs a GitHub token                                                                           | Reporter only                             |
+| JetBrains AI   | Credits used, reset date, top-up balance              | Reporter or API. The IDE widget shows the values. No local source is known                                                 | Reporter only                             |
 
 ### Codex source
 
 Every 30 seconds, the hub reads the end (256 KiB) of the four newest rollout files under `sessions/`, by change time. A resumed conversation writes into the day folder where it started, so the hub checks the change time of the files in all day folders. It uses the newest `token_count` event with `rate_limits`, when `limit_id` is `codex` or empty. It reads no other event.
 
-| Codex field                         | Budget field                                                                                |
-|-------------------------------------|---------------------------------------------------------------------------------------------|
-| `primary`, `window_minutes` 300     | `five-hour` window: `used_percent`, `resets_at` (Unix seconds)                               |
-| `secondary`, `window_minutes` 10080 | `weekly` window                                                                             |
-| `plan_type`                         | `plan`                                                                                      |
+| Codex field                         | Budget field                                                                              |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| `primary`, `window_minutes` 300     | `five-hour` window: `used_percent`, `resets_at` (Unix seconds)                            |
+| `secondary`, `window_minutes` 10080 | `weekly` window                                                                           |
+| `plan_type`                         | `plan`                                                                                    |
 | `credits.balance`, `has_credits`    | `extra.kind` `topup`. In use when a window is at 100% or `rate_limit_reached_type` is set |
 
 The snapshot changes only when Codex runs. After its reset time, a window starts again at 0%, because Codex writes a new snapshot each time it runs. Use on another computer shows only after Codex runs on this computer.
@@ -361,12 +361,12 @@ The hub changes the reset text to a local time: a weekday and a time give the ne
 
 ### Budget API and reporter
 
-| Method and path                 | Contract                                                                        |
-|---------------------------------|---------------------------------------------------------------------------------|
+| Method and path                 | Contract                                                                          |
+| ------------------------------- | --------------------------------------------------------------------------------- |
 | `GET /api/budgets`              | `{ "budgets": [...] }`. `GET /api/sessions` and the SSE snapshot include them too |
-| `PUT /api/budgets/:provider`    | Validated budget. The body `provider` must agree with the path                  |
-| `DELETE /api/budgets/:provider` | Remove the budget of a provider                                                 |
-| `POST /api/budgets/refresh`     | Read the automatic sources again and return `{ "budgets": [...] }`              |
+| `PUT /api/budgets/:provider`    | Validated budget. The body `provider` must agree with the path                    |
+| `DELETE /api/budgets/:provider` | Remove the budget of a provider                                                   |
+| `POST /api/budgets/refresh`     | Read the automatic sources again and return `{ "budgets": [...] }`                |
 
 The SSE stream sends a `budgets` message with the full list after each change. A budget has `provider` (`claude`, `openai`, `copilot`, `jetbrains`), `source`, optional `plan`, and `windows` (`kind` `five-hour`, `weekly`, or `monthly`, optional `usedPercent` 0–100 and `resetsAt`). It can also have `credits` (`used`, `total`) and `extra` (`kind` `extra` or `topup`, `active`, `used`, `limit`, `balance`, `currency` `usd` or `credits`).
 
@@ -381,4 +381,3 @@ npm run report -- budget claude --remove
 ```
 
 A reset time is an ISO time or a time from now (`90m`, `5h`, `4d`). Without `--monthly-percent`, the monthly bar uses the credits used over the total.
-

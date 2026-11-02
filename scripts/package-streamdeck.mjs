@@ -7,7 +7,17 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { budgetProviders, renderActionIcon, renderBudgetCard, renderControl, renderDashboardKey, renderInfoPlaceholder, renderSessionPlaceholder, renderSettingCard, inKeySafeArea } from "../src/shared/card-design.ts";
+import {
+  budgetProviders,
+  renderActionIcon,
+  renderBudgetCard,
+  renderControl,
+  renderDashboardKey,
+  renderInfoPlaceholder,
+  renderSessionPlaceholder,
+  renderSettingCard,
+  inKeySafeArea,
+} from "../src/shared/card-design.ts";
 import { cardIcons, designPalettes, defaultPaletteId } from "../src/shared/card-assets.ts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -32,10 +42,11 @@ function iconPng(kind, scale = 1) {
     const scaledX = x * scale;
     const scaledY = y * scale;
     if (scaledX < 0 || scaledY < 0 || scaledX >= width || scaledY >= height) return;
-    for (let offsetY = 0; offsetY < scale; offsetY++) for (let offsetX = 0; offsetX < scale; offsetX++) {
-      const offset = ((scaledY + offsetY) * width + scaledX + offsetX) * 4;
-      pixels.set(color, offset);
-    }
+    for (let offsetY = 0; offsetY < scale; offsetY++)
+      for (let offsetX = 0; offsetX < scale; offsetX++) {
+        const offset = ((scaledY + offsetY) * width + scaledX + offsetX) * 4;
+        pixels.set(color, offset);
+      }
   };
   const rectangle = (left, top, right, bottom, color) => {
     for (let y = top; y < bottom; y++) for (let x = left; x < right; x++) set(x, y, color);
@@ -47,13 +58,20 @@ function iconPng(kind, scale = 1) {
     const sy = y0 < y1 ? 1 : -1;
     let error = dx + dy;
     while (true) {
-      for (let y = y0 - thickness; y <= y0 + thickness; y++) for (let x = x0 - thickness; x <= x0 + thickness; x++) {
-        if ((x - x0) ** 2 + (y - y0) ** 2 <= thickness ** 2) set(x, y, color);
-      }
+      for (let y = y0 - thickness; y <= y0 + thickness; y++)
+        for (let x = x0 - thickness; x <= x0 + thickness; x++) {
+          if ((x - x0) ** 2 + (y - y0) ** 2 <= thickness ** 2) set(x, y, color);
+        }
       if (x0 === x1 && y0 === y1) break;
       const doubled = 2 * error;
-      if (doubled >= dy) { error += dy; x0 += sx; }
-      if (doubled <= dx) { error += dx; y0 += sy; }
+      if (doubled >= dy) {
+        error += dy;
+        x0 += sx;
+      }
+      if (doubled <= dx) {
+        error += dx;
+        y0 += sy;
+      }
     }
   };
   rectangle(0, 0, baseSize, baseSize, [21, 27, 43, 255]);
@@ -76,7 +94,16 @@ function iconPng(kind, scale = 1) {
     rectangle(13, 50, 59, 56, [196, 181, 253, 255]);
   } else {
     rectangle(0, 0, width, height, [32, 40, 58, 255]);
-    const points = kind === "previous" ? [[45, 18, 25, 36], [25, 36, 45, 54]] : [[27, 18, 47, 36], [47, 36, 27, 54]];
+    const points =
+      kind === "previous"
+        ? [
+            [45, 18, 25, 36],
+            [25, 36, 45, 54],
+          ]
+        : [
+            [27, 18, 47, 36],
+            [47, 36, 27, 54],
+          ];
     for (const [x0, y0, x1, y1] of points) line(x0, y0, x1, y1, [239, 241, 245, 255]);
   }
   const rows = Buffer.alloc((width * 4 + 1) * height);
@@ -102,7 +129,12 @@ function iconPng(kind, scale = 1) {
   header.writeUInt32BE(height, 4);
   header[8] = 8;
   header[9] = 6;
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", header),
+    chunk("IDAT", deflateSync(rows)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
 }
 
 await writeFile(join(destination, "imgs", "plugin.png"), iconPng("plugin"));
@@ -111,8 +143,12 @@ await writeFile(join(destination, "imgs", "plugin@2x.png"), iconPng("plugin", 2)
 // The Stream Deck app shows these images in the action list and on a key before the plugin draws it.
 // They use the shared renderer and the default palette, so they look like the live keys.
 const keyPalette = designPalettes.find((palette) => palette.id === defaultPaletteId);
-const keySvg = (content) => `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 72 72"><g font-family="Arial, Helvetica, sans-serif">${inKeySafeArea(content)}</g></svg>\n`;
-const notReported = (provider) => ({ provider, windows: provider === "copilot" || provider === "jetbrains" ? [{ label: "MO" }] : [{ label: "5H" }, { label: "WK" }] });
+const keySvg = (content) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 72 72"><g font-family="Arial, Helvetica, sans-serif">${inKeySafeArea(content)}</g></svg>\n`;
+const notReported = (provider) => ({
+  provider,
+  windows: provider === "copilot" || provider === "jetbrains" ? [{ label: "MO" }] : [{ label: "5H" }, { label: "WK" }],
+});
 const keyImages = {
   session: renderSessionPlaceholder(keyPalette),
   "session-info": renderInfoPlaceholder(keyPalette),
@@ -143,12 +179,15 @@ const rootManifest = {
   Pages: { Current: pageId, Default: pageId, Pages: [pageId] },
   Version: "2.0",
 };
-const actionStates = [{ FontFamily: "", FontSize: 11, FontStyle: "", FontUnderline: false, OutlineThickness: 2, ShowTitle: true, TitleAlignment: "bottom", TitleColor: "#ffffff" }];
+const actionStates = [
+  { FontFamily: "", FontSize: 11, FontStyle: "", FontUnderline: false, OutlineThickness: 2, ShowTitle: true, TitleAlignment: "bottom", TitleColor: "#ffffff" },
+];
 const actions = {};
 for (let slot = 0; slot < 32; slot++) {
   const row = Math.floor(slot / 8);
   const column = slot % 8;
-  const actionId = slot === 30 ? "com.local.ai-ai-captain.previous-page" : slot === 31 ? "com.local.ai-ai-captain.next-page" : "com.local.ai-ai-captain.session";
+  const actionId =
+    slot === 30 ? "com.local.ai-ai-captain.previous-page" : slot === 31 ? "com.local.ai-ai-captain.next-page" : "com.local.ai-ai-captain.session";
   const name = slot === 30 ? "Previous Session Page" : slot === 31 ? "Next Session Page" : "AI Session";
   actions[`${column},${row}`] = { ActionID: randomUUID(), LinkedTitle: true, Name: name, Settings: {}, State: 0, States: actionStates, UUID: actionId };
 }

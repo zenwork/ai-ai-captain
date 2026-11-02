@@ -5,7 +5,13 @@ import { join } from "node:path";
 import { createApp } from "./app.js";
 import { SettingsStore } from "./settings.js";
 import { defaultPaletteId, palettes } from "../shared/palette.js";
-import { defaultFlashIntensity, defaultSettings, type HubSettings } from "../shared/settings.js";
+import { z } from "zod";
+import { defaultFlashIntensity, defaultSettings, settingsSchema, type HubSettings } from "../shared/settings.js";
+import { hubEventSchema } from "../shared/session.js";
+
+// Response bodies of the settings API. Other fields of the body are not examined.
+const settingsBodySchema = z.object({ settings: settingsSchema });
+const paletteListBodySchema = z.object({ palettes: z.array(z.object({ id: z.string() })) });
 
 describe("palette settings", () => {
   const apps: ReturnType<typeof createApp>[] = [];
@@ -13,7 +19,9 @@ describe("palette settings", () => {
   const controllers: AbortController[] = [];
 
   afterEach(async () => {
-    controllers.splice(0).forEach((controller) => controller.abort());
+    controllers.splice(0).forEach((controller) => {
+      controller.abort();
+    });
     await Promise.all(apps.splice(0).map((app) => app.close()));
     await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
   });
@@ -29,23 +37,35 @@ describe("palette settings", () => {
     apps.push(app);
     const result = await app.inject({ method: "GET", url: "/api/settings" });
     expect(result.statusCode).toBe(200);
-    expect(result.json().settings).toEqual(defaultSettings);
-    expect(result.json().palettes.map((palette: { id: string }) => palette.id)).toEqual(palettes.map((palette) => palette.id));
-    expect((await app.inject({ method: "GET", url: "/api/sessions" })).json().settings).toEqual(defaultSettings);
+    expect(settingsBodySchema.parse(result.json()).settings).toEqual(defaultSettings);
+    expect(paletteListBodySchema.parse(result.json()).palettes.map((palette) => palette.id)).toEqual(palettes.map((palette) => palette.id));
+    expect(settingsBodySchema.parse((await app.inject({ method: "GET", url: "/api/sessions" })).json()).settings).toEqual(defaultSettings);
   });
 
   it("validates updates and includes saved settings in the plugin's existing snapshot", async () => {
     const app = createApp({ webRoot: "/no-static-assets" });
     apps.push(app);
-    for (const payload of [{ palette: "unsupported" }, {}, { palette: "signal", arbitrary: true }, { palette: 42 }, { palette: "<script>" }, { palette: defaultPaletteId, flashIntensity: 5 }, { palette: defaultPaletteId, flashIntensity: -1 }]) {
+    for (const payload of [
+      { palette: "unsupported" },
+      {},
+      { palette: "signal", arbitrary: true },
+      { palette: 42 },
+      { palette: "<script>" },
+      { palette: defaultPaletteId, flashIntensity: 5 },
+      { palette: defaultPaletteId, flashIntensity: -1 },
+    ]) {
       expect((await app.inject({ method: "PUT", url: "/api/settings", payload })).statusCode).toBe(400);
     }
-    expect((await app.inject({ method: "GET", url: "/api/settings" })).json().settings).toEqual(defaultSettings);
+    expect(settingsBodySchema.parse((await app.inject({ method: "GET", url: "/api/settings" })).json()).settings).toEqual(defaultSettings);
     for (const palette of palettes) {
       const result = await app.inject({ method: "PUT", url: "/api/settings", payload: { palette: palette.id } });
       expect(result.statusCode).toBe(200);
       expect(result.json()).toEqual({ settings: { palette: palette.id, flashIntensity: defaultFlashIntensity, showInfoKeys: true } });
-      expect((await app.inject({ method: "GET", url: "/api/sessions" })).json().settings).toEqual({ palette: palette.id, flashIntensity: defaultFlashIntensity, showInfoKeys: true });
+      expect(settingsBodySchema.parse((await app.inject({ method: "GET", url: "/api/sessions" })).json()).settings).toEqual({
+        palette: palette.id,
+        flashIntensity: defaultFlashIntensity,
+        showInfoKeys: true,
+      });
     }
     const intensity = await app.inject({ method: "PUT", url: "/api/settings", payload: { palette: "signal", flashIntensity: 4 } });
     expect(intensity.statusCode).toBe(200);
@@ -143,12 +163,14 @@ describe("palette settings", () => {
     controllers.push(controller);
     const response = await fetch(`${address}/api/events`, { signal: controller.signal });
     const reader = response.body!.getReader();
-    const decode = (chunk: Uint8Array | undefined) => JSON.parse(new TextDecoder().decode(chunk).split("data: ")[1].split("\n\n")[0]);
+    const decode = (chunk: Uint8Array | undefined) => hubEventSchema.parse(JSON.parse(new TextDecoder().decode(chunk).split("data: ")[1].split("\n\n")[0]));
     const snapshot = decode((await reader.read()).value);
     expect(snapshot).toMatchObject({ type: "snapshot", settings: { palette: "nocturne", flashIntensity: defaultFlashIntensity, showInfoKeys: true } });
     await app.inject({ method: "PUT", url: "/api/settings", payload: { palette: "signal", flashIntensity: 3 } });
     expect(decode((await reader.read()).value)).toEqual({ type: "settings", settings: { palette: "signal", flashIntensity: 3, showInfoKeys: true } });
     controller.abort();
-    await reader.cancel().catch(() => {});
+    await reader.cancel().catch(() => {
+      // The abort can close the stream before the cancel. Then the cancel fails, and the test can ignore it.
+    });
   });
 });

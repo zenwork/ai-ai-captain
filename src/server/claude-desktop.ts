@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { z } from "zod";
-import { SessionStore } from "./store.js";
+import type { SessionStore } from "./store.js";
 import type { ProcessInfo } from "./processes.js";
 import type { BudgetStore } from "./budgets.js";
 import { claudeUsageBudget } from "./claude-usage.js";
@@ -15,7 +15,7 @@ const titleKeySchema = z.string().regex(/^[0-9a-f]{16}(?:-\d{1,2})?$/);
 const modelLabelSchema = z.string().trim().min(1).max(120);
 const chatSessionSchema = z.object({
   kind: z.literal("chat").default("chat"),
-  sessionId: z.string().uuid().toLowerCase(),
+  sessionId: z.uuid().toLowerCase(),
   titleKey: titleKeySchema.optional(),
   model: modelLabelSchema.optional(),
   state: sessionStateSchema,
@@ -36,7 +36,7 @@ const rowSessionSchema = z.object({
   // The app shows the row as read ("Done", "Completed"), not "Unread response". The user has opened the result.
   seen: z.literal(true).optional(),
 });
-const usageMeterSchema = z.object({ percent: z.number().finite().min(0).max(100), reset: z.string().max(60).optional() });
+const usageMeterSchema = z.object({ percent: z.number().min(0).max(100), reset: z.string().max(60).optional() });
 const snapshotSchema = z.object({
   usage: z.object({ session: usageMeterSchema.optional(), week: usageMeterSchema.optional() }).optional(),
   // "partial": the inspection reached its element limit. The sessions that it found are correct, but others can be missing.
@@ -48,7 +48,7 @@ type ObservedSession = Snapshot["sessions"][number] & { conversationId?: string;
 
 /** Change a model picker label such as "Opus 5.5 Medium" to a model name such as "claude-opus-5-5". The effort level is not kept. */
 export function claudeModelName(label: string): string {
-  const match = label.match(/^(opus|sonnet|haiku|fable)\s+(\d+(?:\.\d+)?)\b/i);
+  const match = /^(opus|sonnet|haiku|fable)\s+(\d+(?:\.\d+)?)\b/i.exec(label);
   return match ? `claude-${match[1].toLowerCase()}-${match[2].replace(".", "-")}` : label;
 }
 type Inspector = (processIdentifier: number) => Promise<unknown>;
@@ -362,7 +362,7 @@ export class ClaudeDesktopTracker {
   }
 
   async scan(processes: ProcessInfo[]): Promise<void> {
-    const application = processes.find((candidate) => /\/Claude\.app\/Contents\/MacOS\/Claude$/.test(candidate.name));
+    const application = processes.find((candidate) => candidate.name.endsWith("/Claude.app/Contents/MacOS/Claude"));
     if (!application) {
       for (const identifier of this.#tracked) this.store.remove(identifier);
       this.#tracked.clear();
@@ -394,8 +394,15 @@ export class ClaudeDesktopTracker {
       if (this.#signatures.get(identifier) === signature) continue;
       const observedAt = new Date(this.now()).toISOString();
       const previous = this.store.get(identifier);
-      const known = this.#observations.get(identifier) ?? (previous && previous.state !== "unknown"
-        ? { state: previous.state, transitionAt: previous.stateChangedAt ?? previous.lastActivityAt, quiet: previous.metadata?.completionAttention === "none" } : undefined);
+      const known =
+        this.#observations.get(identifier) ??
+        (previous && previous.state !== "unknown"
+          ? {
+              state: previous.state,
+              transitionAt: previous.stateChangedAt ?? previous.lastActivityAt,
+              quiet: previous.metadata?.completionAttention === "none",
+            }
+          : undefined);
       const transitionAt = known?.state === session.state ? known.transitionAt : observedAt;
       // A session that is DONE when the hub first sees it has no known completion time. Do not flash it as a new result.
       const read = session.kind === "row" && session.seen === true;
@@ -404,37 +411,45 @@ export class ClaudeDesktopTracker {
       // The deep-link contract covers chats only. Tasks and unmatched rows use application focus.
       const conversationId = session.kind === "chat" ? session.sessionId : session.conversationId;
       const rowKey = session.kind === "row" ? session.sessionId : undefined;
-      const evidence = session.kind === "row" ? "Claude sidebar row with a status indicator"
-        : session.kind === "chat" ? "Exposed Claude chat with a conversation URL" : "Exposed Claude task with a session URL";
-      this.store.upsert({
-        id: identifier,
-        source: "claude-desktop",
-        harness: "claude-app",
-        ...(model ? { model } : {}),
-        label: labelOf(session),
-        state: session.state,
-        ended: false,
-        focusTarget: {
-          appName: "Claude",
-          bundleId: "com.anthropic.claudefordesktop",
-          pid: application.pid,
-          ...(conversationId ? { claudeConversationId: conversationId } : {}),
-          ...(rowKey && !conversationId ? { claudeRowKey: rowKey } : {}),
+      const evidence =
+        session.kind === "row"
+          ? "Claude sidebar row with a status indicator"
+          : session.kind === "chat"
+            ? "Exposed Claude chat with a conversation URL"
+            : "Exposed Claude task with a session URL";
+      this.store.upsert(
+        {
+          id: identifier,
+          source: "claude-desktop",
+          harness: "claude-app",
+          ...(model ? { model } : {}),
+          label: labelOf(session),
+          state: session.state,
+          ended: false,
+          focusTarget: {
+            appName: "Claude",
+            bundleId: "com.anthropic.claudefordesktop",
+            pid: application.pid,
+            ...(conversationId ? { claudeConversationId: conversationId } : {}),
+            ...(rowKey && !conversationId ? { claudeRowKey: rowKey } : {}),
+          },
+          metadata: {
+            sessionId: session.sessionId,
+            host: "Claude",
+            ownerPid: String(application.pid),
+            tracking: "claude-accessibility",
+            stateEvent: `desktop.${session.state}`,
+            telemetryStatus: session.state === "unknown" ? "unrecognized" : "available",
+            telemetryLocation: session.kind === "row" ? "Claude desktop sidebar" : "Claude desktop Accessibility controls",
+            lastTelemetryAt: observedAt,
+            hostLifetime: "open",
+            hostEvidence: evidence,
+            ...(quiet ? { completionAttention: "none" } : {}),
+          },
         },
-        metadata: {
-          sessionId: session.sessionId,
-          host: "Claude",
-          ownerPid: String(application.pid),
-          tracking: "claude-accessibility",
-          stateEvent: `desktop.${session.state}`,
-          telemetryStatus: session.state === "unknown" ? "unrecognized" : "available",
-          telemetryLocation: session.kind === "row" ? "Claude desktop sidebar" : "Claude desktop Accessibility controls",
-          lastTelemetryAt: observedAt,
-          hostLifetime: "open",
-          hostEvidence: evidence,
-          ...(quiet ? { completionAttention: "none" } : {}),
-        },
-      }, observedAt, transitionAt);
+        observedAt,
+        transitionAt,
+      );
       this.#signatures.set(identifier, signature);
       this.#tracked.add(identifier);
     }
@@ -459,7 +474,15 @@ export class ClaudeDesktopTracker {
     for (const identifier of this.#tracked) {
       const session = this.store.get(identifier);
       if (session && session.state !== "unknown") {
-        this.store.upsert({ ...session, state: "unknown", metadata: { ...session.metadata, stateEvent: "desktop.unavailable", telemetryStatus: "unreadable", telemetryError: errorCode } }, session.lastActivityAt, new Date().toISOString());
+        this.store.upsert(
+          {
+            ...session,
+            state: "unknown",
+            metadata: { ...session.metadata, stateEvent: "desktop.unavailable", telemetryStatus: "unreadable", telemetryError: errorCode },
+          },
+          session.lastActivityAt,
+          new Date().toISOString(),
+        );
       }
       this.#signatures.delete(identifier);
     }

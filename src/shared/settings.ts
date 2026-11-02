@@ -8,17 +8,21 @@ export type FlashIntensity = 0 | 1 | 2 | 3 | 4;
 
 export const defaultShowInfoKeys = true;
 
-export const settingsSchema = z.object({
-  palette: z.enum(paletteIds),
-  flashIntensity: z.number().int().min(flashIntensityMin).max(flashIntensityMax),
-  showInfoKeys: z.boolean(),
-}).strict();
+export const settingsSchema = z
+  .object({
+    palette: z.enum(paletteIds),
+    flashIntensity: z.number().int().min(flashIntensityMin).max(flashIntensityMax),
+    showInfoKeys: z.boolean(),
+  })
+  .strict();
 
-export const settingsWriteSchema = z.object({
-  palette: z.enum(paletteIds),
-  flashIntensity: z.number().int().min(flashIntensityMin).max(flashIntensityMax).optional(),
-  showInfoKeys: z.boolean().optional(),
-}).strict();
+export const settingsWriteSchema = z
+  .object({
+    palette: z.enum(paletteIds),
+    flashIntensity: z.number().int().min(flashIntensityMin).max(flashIntensityMax).optional(),
+    showInfoKeys: z.boolean().optional(),
+  })
+  .strict();
 
 export type HubSettings = z.infer<typeof settingsSchema>;
 export type HubSettingsWrite = z.infer<typeof settingsWriteSchema>;

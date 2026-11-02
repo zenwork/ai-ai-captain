@@ -54,7 +54,14 @@ export class SettingsStore {
       this.#events.emit("change", this.get());
       return this.get();
     });
-    this.#queue = operation.then(() => {}, () => {});
+    this.#queue = operation.then(
+      () => {
+        // The queue only keeps the sequence of the writes. The caller gets the result from `operation`.
+      },
+      () => {
+        // The caller gets the error from `operation`. The next write must run after a failed write.
+      },
+    );
     return operation;
   }
 

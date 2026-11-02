@@ -1,5 +1,5 @@
-import type { Client, Session } from "../src/shared/session.js";
-import { defaultFlashIntensity, defaultShowInfoKeys, type HubSettings } from "../src/shared/settings.js";
+import { hubEventSchema, type Client, type Session } from "../src/shared/session.js";
+import { defaultFlashIntensity } from "../src/shared/settings.js";
 import { isFlashIntensity } from "../src/shared/flash-intensity.js";
 import { defaultPaletteId, isPaletteId, type PaletteId } from "../src/shared/palette.js";
 import { deckColumns, deckPage, deckRows, type DeckItem } from "../src/shared/deck-layout.js";
@@ -68,7 +68,11 @@ class DeckPanel extends HTMLElement {
   connectedCallback(): void {
     this.innerHTML = `<div class="deck-shell"><div id="deck-grid" class="deck-grid" ></div><p id="deck-status" class="deck-status" role="status">Connecting…</p><div class="deck-toolbar" role="toolbar" aria-label="Deck controls"><button type="button" data-control="smaller" aria-label="Smaller keys" title="Smaller keys">−</button><button type="button" data-control="auto" aria-label="Automatic key size" title="Automatic key size">Auto</button><button type="button" data-control="bigger" aria-label="Bigger keys" title="Bigger keys">+</button><button type="button" data-control="row" aria-pressed="false" title="Show all keys in a single row">Single row</button><button type="button" data-window="picture-in-picture" aria-pressed="false" title="Open the deck in an always-on-top window">Keep on top</button></div><p id="deck-window-message" class="deck-status deck-window-message" role="status" hidden></p></div><div id="deck-window-placeholder" hidden><p class="deck-status">The deck is in Picture-in-Picture. Keep this window open.</p><div class="deck-toolbar"><button type="button" data-window="return">Return to deck</button></div></div>`;
     this.#shell = this.querySelector<HTMLElement>(".deck-shell") ?? undefined;
-    this.querySelectorAll<HTMLButtonElement>("button[data-control]").forEach((button) => button.addEventListener("click", () => this.#control(button.dataset.control ?? "")));
+    this.querySelectorAll<HTMLButtonElement>("button[data-control]").forEach((button) => {
+      button.addEventListener("click", () => {
+        this.#control(button.dataset.control ?? "");
+      });
+    });
     this.querySelector<HTMLButtonElement>('button[data-window="picture-in-picture"]')?.addEventListener("click", () => void this.#togglePictureInPicture());
     this.querySelector<HTMLButtonElement>('button[data-window="return"]')?.addEventListener("click", () => this.#pictureInPictureWindow?.close());
     if (!window.documentPictureInPicture) {
@@ -81,10 +85,14 @@ class DeckPanel extends HTMLElement {
     }
     this.#connect();
     window.addEventListener("resize", this.#onResize);
-    this.#timer = window.setInterval(() => this.#render(), attentionRefreshMilliseconds);
+    this.#timer = window.setInterval(() => {
+      this.#render();
+    }, attentionRefreshMilliseconds);
   }
 
-  #onResize = (): void => this.#render();
+  #onResize = (): void => {
+    this.#render();
+  };
 
   #viewWindow(): Window {
     return this.#pictureInPictureWindow ?? window;
@@ -116,7 +124,13 @@ class DeckPanel extends HTMLElement {
         return;
       }
       this.#pictureInPictureWindow = floatingWindow;
-      floatingWindow.addEventListener("pagehide", () => this.#restoreDeck(floatingWindow), { once: true });
+      floatingWindow.addEventListener(
+        "pagehide",
+        () => {
+          this.#restoreDeck(floatingWindow);
+        },
+        { once: true },
+      );
       floatingWindow.addEventListener("resize", this.#onResize);
       floatingWindow.document.title = document.title;
       floatingWindow.document.body.className = "deck-page";
@@ -189,22 +203,27 @@ class DeckPanel extends HTMLElement {
       this.#connected = false;
       this.#render();
       events.close();
-      window.setTimeout(() => this.#connect(), reconnectDelayMilliseconds);
+      window.setTimeout(() => {
+        this.#connect();
+      }, reconnectDelayMilliseconds);
     };
     events.onmessage = (message: MessageEvent<string>) => {
-      const event = JSON.parse(message.data) as { type: string; sessions?: Session[]; session?: Session; id?: string; clients?: Client[]; settings?: HubSettings };
+      const parsed = hubEventSchema.safeParse(JSON.parse(message.data));
+      // Ignore an event that does not agree with the contract. The next snapshot corrects the state.
+      if (!parsed.success) return;
+      const event = parsed.data;
       if (event.type === "snapshot") {
-        this.#sessions = event.sessions ?? [];
+        this.#sessions = event.sessions;
         this.#clients = event.clients ?? [];
       }
-      if ((event.type === "snapshot" || event.type === "settings") && event.settings && isPaletteId(event.settings.palette)) {
-        this.#palette = event.settings.palette;
-        this.#showInfoKeys = event.settings.showInfoKeys ?? defaultShowInfoKeys;
-        const nextFlashIntensity = event.settings.flashIntensity;
-        this.#flashIntensity = isFlashIntensity(nextFlashIntensity) ? nextFlashIntensity : defaultFlashIntensity;
+      const settings = event.type === "snapshot" || event.type === "settings" ? event.settings : undefined;
+      if (settings && isPaletteId(settings.palette)) {
+        this.#palette = settings.palette;
+        this.#showInfoKeys = settings.showInfoKeys;
+        this.#flashIntensity = isFlashIntensity(settings.flashIntensity) ? settings.flashIntensity : defaultFlashIntensity;
       }
-      if (event.type === "clients") this.#clients = event.clients ?? [];
-      if (event.type === "upsert" && event.session) {
+      if (event.type === "clients") this.#clients = event.clients;
+      if (event.type === "upsert") {
         const updated = event.session;
         this.#sessions = [updated, ...this.#sessions.filter((session) => session.id !== updated.id)];
       }
@@ -225,7 +244,13 @@ class DeckPanel extends HTMLElement {
   }
 
   #itemButton(item: DeckItem, options: Parameters<typeof sessionImage>[2]): string {
-    if (item.kind === "app") return this.#keyButton(appImage(item.client, item.keyNumber, this.#palette), `Key ${item.keyNumber}: ${item.client.name}, app only`, "focus-app", encodeURIComponent(item.client.id));
+    if (item.kind === "app")
+      return this.#keyButton(
+        appImage(item.client, item.keyNumber, this.#palette),
+        `Key ${item.keyNumber}: ${item.client.name}, app only`,
+        "focus-app",
+        encodeURIComponent(item.client.id),
+      );
     const { session } = item;
     const label = `Key ${item.keyNumber}: ${session.label}, ${sessionTypeLabels[sessionType(session)]}, ${session.state}`;
     return this.#keyButton(sessionImage(session, item.keyNumber, options), label, "focus-session", encodeURIComponent(session.id));
@@ -244,7 +269,13 @@ class DeckPanel extends HTMLElement {
     if (!grid || !status) return;
     const now = Date.now();
     const reducedMotion = this.#motion.matches;
-    const options = { palette: this.#palette, flashIntensity: this.#flashIntensity, now, reducedMotion, waitingDimmed: Math.floor(now / waitingPulseIntervalMs) % 2 === 1 };
+    const options = {
+      palette: this.#palette,
+      flashIntensity: this.#flashIntensity,
+      now,
+      reducedMotion,
+      waitingDimmed: Math.floor(now / waitingPulseIntervalMs) % 2 === 1,
+    };
     const available = this.#availableSpace(sideControls);
     const userKeySize = this.#view.keySize;
     const slotSize = (userKeySize ?? minimumKeySize) + keyGap;
@@ -259,10 +290,19 @@ class DeckPanel extends HTMLElement {
     const slotsPerItem = alternating ? 2 : 1;
     const maxRows = this.#view.singleRow ? 1 : Math.max(1, Math.floor(fittingRows / rowsPerKey));
     // Sessions that the user dismissed on the Stream Deck stay hidden until their state changes.
-    const page = deckPage(this.#sessions.filter((session) => !session.dismissedAt), this.#clients, this.#page, alternating ? Math.floor(maxColumns / slotsPerItem) : maxColumns, maxRows);
+    const page = deckPage(
+      this.#sessions.filter((session) => !session.dismissedAt),
+      this.#clients,
+      this.#page,
+      alternating ? Math.floor(maxColumns / slotsPerItem) : maxColumns,
+      maxRows,
+    );
     this.#page = page.page;
     const pageLabel = `${page.page + 1}/${page.totalPages}`;
-    const automaticKeySize = Math.min(maximumKeySize, Math.floor(Math.min(available.width / (page.columns * slotsPerItem), available.height / (page.rows * rowsPerKey))) - keyGap);
+    const automaticKeySize = Math.min(
+      maximumKeySize,
+      Math.floor(Math.min(available.width / (page.columns * slotsPerItem), available.height / (page.rows * rowsPerKey))) - keyGap,
+    );
     const keySize = userKeySize ?? Math.max(minimumKeySize, automaticKeySize);
     this.#lastKeySize = keySize;
     grid.style.setProperty("--columns", String(page.columns * slotsPerItem));
@@ -292,7 +332,9 @@ class DeckPanel extends HTMLElement {
     if (grid.dataset.markup !== markup) {
       grid.dataset.markup = markup;
       grid.innerHTML = markup;
-      grid.querySelectorAll<HTMLButtonElement>("button[data-action]").forEach((button) => button.addEventListener("click", () => void this.#press(button.dataset.action ?? "", button.dataset.argument ?? "")));
+      grid.querySelectorAll<HTMLButtonElement>("button[data-action]").forEach((button) => {
+        button.addEventListener("click", () => void this.#press(button.dataset.action ?? "", button.dataset.argument ?? ""));
+      });
     }
     status.textContent = this.#connected ? `Hub connected${page.hasPager ? ` · page ${pageLabel}` : ""}` : "Hub not reachable. Start the hub. Reconnecting…";
   }
@@ -305,7 +347,7 @@ class DeckPanel extends HTMLElement {
     }
     const path = action === "focus-app" ? `/api/clients/${argument}/focus` : `/api/sessions/${argument}/focus`;
     const response = await fetch(path, { method: "POST" });
-    const result = await response.json() as { focused?: boolean; reason?: string };
+    const result = (await response.json()) as { focused?: boolean; reason?: string };
     if (!response.ok || result.focused === false) window.alert(result.reason ?? "Could not focus that key.");
   }
 }

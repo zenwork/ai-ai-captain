@@ -1,14 +1,14 @@
 import { basename, join, relative, sep } from "node:path";
 import type { FocusTarget, SessionInput, SessionState } from "../shared/session.js";
 import { hostApplication, listOpenFiles, type ProcessInfo } from "./processes.js";
-import { SessionStore } from "./store.js";
+import type { SessionStore } from "./store.js";
 import { EventCursor } from "./events.js";
 import { SessionLifetimeGate, type LifetimeInspector } from "./lifetimes.js";
 
 type Fields = Record<string, unknown>;
 
 function fields(value: unknown): Fields {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Fields : {};
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Fields) : {};
 }
 
 function stringField(value: unknown, maximum = 240): string | undefined {
@@ -89,7 +89,7 @@ export function copilotOwners(output: string, root: string, processes: ProcessIn
     if (line.startsWith("p")) pid = Number(line.slice(1));
     if (!line.startsWith("n") || !pid) continue;
     const path = line.slice(1);
-    const match = relative(root, path).split(sep).join("/").match(/^([\w-]+)\/inuse\.(\d+)\.hold$/);
+    const match = /^([\w-]+)\/inuse\.(\d+)\.hold$/.exec(relative(root, path).split(sep).join("/"));
     if (!match || Number(match[2]) !== pid) continue;
     owners.set(match[1], { sessionId: match[1], directory: join(root, match[1]), pid, focusTarget: hostApplication(pid, processes) });
   }
@@ -101,7 +101,10 @@ export class CopilotTracker {
   readonly #tracked = new Set<string>();
   readonly #lifetimes = new SessionLifetimeGate();
 
-  constructor(private readonly store: SessionStore, private readonly root: string) {}
+  constructor(
+    private readonly store: SessionStore,
+    private readonly root: string,
+  ) {}
 
   async scan(processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<void> {
     const candidates = processes.filter((process) => /(?:^|\/)(?:copilot|copilot-runtime)(?:$|\s)/.test(process.name));
@@ -126,7 +129,7 @@ export class CopilotTracker {
         errorCode = typeof code === "string" ? code.slice(0, 40) : "READ_FAILED";
       }
       const observed = cursor.state;
-      const lifetime = await lifetimes?.(owner, observed.project) ?? { status: "unverified", evidence: "Runtime ownership only" };
+      const lifetime = (await lifetimes?.(owner, observed.project)) ?? { status: "unverified", evidence: "Runtime ownership only" };
       if (!this.#lifetimes.visible(id, lifetime, observed.lastTriggeredAt)) {
         this.store.remove(id);
         this.#tracked.delete(id);
@@ -184,7 +187,11 @@ export class CopilotTracker {
     for (const id of this.#tracked) {
       const session = this.store.get(id);
       if (session && !session.ended && session.state !== "unknown") {
-        this.store.upsert({ ...session, state: "unknown", metadata: { ...session.metadata, stateEvent: "discovery.unavailable", telemetryStatus: "discovery-unavailable" } }, session.lastActivityAt, new Date().toISOString());
+        this.store.upsert(
+          { ...session, state: "unknown", metadata: { ...session.metadata, stateEvent: "discovery.unavailable", telemetryStatus: "discovery-unavailable" } },
+          session.lastActivityAt,
+          new Date().toISOString(),
+        );
       }
       const cursor = this.#cursors.get(id);
       if (cursor) cursor.signature = "";

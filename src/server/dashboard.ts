@@ -16,6 +16,12 @@ export interface DashboardResult {
   reason?: string;
 }
 
+/** Finds the default browser and opens the dashboard in it. A second open request waits for the first one. */
+export interface DashboardController {
+  getBrowser(url: string): Promise<DashboardBrowser>;
+  open(url: string): Promise<DashboardResult>;
+}
+
 type Runner = (command: string, args: string[]) => Promise<string>;
 const execute = promisify(execFile);
 const browserSchema = z.object({
@@ -24,11 +30,13 @@ const browserSchema = z.object({
   adapter: z.enum(["chromium", "safari", "accessibility", "unsupported"]),
   accessibilityTrusted: z.boolean(),
 });
-const openResultSchema = z.object({
-  opened: z.boolean(),
-  reused: z.boolean().optional(),
-  reason: z.string().optional(),
-}).refine((result) => !result.opened || result.reused !== undefined);
+const openResultSchema = z
+  .object({
+    opened: z.boolean(),
+    reused: z.boolean().optional(),
+    reason: z.string().optional(),
+  })
+  .refine((result) => !result.opened || result.reused !== undefined);
 
 export function canonicalDashboardUrl(value: string): string {
   const url = new URL(value);
@@ -176,7 +184,7 @@ function run(argv) {
   }
 }`;
 
-export function createDashboardController(options: { platform?: NodeJS.Platform; run?: Runner } = {}) {
+export function createDashboardController(options: { platform?: NodeJS.Platform; run?: Runner } = {}): DashboardController {
   const platform = options.platform ?? process.platform;
   const run = options.run ?? (async (command, args) => (await execute(command, args, { timeout: 8000, maxBuffer: 64 * 1024 })).stdout);
   let inFlight: Promise<DashboardResult> | undefined;
@@ -217,7 +225,9 @@ export function createDashboardController(options: { platform?: NodeJS.Platform;
   return {
     getBrowser,
     open(url: string): Promise<DashboardResult> {
-      inFlight ??= performOpen(url).finally(() => { inFlight = undefined; });
+      inFlight ??= performOpen(url).finally(() => {
+        inFlight = undefined;
+      });
       return inFlight;
     },
   };

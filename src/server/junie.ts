@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { SessionApproval, SessionFreedom, SessionInput, SessionState } from "../shared/session.js";
 import { SessionLifetimeGate, type HostLifetime, type LifetimeInspector } from "./lifetimes.js";
 import { hostApplication, type ProcessInfo } from "./processes.js";
-import { SessionStore } from "./store.js";
+import type { SessionStore } from "./store.js";
 
 const maximumIndexBytes = 4 * 1024 * 1024;
 const eventTailBytes = 256 * 1024;
@@ -71,6 +71,16 @@ async function readJunieSettings(directory: string): Promise<ReturnType<typeof p
   }
 }
 
+/** Reads one line of the Junie index. A line that is not JSON or not an index entry gives undefined. */
+function parseIndexEntry(line: string): IndexEntry | undefined {
+  try {
+    const parsed = indexEntrySchema.safeParse(JSON.parse(line));
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function isMissingFile(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
@@ -81,7 +91,10 @@ export class JunieTracker {
   readonly #triggers = new Map<string, string>();
   readonly #lifetimes = new SessionLifetimeGate();
 
-  constructor(private readonly store: SessionStore, private readonly root: string) {}
+  constructor(
+    private readonly store: SessionStore,
+    private readonly root: string,
+  ) {}
 
   async scan(processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<void> {
     const entries = await this.#readIndex();
@@ -156,7 +169,15 @@ export class JunieTracker {
     for (const identifier of this.#tracked) {
       const session = this.store.get(identifier);
       if (session && session.state !== "unknown") {
-        this.store.upsert({ ...session, state: "unknown", metadata: { ...session.metadata, stateEvent: "junie.unavailable", telemetryStatus: "unreadable", telemetryError: "DISCOVERY_UNAVAILABLE" } }, session.lastActivityAt, new Date().toISOString());
+        this.store.upsert(
+          {
+            ...session,
+            state: "unknown",
+            metadata: { ...session.metadata, stateEvent: "junie.unavailable", telemetryStatus: "unreadable", telemetryError: "DISCOVERY_UNAVAILABLE" },
+          },
+          session.lastActivityAt,
+          new Date().toISOString(),
+        );
       }
       this.#signatures.delete(identifier);
     }
@@ -176,12 +197,8 @@ export class JunieTracker {
       const entries: IndexEntry[] = [];
       for (const line of content.split("\n")) {
         if (!line.trim()) continue;
-        try {
-          const parsed = indexEntrySchema.safeParse(JSON.parse(line));
-          if (parsed.success && Date.now() - parsed.data.updatedAt <= maximumSessionAgeMilliseconds) entries.push(parsed.data);
-        } catch {
-          continue;
-        }
+        const entry = parseIndexEntry(line);
+        if (entry && Date.now() - entry.updatedAt <= maximumSessionAgeMilliseconds) entries.push(entry);
       }
       return entries.sort((left, right) => right.updatedAt - left.updatedAt).slice(0, maximumInspectedSessions);
     } catch (error) {
@@ -209,7 +226,12 @@ export class JunieTracker {
     }
   }
 
-  async #projectLifetime(entry: IndexEntry, hosts: ProcessInfo[], processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<{ lifetime: HostLifetime; focusTarget?: ReturnType<typeof hostApplication> }> {
+  async #projectLifetime(
+    entry: IndexEntry,
+    hosts: ProcessInfo[],
+    processes: ProcessInfo[],
+    lifetimes?: LifetimeInspector,
+  ): Promise<{ lifetime: HostLifetime; focusTarget?: ReturnType<typeof hostApplication> }> {
     if (!lifetimes) {
       return {
         lifetime: { status: "unverified", evidence: "Junie session files" },

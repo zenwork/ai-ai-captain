@@ -150,10 +150,14 @@ NOTE: Lines with the word `warn` are usually not a problem.
 
 To check the code after a change, use these commands:
 
-| Command             | Function                                  |
-| ------------------- | ----------------------------------------- |
-| `npm run typecheck` | Check the types of the hub and the plugin |
-| `npm test`          | Run all tests                             |
+| Command                | Function                                              |
+| ---------------------- | ----------------------------------------------------- |
+| `npm run typecheck`    | Check the types of the hub and the plugin             |
+| `npm test`             | Run all tests                                         |
+| `npm run lint`         | Lint all TypeScript. A warning is a failure.          |
+| `npm run lint:fix`     | Repair the lint problems that ESLint can repair       |
+| `npm run format`       | Format all files with Prettier                        |
+| `npm run format:check` | Find files that do not agree with the Prettier format |
 
 ---
 

@@ -74,11 +74,13 @@ export class BudgetStore {
     const path = this.persistencePath;
     if (!path) return;
     const content = JSON.stringify(snapshot, null, 2);
-    this.#queue = this.#queue.then(async () => {
-      await mkdir(dirname(path), { recursive: true });
-      const temporary = `${path}.tmp`;
-      await writeFile(temporary, content, { mode: 0o600 });
-      await replaceFile(temporary, path, content);
-    }).catch(() => undefined);
+    this.#queue = this.#queue
+      .then(async () => {
+        await mkdir(dirname(path), { recursive: true });
+        const temporary = `${path}.tmp`;
+        await writeFile(temporary, content, { mode: 0o600 });
+        await replaceFile(temporary, path, content);
+      })
+      .catch(() => undefined);
   }
 }

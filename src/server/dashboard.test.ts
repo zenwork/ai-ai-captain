@@ -3,6 +3,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { browserDetectionScript, canonicalDashboardUrl, createDashboardController, dashboardOpenScript, type DashboardBrowser } from "./dashboard.js";
 import { createApp } from "./app.js";
+import { z } from "zod";
+
+// The raw output of the dashboard script. Unknown keys stay, so that the tests see all the output.
+const dashboardResultSchema = z.looseObject({ opened: z.boolean(), reused: z.boolean().optional(), reason: z.string().optional() });
+type DashboardScript = (objectiveC: unknown, bridge: unknown, application: unknown, reference: unknown, delay: unknown, argv: string[]) => unknown;
 
 const target = "http://127.0.0.1:43681/";
 const zen: DashboardBrowser = { id: "app.zen-browser.zen", name: "Zen", adapter: "accessibility", accessibilityTrusted: true };
@@ -18,7 +23,9 @@ function element(role: string, attributes: Record<string, unknown> = {}, childre
   return { attributes: { AXRole: role, ...attributes }, children };
 }
 
-function scriptHarness(options: { browser?: DashboardBrowser; windows?: unknown[]; nativeWindows?: NativeElement[]; trusted?: boolean; running?: boolean } = {}) {
+function scriptHarness(
+  options: { browser?: DashboardBrowser; windows?: unknown[]; nativeWindows?: NativeElement[]; trusted?: boolean; running?: boolean } = {},
+) {
   const opened = vi.fn(() => true);
   const activated = vi.fn(() => true);
   const pressed = vi.fn();
@@ -56,10 +63,30 @@ function scriptHarness(options: { browser?: DashboardBrowser; windows?: unknown[
     },
   });
   return {
-    opened, activated, pressed, inspected, address,
+    opened,
+    activated,
+    pressed,
+    inspected,
+    address,
     run(browser = options.browser ?? zen, url = target) {
-      const script = new Function("ObjC", "$", "Application", "Ref", "delay", "argv", `${dashboardOpenScript}; return run(argv);`);
-      return JSON.parse(script({ import: vi.fn(), unwrap: (value: unknown) => value, castRefToObject: (value: object) => references.get(value) }, bridge, () => scripting, () => [], () => {}, [JSON.stringify(browser), url]));
+      // The Function constructor returns the type Function. The dashboard script has this signature.
+      const script = new Function("ObjC", "$", "Application", "Ref", "delay", "argv", `${dashboardOpenScript}; return run(argv);`) as DashboardScript;
+      return dashboardResultSchema.parse(
+        JSON.parse(
+          String(
+            script(
+              { import: vi.fn(), unwrap: (value: unknown) => value, castRefToObject: (value: object) => references.get(value) },
+              bridge,
+              () => scripting,
+              () => [],
+              () => {
+                // The delay function of the script. The test does not wait.
+              },
+              [JSON.stringify(browser), url],
+            ),
+          ),
+        ),
+      );
     },
   };
 }
@@ -128,13 +155,25 @@ describe("default-browser dashboard navigation", () => {
 
   it("does not create duplicate tabs when permissions are denied, a browser is unsupported, or inspection fails", () => {
     const denied = scriptHarness({ trusted: false });
-    expect(denied.run()).toMatchObject({ opened: false, reason: expect.stringContaining("Accessibility") });
+    const deniedResult = denied.run();
+    expect(deniedResult.opened).toBe(false);
+    expect(deniedResult.reason).toContain("Accessibility");
     expect(denied.opened).not.toHaveBeenCalled();
     const unsupported = scriptHarness();
     expect(unsupported.run({ ...zen, adapter: "unsupported" })).toMatchObject({ opened: false });
     expect(unsupported.opened).not.toHaveBeenCalled();
-    const failed = scriptHarness({ windows: [{ tabs: () => { throw new Error("Not authorized"); } }] });
-    expect(failed.run(chrome)).toMatchObject({ opened: false, reason: expect.stringContaining("Automation") });
+    const failed = scriptHarness({
+      windows: [
+        {
+          tabs: () => {
+            throw new Error("Not authorized");
+          },
+        },
+      ],
+    });
+    const failedResult = failed.run(chrome);
+    expect(failedResult.opened).toBe(false);
+    expect(failedResult.reason).toContain("Automation");
     expect(failed.opened).not.toHaveBeenCalled();
   });
 
@@ -142,7 +181,10 @@ describe("default-browser dashboard navigation", () => {
     const tab = element("AXRadioButton", { AXTitle: "AI AI Captain — Session Monitor" });
     tab.url = "http://127.0.0.1:9999/";
     const harness = scriptHarness();
-    const window = element("AXWindow", {}, [element("AXToolbar", {}, [tab, harness.address]), element("AXWebArea", {}, [element("AXTextField", { AXValue: target })])]);
+    const window = element("AXWindow", {}, [
+      element("AXToolbar", {}, [tab, harness.address]),
+      element("AXWebArea", {}, [element("AXTextField", { AXValue: target })]),
+    ]);
     const configured = scriptHarness({ nativeWindows: [window] });
     window.children[0].children[1] = configured.address;
     expect(configured.run()).toMatchObject({ opened: true, reused: false });
@@ -150,8 +192,12 @@ describe("default-browser dashboard navigation", () => {
   });
 
   it("detects the current default on each request and passes URLs as arguments rather than executable script text", async () => {
-    const run = vi.fn().mockResolvedValueOnce(JSON.stringify(chrome)).mockResolvedValueOnce('{"opened":true,"reused":true}')
-      .mockResolvedValueOnce(JSON.stringify(zen)).mockResolvedValueOnce('{"opened":true,"reused":false}');
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce(JSON.stringify(chrome))
+      .mockResolvedValueOnce('{"opened":true,"reused":true}')
+      .mockResolvedValueOnce(JSON.stringify(zen))
+      .mockResolvedValueOnce('{"opened":true,"reused":false}');
     const controller = createDashboardController({ platform: "darwin", run });
     expect(await controller.open(target)).toMatchObject({ opened: true, reused: true, browser: chrome });
     expect(await controller.open(target)).toMatchObject({ opened: true, reused: false, browser: zen });
@@ -161,13 +207,23 @@ describe("default-browser dashboard navigation", () => {
 
   it("coalesces rapid INFO presses including the new-tab fallback", async () => {
     let release!: (value: string) => void;
-    const run = vi.fn().mockResolvedValueOnce(JSON.stringify(zen)).mockImplementationOnce(() => new Promise<string>((resolve) => { release = resolve; }))
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce(JSON.stringify(zen))
+      .mockImplementationOnce(
+        () =>
+          new Promise<string>((resolve) => {
+            release = resolve;
+          }),
+      )
       .mockResolvedValueOnce("");
     const controller = createDashboardController({ platform: "darwin", run });
     const first = controller.open(target);
     const second = controller.open(target);
     expect(first).toBe(second);
-    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => {
+      expect(run).toHaveBeenCalledTimes(2);
+    });
     release('{"opened":false,"reason":"Accessibility permission required"}');
     expect(await first).toMatchObject({ opened: true, reused: false, reason: "Accessibility permission required" });
     expect(run).toHaveBeenLastCalledWith("/usr/bin/open", [target]);
@@ -202,14 +258,21 @@ describe("default-browser dashboard navigation", () => {
 
 describe("dashboard navigation API", () => {
   const apps: ReturnType<typeof createApp>[] = [];
-  afterEach(async () => { await Promise.all(apps.splice(0).map((app) => app.close())); });
+  afterEach(async () => {
+    await Promise.all(apps.splice(0).map((app) => app.close()));
+  });
 
   it("uses only its configured dashboard URL, ignoring request bodies and untrusted Host headers", async () => {
     const dashboard = { getBrowser: vi.fn(async () => zen), open: vi.fn(async () => ({ opened: true, reused: true, browser: zen })) };
     const app = createApp({ dashboard, dashboardUrl: "http://127.0.0.1:54321/", webRoot: "/no-static-assets" });
     apps.push(app);
     expect((await app.inject({ method: "GET", url: "/api/dashboard/browser" })).json()).toEqual({ browser: zen });
-    const response = await app.inject({ method: "POST", url: "/api/dashboard/open", headers: { host: "evil.invalid" }, payload: { url: "https://evil.invalid/" } });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/dashboard/open",
+      headers: { host: "evil.invalid" },
+      payload: { url: "https://evil.invalid/" },
+    });
     expect(response.json()).toMatchObject({ opened: true, reused: true });
     expect(dashboard.open).toHaveBeenCalledExactlyOnceWith("http://127.0.0.1:54321/");
     expect((await app.inject({ method: "POST", url: "/api/dashboard/open", headers: { origin: "https://evil.invalid" } })).statusCode).toBe(403);

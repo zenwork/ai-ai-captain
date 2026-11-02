@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { Client, Session } from "../../src/shared/session.js";
-import { appIconName, appImage, appSignature, budgetImage, budgetSignature, infoImage, infoPlaceholderImage, sessionPlaceholderImage, infoSignature, settingControlImage, settingControlSignature, dashboardImage } from "./cards.js";
+import {
+  appIconName,
+  appImage,
+  appSignature,
+  budgetImage,
+  budgetSignature,
+  infoImage,
+  infoPlaceholderImage,
+  sessionPlaceholderImage,
+  infoSignature,
+  settingControlImage,
+  settingControlSignature,
+  dashboardImage,
+} from "./cards.js";
 
 function client(id: string, name: string, bundleId?: string): Client {
   return { id, name, focusTarget: { appName: name, ...(bundleId ? { bundleId } : {}) }, sessionTracking: "unavailable" };
@@ -27,7 +40,16 @@ describe("app keys", () => {
 
 function session(overrides: Partial<Session>): Session {
   const timestamp = "2026-10-25T12:00:00.000Z";
-  return { id: "codex:1", source: "codex-local", label: "Example", state: "working", createdAt: timestamp, updatedAt: timestamp, lastActivityAt: timestamp, ...overrides };
+  return {
+    id: "codex:1",
+    source: "codex-local",
+    label: "Example",
+    state: "working",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    lastActivityAt: timestamp,
+    ...overrides,
+  };
 }
 
 describe("info keys", () => {
@@ -91,8 +113,14 @@ describe("setting keys", () => {
 describe("budget keys", () => {
   const now = Date.parse("2026-11-01T10:00:00Z");
   const budget = {
-    provider: "openai" as const, source: "codex-rollout", plan: "plus", updatedAt: "2026-11-01T09:59:00Z",
-    windows: [{ kind: "five-hour" as const, usedPercent: 82, resetsAt: "2026-11-01T10:35:00Z" }, { kind: "weekly" as const, usedPercent: 60, resetsAt: "2026-11-06T10:00:00Z" }],
+    provider: "openai" as const,
+    source: "codex-rollout",
+    plan: "plus",
+    updatedAt: "2026-11-01T09:59:00Z",
+    windows: [
+      { kind: "five-hour" as const, usedPercent: 82, resetsAt: "2026-11-01T10:35:00Z" },
+      { kind: "weekly" as const, usedPercent: 60, resetsAt: "2026-11-06T10:00:00Z" },
+    ],
   };
 
   it("renders the plan, both windows, the reset time, and the percent of the window nearest to its limit", () => {

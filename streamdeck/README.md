@@ -42,38 +42,38 @@ Dashboard session cards include a state explanation and expandable **State detai
 
 Every key represents an individual reported session. It uses a large type symbol and a colored state band instead of small session names. The key number matches the full name, project, model, and host details in the browser dashboard. The dashboard also shows a live preview using the same SVG images as the physical keys.
 
-| Type | Large symbol | Host badge |
-| --- | --- | --- |
-| Copilot CLI | Copilot goggles | Terminal `>_` |
-| Copilot in IntelliJ | Copilot goggles | `IJ` |
-| Microsoft Copilot app | Copilot ribbon, distinct from GitHub goggles | App window |
-| IntelliJ AI | Large `IJ` tile with sparkle | Included in symbol |
-| Codex | Square code brackets | `>_` or `IJ` |
-| Claude | Starburst | `>_`, `IJ`, or app window |
-| ChatGPT | OpenAI knot | App window |
+| Type                  | Large symbol                                 | Host badge                |
+| --------------------- | -------------------------------------------- | ------------------------- |
+| Copilot CLI           | Copilot goggles                              | Terminal `>_`             |
+| Copilot in IntelliJ   | Copilot goggles                              | `IJ`                      |
+| Microsoft Copilot app | Copilot ribbon, distinct from GitHub goggles | App window                |
+| IntelliJ AI           | Large `IJ` tile with sparkle                 | Included in symbol        |
+| Codex                 | Square code brackets                         | `>_` or `IJ`              |
+| Claude                | Starburst                                    | `>_`, `IJ`, or app window |
+| ChatGPT               | OpenAI knot                                  | App window                |
 
-| State | Color | Symbol and label |
-| --- | --- | --- |
-| Working | Green/teal | Activity ring, `WORKING` |
-| User action/input/permission required | Amber | Raised hand, `WAITING` |
-| Work finished; no action required | Blue | Check mark, `DONE` |
-| Starting | Purple | Hourglass, `STARTING` |
-| Failed | Red | Warning triangle, `FAILED` |
-| Unknown / hub unreachable | Gray | Question mark, `UNK` |
+| State                                 | Color      | Symbol and label           |
+| ------------------------------------- | ---------- | -------------------------- |
+| Working                               | Green/teal | Activity ring, `WORKING`   |
+| User action/input/permission required | Amber      | Raised hand, `WAITING`     |
+| Work finished; no action required     | Blue       | Check mark, `DONE`         |
+| Starting                              | Purple     | Hourglass, `STARTING`      |
+| Failed                                | Red        | Warning triangle, `FAILED` |
+| Unknown / hub unreachable             | Gray       | Question mark, `UNK`       |
 
 WAITING keys blink slowly: amber brightens/dims every 1.2 seconds, completing a cycle every 2.4 seconds. Pulsing stops when the session leaves WAITING or the key is hidden.
 
 DONE draws attention with brief blue flashes that become less frequent as the completion ages:
 
-| Time since completion | Flash frequency |
-| --- | --- |
-| 0–10 seconds | Every 0.5 seconds |
-| 10–30 seconds | Every 1 second |
-| 30–60 seconds | Every 2 seconds |
-| 1–2 minutes | Every 5 seconds |
-| 2–5 minutes | Every 10 seconds |
-| 5–10 minutes | Every 30 seconds |
-| 10 minutes or older | Steady darker blue |
+| Time since completion | Flash frequency    |
+| --------------------- | ------------------ |
+| 0–10 seconds          | Every 0.5 seconds  |
+| 10–30 seconds         | Every 1 second     |
+| 30–60 seconds         | Every 2 seconds    |
+| 1–2 minutes           | Every 5 seconds    |
+| 2–5 minutes           | Every 10 seconds   |
+| 5–10 minutes          | Every 30 seconds   |
+| 10 minutes or older   | Steady darker blue |
 
 Each flash lasts 250 ms; recent completions alternate between icy light blue and bright sky blue rather than going blank. Both phases stand apart from the subdued dark blue used after ten minutes. The icon, host badge, key number, and label remain readable, with dark labels on recent DONE and light labels on aged DONE. The schedule uses the actual state-transition timestamp, so polling, metadata changes, page changes, or restarts do not restart the alert. Another working turn followed by completion does restart it. The darker appearance does not change the underlying `done` state or remove an open session.
 
@@ -89,11 +89,11 @@ Linked development installs do not need reinstalling after a build. When using i
 
 Three optional actions change hub settings from the physical deck. They are not in the virtual deck. Place them by hand, as for INFO.
 
- Action           | Function                                                                                   |
- ---------------- | ------------------------------------------------------------------------------------------ |
- Toggle Info Keys | Turn **Show info keys** on or off. The key shows a switch and ON or OFF.                    |
- Cycle Theme      | Select the next icon palette. The key shows four colors of the palette and its name.      |
- Cycle Brightness | Select the next flash intensity level, 0 to 4, then 0 again. The key shows a meter and the level. |
+| Action           | Function                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| Toggle Info Keys | Turn **Show info keys** on or off. The key shows a switch and ON or OFF.                          |
+| Cycle Theme      | Select the next icon palette. The key shows four colors of the palette and its name.              |
+| Cycle Brightness | Select the next flash intensity level, 0 to 4, then 0 again. The key shows a meter and the level. |
 
 Each key sends the new value to the hub. The hub saves it in `settings.json`, as for the dashboard.
 
@@ -121,10 +121,10 @@ Edit `marketplace.json` to change the author, the description, and the tags. The
 
 The command writes these files to `dist/marketplace/`:
 
- File                                    | Content                                           |
- --------------------------------------- | ------------------------------------------------- |
- `com.local.ai-ai-captain.streamDeckPlugin` | The pack file to upload in Maker Console       |
- `listing.md`                            | The description, tags, and release notes to copy  |
+| File                                       | Content                                          |
+| ------------------------------------------ | ------------------------------------------------ |
+| `com.local.ai-ai-captain.streamDeckPlugin` | The pack file to upload in Maker Console         |
+| `listing.md`                               | The description, tags, and release notes to copy |
 
 The command does not change the plugin UUID. A new UUID breaks existing installs and profiles.
 

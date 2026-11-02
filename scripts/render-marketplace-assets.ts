@@ -10,14 +10,24 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Session } from "../src/shared/session.js";
 import { getPalette } from "../src/shared/palette.js";
-import { dashboardImage, emptyImage, infoImage, sessionImage, settingControlImage, type SettingControlKind, type SettingControlState } from "../streamdeck/src/cards.js";
+import {
+  dashboardImage,
+  emptyImage,
+  infoImage,
+  sessionImage,
+  settingControlImage,
+  type SettingControlKind,
+  type SettingControlState,
+} from "../streamdeck/src/cards.js";
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const outputDirectory = join(repositoryRoot, "docs", "marketplace");
 mkdirSync(outputDirectory, { recursive: true });
 
 const palette = getPalette("fjord");
-const tokens = JSON.parse(readFileSync(join(repositoryRoot, "docs", "design", "palettes", "tokens.json"), "utf8")) as { palettes: { id: string; states: Record<string, { accent: string; background: string }> }[] };
+const tokens = JSON.parse(readFileSync(join(repositoryRoot, "docs", "design", "palettes", "tokens.json"), "utf8")) as {
+  palettes: { id: string; states: Record<string, { accent: string; background: string }> }[];
+};
 const fjordStates = tokens.palettes.find((entry) => entry.id === "fjord")?.states;
 if (fjordStates === undefined) throw new Error("The fjord palette is missing from tokens.json");
 const fontFamily = 'font-family="Helvetica, Arial, sans-serif"';
@@ -25,13 +35,15 @@ const fontFamily = 'font-family="Helvetica, Arial, sans-serif"';
 // Icon B: a ring in three state colors around a play symbol.
 const ringStates = ["working", "waiting-bright", "done-bright"] as const;
 function iconSvg(): string {
-  const arcs = ringStates.map((name, index) => {
-    const radius = 98;
-    const start = ((index * 120 - 80) * Math.PI) / 180;
-    const end = ((index * 120 + 30) * Math.PI) / 180;
-    const point = (angle: number): string => `${String(144 + radius * Math.cos(angle))} ${String(144 + radius * Math.sin(angle))}`;
-    return `<path d="M${point(start)} A${String(radius)} ${String(radius)} 0 0 1 ${point(end)}" fill="none" stroke="${fjordStates[name]?.accent ?? ""}" stroke-width="22" stroke-linecap="round"/>`;
-  }).join("");
+  const arcs = ringStates
+    .map((name, index) => {
+      const radius = 98;
+      const start = ((index * 120 - 80) * Math.PI) / 180;
+      const end = ((index * 120 + 30) * Math.PI) / 180;
+      const point = (angle: number): string => `${String(144 + radius * Math.cos(angle))} ${String(144 + radius * Math.sin(angle))}`;
+      return `<path d="M${point(start)} A${String(radius)} ${String(radius)} 0 0 1 ${point(end)}" fill="none" stroke="${fjordStates[name]?.accent ?? ""}" stroke-width="22" stroke-linecap="round"/>`;
+    })
+    .join("");
   const working = fjordStates.working;
   const accent = working?.accent ?? "";
   const play = `<path d="M${String(144 - 27)} ${String(144 - 38)} L${String(144 + 32)} 144 L${String(144 - 27)} ${String(144 + 38)} Z" fill="${accent}"/>`;
@@ -61,14 +73,39 @@ interface Sample {
 }
 
 const samples: Sample[] = [
-  { harness: "codex-cli", state: "working", label: "Refactor store", info: { model: "gpt-5.5", tokensUsed: 88_000, contextUsedPercent: 44, freedom: "full", approval: "never" } },
+  {
+    harness: "codex-cli",
+    state: "working",
+    label: "Refactor store",
+    info: { model: "gpt-5.5", tokensUsed: 88_000, contextUsedPercent: 44, freedom: "full", approval: "never" },
+  },
   { harness: "claude-ide", state: "waiting", label: "Approve migration", info: { model: "claude-sonnet-5-5", tokensUsed: 120_000, contextUsedPercent: 60 } },
-  { harness: "copilot-cli", state: "done", label: "Write tests", info: { model: "gpt-5.5", tokensUsed: 42_000, contextUsedPercent: 21, freedom: "limited", approval: "asks" } },
+  {
+    harness: "copilot-cli",
+    state: "done",
+    label: "Write tests",
+    info: { model: "gpt-5.5", tokensUsed: 42_000, contextUsedPercent: 21, freedom: "limited", approval: "asks" },
+  },
   { harness: "claude-cli", state: "working", label: "Deploy preview", info: { model: "claude-opus-4", tokensUsed: 172_000, contextUsedPercent: 86 } },
-  { harness: "codex-ide", state: "starting", label: "Review plugin", info: { model: "gpt-5.5", tokensUsed: 31_000, contextUsedPercent: 15, freedom: "limited", approval: "never" } },
+  {
+    harness: "codex-ide",
+    state: "starting",
+    label: "Review plugin",
+    info: { model: "gpt-5.5", tokensUsed: 31_000, contextUsedPercent: 15, freedom: "limited", approval: "never" },
+  },
   { harness: "claude-app", state: "done", label: "Plan release", info: { model: "claude-haiku-4-5", tokensUsed: 54_000, contextUsedPercent: 27 } },
-  { harness: "copilot-ide", state: "failed", label: "Fix build", info: { model: "gpt-5.5", tokensUsed: 96_000, contextUsedPercent: 48, freedom: "limited", approval: "asks" } },
-  { harness: "codex-app", state: "waiting", label: "Update docs", info: { model: "gpt-5.5", tokensUsed: 140_000, contextUsedPercent: 70, freedom: "full", approval: "asks" } },
+  {
+    harness: "copilot-ide",
+    state: "failed",
+    label: "Fix build",
+    info: { model: "gpt-5.5", tokensUsed: 96_000, contextUsedPercent: 48, freedom: "limited", approval: "asks" },
+  },
+  {
+    harness: "codex-app",
+    state: "waiting",
+    label: "Update docs",
+    info: { model: "gpt-5.5", tokensUsed: 140_000, contextUsedPercent: 70, freedom: "full", approval: "asks" },
+  },
   { harness: "chatgpt", state: "working", label: "Draft notes", info: {} },
   { harness: "copilot-app", state: "unknown", label: "Check logs", info: {} },
 ];
@@ -111,9 +148,14 @@ function thumbnailSvg(): string {
   const sessionCells = sessions.map((session, slot) => {
     const row = Math.floor(slot / sessionColumnCount) * 2;
     const column = slot % sessionColumnCount;
-    return placeKey(sessionImage(session, slot + 1, { palette: palette.id }), row, column) + (session.model === undefined ? placeKey(emptyImage(palette.id), row + 1, column) : placeKey(infoImage(session, palette.id), row + 1, column));
+    return (
+      placeKey(sessionImage(session, slot + 1, { palette: palette.id }), row, column) +
+      (session.model === undefined ? placeKey(emptyImage(palette.id), row + 1, column) : placeKey(infoImage(session, palette.id), row + 1, column))
+    );
   });
-  const controlCells = controlKeys.map(({ row, kind }) => placeKey(kind === "dashboard" ? dashboardImage(palette.id) : settingControlImage(kind, settingState), row, columnCount - 1));
+  const controlCells = controlKeys.map(({ row, kind }) =>
+    placeKey(kind === "dashboard" ? dashboardImage(palette.id) : settingControlImage(kind, settingState), row, columnCount - 1),
+  );
   const title = `<text x="70" y="390" ${fontFamily} font-size="96" font-weight="800" fill="${palette.foreground}">AI AI</text><text x="70" y="500" ${fontFamily} font-size="96" font-weight="800" fill="${palette.foreground}">Captain</text><text x="70" y="570" ${fontFamily} font-size="34" fill="${palette.muted}">Every AI session</text><text x="70" y="615" ${fontFamily} font-size="34" fill="${palette.muted}">on your Stream Deck</text>`;
   const panel = `<rect x="${String(panelX)}" y="${String(panelY)}" width="${String(panelWidth)}" height="${String(panelHeight)}" rx="60" fill="${palette.badge.background}" stroke="${palette.badge.border}" stroke-width="6"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="960" viewBox="0 0 1920 960"><rect width="1920" height="960" fill="${palette.canvas}"/>${title}${panel}${[...sessionCells, ...controlCells].join("")}</svg>`;

@@ -36,7 +36,10 @@ async function fixture(state: string) {
   directories.push(root);
   await mkdir(join(root, sessionIdentifier));
   const now = Date.now();
-  await writeFile(join(root, "index.jsonl"), `${JSON.stringify({ sessionId: sessionIdentifier, createdAt: now - 60_000, updatedAt: now, projectDir: projectDirectory, taskName: "Private task" })}\n`);
+  await writeFile(
+    join(root, "index.jsonl"),
+    `${JSON.stringify({ sessionId: sessionIdentifier, createdAt: now - 60_000, updatedAt: now, projectDir: projectDirectory, taskName: "Private task" })}\n`,
+  );
   await writeFile(join(root, sessionIdentifier, "events.jsonl"), `${statusLine("IN_PROGRESS")}\n${statusLine(state)}\n`);
   const store = new SessionStore();
   stores.push(store);
@@ -73,9 +76,10 @@ describe("Junie tracking", () => {
 
   it("targets the IDEA installation that has the Junie project open", async () => {
     const { store, tracker } = await fixture("IN_PROGRESS");
-    const owningProject: LifetimeInspector = async ({ pid }) => pid === 20
-      ? { status: "open", evidence: "JetBrains project registration", openedAt: Date.now() - 120_000 }
-      : { status: "closed", evidence: "JetBrains project unregistered" };
+    const owningProject: LifetimeInspector = async ({ pid }) =>
+      pid === 20
+        ? { status: "open", evidence: "JetBrains project registration", openedAt: Date.now() - 120_000 }
+        : { status: "closed", evidence: "JetBrains project unregistered" };
 
     await tracker.scan(versionedProcesses, owningProject);
 
@@ -86,7 +90,10 @@ describe("Junie tracking", () => {
     });
   });
 
-  it.each([["COMPLETED", "done"], ["FAILED", "failed"]])("shows %s as %s", async (status, expected) => {
+  it.each([
+    ["COMPLETED", "done"],
+    ["FAILED", "failed"],
+  ])("shows %s as %s", async (status, expected) => {
     const { store, tracker } = await fixture(status);
     await tracker.scan(processes, openProject);
     expect(store.get(`junie:${sessionIdentifier}`)?.state).toBe(expected);
@@ -121,13 +128,18 @@ describe("Junie tracking", () => {
 
 describe("Junie session info", () => {
   it("reads the latest context report", () => {
-    const line = (percentage: number, used: number): string => `{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"ContextWindowReportEvent","agent":{"kind":"MainAgent","id":"main"},"percentage":${percentage},"used":${used},"size":1000000}}}`;
+    const line = (percentage: number, used: number): string =>
+      `{"kind":"SessionA2uxEvent","event":{"agentEvent":{"kind":"ContextWindowReportEvent","agent":{"kind":"MainAgent","id":"main"},"percentage":${percentage},"used":${used},"size":1000000}}}`;
     expect(lastJunieContext(`${line(2.1, 21000)}\n${line(6.05, 60494)}\n`)).toEqual({ contextUsedPercent: 6, tokensUsed: 60494 });
     expect(lastJunieContext("none")).toBeUndefined();
   });
 
   it("reads the model and Brave mode from settings", () => {
-    expect(parseJunieSettings('{"model":{"modelId":"claude-sonnet-5-5"},"braveMode":"ON"}')).toEqual({ model: "claude-sonnet-5-5", freedom: "full", approval: "never" });
+    expect(parseJunieSettings('{"model":{"modelId":"claude-sonnet-5-5"},"braveMode":"ON"}')).toEqual({
+      model: "claude-sonnet-5-5",
+      freedom: "full",
+      approval: "never",
+    });
     expect(parseJunieSettings('{"model":{"modelId":"m"},"braveMode":"OFF"}')).toEqual({ model: "m", freedom: "limited", approval: "asks" });
     expect(parseJunieSettings("not json")).toEqual({});
   });

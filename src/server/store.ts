@@ -34,7 +34,9 @@ export class SessionStore {
   }
 
   list(): Session[] {
-    return [...this.#sessions.values()].filter((session) => !this.#restored.has(session.id)).sort((left, right) => right.lastActivityAt.localeCompare(left.lastActivityAt));
+    return [...this.#sessions.values()]
+      .filter((session) => !this.#restored.has(session.id))
+      .sort((left, right) => right.lastActivityAt.localeCompare(left.lastActivityAt));
   }
 
   get(id: string): Session | undefined {
@@ -69,7 +71,7 @@ export class SessionStore {
       project: input.project ?? previous?.project,
       metadata: input.metadata ?? previous?.metadata,
     };
-    const transition = observedTransition ?? (previous?.state === input.state ? previous.stateChangedAt ?? previous.lastActivityAt : activity);
+    const transition = observedTransition ?? (previous?.state === input.state ? (previous.stateChangedAt ?? previous.lastActivityAt) : activity);
     const { dismissedAt: previousDismissal, attendedAt: previousAttention, ...kept } = previous ?? {};
     // A dismissed or attended session goes back to normal when its state changes, or when it enters the same state again (a new state change time).
     const sameCompletion = previous?.state === input.state && previous.stateChangedAt === transition;
@@ -108,7 +110,7 @@ export class SessionStore {
   /** Mark a DONE session as attended until its state changes. Returns undefined when the session is missing or not DONE. */
   attend(id: string): Session | undefined {
     const existing = this.#sessions.get(id);
-    if (!existing || existing.state !== "done") return undefined;
+    if (existing?.state !== "done") return undefined;
     if (existing.attendedAt) return existing;
     const session: Session = { ...existing, attendedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     this.#sessions.set(id, session);
@@ -147,7 +149,7 @@ export class SessionStore {
       this.#publish({ type: "remove", id: session.id });
       this.#persist();
     }, terminalLifetimeMs);
-    timer.unref?.();
+    timer.unref();
     this.#expiryTimers.set(session.id, timer);
   }
 
@@ -156,15 +158,18 @@ export class SessionStore {
   }
 
   #persist(): void {
-    if (!this.persistencePath) return;
+    const persistencePath = this.persistencePath;
+    if (!persistencePath) return;
     const output = JSON.stringify([...this.#sessions.values()], null, 2);
-    this.#persistQueue = this.#persistQueue.then(async () => {
-      await mkdir(dirname(this.persistencePath!), { recursive: true });
-      const temporaryPath = `${this.persistencePath}.tmp`;
-      await writeFile(temporaryPath, output, { mode: 0o600 });
-      await rename(temporaryPath, this.persistencePath!);
-    }).catch((error: unknown) => {
-      console.error("Unable to persist session metadata", error);
-    });
+    this.#persistQueue = this.#persistQueue
+      .then(async () => {
+        await mkdir(dirname(persistencePath), { recursive: true });
+        const temporaryPath = `${persistencePath}.tmp`;
+        await writeFile(temporaryPath, output, { mode: 0o600 });
+        await rename(temporaryPath, persistencePath);
+      })
+      .catch((error: unknown) => {
+        console.error("Unable to persist session metadata", error);
+      });
   }
 }

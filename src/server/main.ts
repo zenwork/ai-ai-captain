@@ -31,13 +31,17 @@ async function run(): Promise<void> {
   const refreshBudgets = () => codexBudget.scan(true).catch(() => undefined);
   await refreshBudgets();
   const budgetTimer = setInterval(() => void codexBudget.scan().catch(() => undefined), budgetScanIntervalMilliseconds);
-  budgetTimer.unref?.();
+  budgetTimer.unref();
   const discoveryTimer = startSessionDiscovery(store, clients, dataDirectory, budgets);
   const webRoot = process.env.AI_AI_CAPTAIN_WEB_DIR ?? join(process.cwd(), "web");
   const port = Number(process.env.AI_AI_CAPTAIN_PORT ?? 43681);
   const logLevel = logLevelSchema.parse(process.env.AI_AI_CAPTAIN_LOG_LEVEL);
   const app = createApp({ store, webRoot, clients, settings, budgets, refreshBudgets, logLevel, dashboardUrl: `http://127.0.0.1:${port}/` });
-  app.addHook("onClose", async () => { if (discoveryTimer) clearInterval(discoveryTimer); clearInterval(budgetTimer); });
+  app.addHook("onClose", (_instance, done) => {
+    if (discoveryTimer) clearInterval(discoveryTimer);
+    clearInterval(budgetTimer);
+    done();
+  });
   await app.listen({ host: "127.0.0.1", port });
   console.info(`AI AI Captain hub listening on http://127.0.0.1:${port}`);
 

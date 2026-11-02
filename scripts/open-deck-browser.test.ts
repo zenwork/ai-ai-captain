@@ -37,17 +37,12 @@ describe.skipIf(process.platform === "win32")("virtual deck browser launcher", (
     const callsFilePath = join(temporaryDirectoryPath, "calls.txt");
     await mkdir(pathDirectory);
     await writeExecutableFile(join(pathDirectory, "uname"), '#!/bin/sh\nprintf "Darwin\\n"\n');
-    await writeExecutableFile(
-      join(pathDirectory, "open"),
-      '#!/bin/sh\nprintf "%s\\n" "$@" > "$DECK_LAUNCH_CALLS_FILE"\n',
-    );
+    await writeExecutableFile(join(pathDirectory, "open"), '#!/bin/sh\nprintf "%s\\n" "$@" > "$DECK_LAUNCH_CALLS_FILE"\n');
 
     const result = runBrowserLauncher(pathDirectory, { DECK_LAUNCH_CALLS_FILE: callsFilePath });
 
     expect(result.status).toBe(0);
-    expect(await readFile(callsFilePath, "utf8")).toBe(
-      `-na\nGoogle Chrome\n--args\n--app=http://127.0.0.1:43682/deck.html\n--window-size=420,140\n`,
-    );
+    expect(await readFile(callsFilePath, "utf8")).toBe(`-na\nGoogle Chrome\n--args\n--app=http://127.0.0.1:43682/deck.html\n--window-size=420,140\n`);
   });
 
   it("uses an available Chrome-compatible browser on Linux", async () => {
@@ -56,17 +51,12 @@ describe.skipIf(process.platform === "win32")("virtual deck browser launcher", (
     const callsFilePath = join(temporaryDirectoryPath, "calls.txt");
     await mkdir(pathDirectory);
     await writeExecutableFile(join(pathDirectory, "uname"), '#!/bin/sh\nprintf "Linux\\n"\n');
-    await writeExecutableFile(
-      join(pathDirectory, "chromium"),
-      '#!/bin/sh\nprintf "%s\\n" "$@" > "$DECK_LAUNCH_CALLS_FILE"\n',
-    );
+    await writeExecutableFile(join(pathDirectory, "chromium"), '#!/bin/sh\nprintf "%s\\n" "$@" > "$DECK_LAUNCH_CALLS_FILE"\n');
 
     const result = runBrowserLauncher(pathDirectory, { DECK_LAUNCH_CALLS_FILE: callsFilePath });
 
     expect(result.status).toBe(0);
-    expect(await readFile(callsFilePath, "utf8")).toBe(
-      `--app=http://127.0.0.1:43682/deck.html\n--window-size=420,140\n`,
-    );
+    expect(await readFile(callsFilePath, "utf8")).toBe(`--app=http://127.0.0.1:43682/deck.html\n--window-size=420,140\n`);
   });
 
   it("reports when Linux has no supported browser", async () => {

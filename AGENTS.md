@@ -110,9 +110,12 @@ All TypeScript must pass the linter with no errors and no warnings.
 
 - Use ESLint with `typescript-eslint`. Use the `strictTypeChecked` and `stylisticTypeChecked` configurations.
 - Do not disable a lint rule in a file or on a line. If a rule is wrong for this project, tell the user.
+- Use Prettier for format. `eslint-config-prettier` turns off the ESLint format rules.
 - Run `npm run lint` before you complete a task.
+- Format only the files that you changed. Do not format all files in a feature change.
+- Do not change `eslint.config.mjs`, `.prettierrc.json`, or `.editorconfig` without approval from the user.
 
-CAUTION: THE PROJECT DOES NOT HAVE A `lint` SCRIPT AT THIS TIME. DO NOT ADD THE LINTER WITHOUT APPROVAL FROM THE USER. UNTIL THE SCRIPT EXISTS, TELL THE USER THAT YOU DID NOT LINT THE CODE.
+The `code-style` skill in `.claude/skills/code-style/` gives the full procedure.
 
 ### 3.4 Tests
 
@@ -141,9 +144,9 @@ Correct table:
 Incorrect table:
 
 ```markdown
-|State|Label|
-|---|---|
-|working|WORKING|
+| State   | Label   |
+| ------- | ------- |
+| working | WORKING |
 ```
 
 When you edit a file that has incorrect tables, correct the tables that you change.
@@ -163,6 +166,8 @@ When you edit a file that has incorrect tables, correct the tables that you chan
 | `scripts/`                 | Build, package, and design render scripts                 |
 | `docs/design/`             | Palettes, icon sheets, and design tokens                  |
 
+The `project-structure` skill in `.claude/skills/project-structure/` gives the rules for the location and the names of files and symbols.
+
 Do not edit generated files. Generated files include `web/app.js`, `dist/`, and `streamdeck/com.local.ai-ai-captain.sdPlugin/`.
 
 ## 6. Commands
@@ -174,6 +179,10 @@ Do not edit generated files. Generated files include `web/app.js`, `dist/`, and 
 | `npm run build`             | Build the hub, the dashboard, and the Stream Deck plugin |
 | `npm test`                  | Run all tests                                            |
 | `npm run typecheck`         | Check the types of the hub and the plugin                |
+| `npm run lint`              | Lint all TypeScript. A warning is a failure.             |
+| `npm run lint:fix`          | Repair the lint problems that ESLint can repair          |
+| `npm run format`            | Format all files with Prettier                           |
+| `npm run format:check`      | Find files that do not agree with the Prettier format    |
 | `npm run design:check`      | Make sure that design artifacts agree with the renderer  |
 | `npm run design:preview`    | Make new SVG and PNG design previews                     |
 | `npm run design:mockup`     | Make the animated Stream Deck XL mockup GIF again        |
@@ -185,7 +194,7 @@ Do these steps in sequence:
 
 1. Run `npm run typecheck`. Make sure that there are no errors.
 2. Run `npm test`. Make sure that all tests pass.
-3. Run `npm run lint` when the script exists.
+3. Run `npm run lint`. Make sure that there are no errors and no warnings.
 4. Run `npm run design:check` if you changed artwork, palettes, or the card renderer.
 5. Make sure that the specifications and the documentation agree with your change.
 6. Tell the user the result of each step. If a step failed or you did not do it, say so.

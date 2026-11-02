@@ -1,0 +1,16 @@
+# Generated files. AGENTS.md section 5 lists them.
+dist/
+web/
+streamdeck/com.local.ai-ai-captain.sdPlugin/
+node_modules/
+package-lock.json
+CHANGELOG.md
+
+# Made by scripts/render-design-proposals.mjs. Run `npm run design:preview` to make them again.
+src/shared/card-assets.ts
+docs/design/palette-contrast.json
+
+# Other projects and local output.
+intellij-bridge/
+Claude outputs/
+.idea/

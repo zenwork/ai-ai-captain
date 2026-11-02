@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { sessionInputSchema } from "../shared/session.js";
+import { sessionEndSchema, sessionInputSchema } from "../shared/session.js";
 import type { FocusHandler } from "./focus.js";
 import { focusTarget as defaultFocusHandler } from "./focus.js";
 import { SessionStore } from "./store.js";
@@ -10,7 +10,7 @@ import { ClientRegistry } from "./clients.js";
 import { SettingsStore } from "./settings.js";
 import { settingsWriteSchema } from "../shared/settings.js";
 import { palettes } from "../shared/palette.js";
-import { canonicalDashboardUrl, createDashboardController } from "./dashboard.js";
+import { canonicalDashboardUrl, createDashboardController, type DashboardController } from "./dashboard.js";
 import { BudgetStore } from "./budgets.js";
 import { budgetInputSchema } from "../shared/budget.js";
 
@@ -20,7 +20,7 @@ export interface AppOptions {
   webRoot?: string;
   clients?: ClientRegistry;
   settings?: SettingsStore;
-  dashboard?: ReturnType<typeof createDashboardController>;
+  dashboard?: DashboardController;
   dashboardUrl?: string;
   logLevel?: HubLogLevel;
   budgets?: BudgetStore;
@@ -41,17 +41,21 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
   const dashboardUrl = canonicalDashboardUrl(options.dashboardUrl ?? "http://127.0.0.1:43681/");
   const app = Fastify({ logger: { level: options.logLevel ?? "info" }, bodyLimit: 32 * 1024 });
 
-  app.get("/health", async () => ({ ok: true }));
+  app.get("/health", () => ({ ok: true }));
   app.get("/api/dashboard/browser", async (_request, reply) => {
-    try { return { browser: await dashboard.getBrowser(dashboardUrl) }; }
-    catch { return reply.code(503).send({ error: "Default browser detection is unavailable on this platform or macOS could not identify it" }); }
+    try {
+      return { browser: await dashboard.getBrowser(dashboardUrl) };
+    } catch {
+      return reply.code(503).send({ error: "Default browser detection is unavailable on this platform or macOS could not identify it" });
+    }
   });
   app.post("/api/dashboard/open", async (request, reply) => {
-    if (request.headers.origin && request.headers.origin !== new URL(dashboardUrl).origin) return reply.code(403).send({ error: "Cross-origin dashboard opening is not allowed" });
+    if (request.headers.origin && request.headers.origin !== new URL(dashboardUrl).origin)
+      return reply.code(403).send({ error: "Cross-origin dashboard opening is not allowed" });
     return dashboard.open(dashboardUrl);
   });
-  app.get("/api/sessions", async () => ({ sessions: store.list(), clients: clients.list(), settings: settings.get(), budgets: budgets.list() }));
-  app.get("/api/budgets", async () => ({ budgets: budgets.list() }));
+  app.get("/api/sessions", () => ({ sessions: store.list(), clients: clients.list(), settings: settings.get(), budgets: budgets.list() }));
+  app.get("/api/budgets", () => ({ budgets: budgets.list() }));
   // The Stream Deck plugin calls this when it starts, so a reused hub reads the automatic sources again.
   app.post("/api/budgets/refresh", async () => {
     await options.refreshBudgets?.();
@@ -71,8 +75,11 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     budgets.remove(known.provider);
     return { removed: true };
   });
-  app.get("/api/clients", async () => ({ clients: clients.list() }));
-  app.get("/api/settings", async () => ({ settings: settings.get(), palettes: palettes.map(({ id, name, mode, contrast }) => ({ id, name, mode, contrast })) }));
+  app.get("/api/clients", () => ({ clients: clients.list() }));
+  app.get("/api/settings", () => ({
+    settings: settings.get(),
+    palettes: palettes.map(({ id, name, mode, contrast }) => ({ id, name, mode, contrast })),
+  }));
   app.put("/api/settings", async (request, reply) => {
     const parsed = settingsWriteSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Choose supported appearance settings" });
@@ -87,11 +94,9 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
   });
   app.post("/api/sessions/:id/end", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body ?? {};
-    if (typeof body !== "object" || body === null || !("state" in body) || !["done", "failed"].includes(String(body.state))) {
-      return reply.code(400).send({ error: "State must be done or failed" });
-    }
-    const session = store.end(id, body.state as "done" | "failed");
+    const parsed = sessionEndSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: "State must be done or failed" });
+    const session = store.end(id, parsed.data.state);
     if (!session) return reply.code(404).send({ error: "Session not found" });
     return { session };
   });

@@ -17,7 +17,11 @@ class TestElement extends EventTarget {
   attributes = new Map<string, string>();
   styleProperties = new Map<string, string>();
   classList = { toggle: vi.fn() };
-  style = { setProperty: (name: string, value: string): void => { this.styleProperties.set(name, value); } };
+  style = {
+    setProperty: (name: string, value: string): void => {
+      this.styleProperties.set(name, value);
+    },
+  };
   focus = vi.fn();
 
   append(element: TestElement): void {
@@ -37,8 +41,13 @@ class TestElement extends EventTarget {
     this.attributes.set(name, value);
   }
 
-  connectedCallback(): void {}
-  disconnectedCallback(): void {}
+  connectedCallback(): void {
+    // The test element has no work to do when it is added to the page.
+  }
+
+  disconnectedCallback(): void {
+    // The test element has no work to do when it is removed from the page.
+  }
 }
 
 class TestWindow extends EventTarget {
@@ -125,17 +134,20 @@ beforeEach(() => {
   vi.stubGlobal("navigator", {});
   vi.stubGlobal("localStorage", { getItem: vi.fn(() => null), setItem: vi.fn() });
   vi.stubGlobal("EventSource", TestEventSource);
-  vi.stubGlobal("HTMLElement", class extends TestElement {
-    constructor() {
-      super();
-      this.append(shell);
-      this.selectors.set(".deck-shell", shell);
-      this.selectors.set("#deck-window-placeholder", placeholder);
-      this.selectors.set('button[data-window="picture-in-picture"]', floatingButton);
-      this.selectors.set('button[data-window="return"]', returnButton);
-      this.selectors.set("row-control", rowButton);
-    }
-  });
+  vi.stubGlobal(
+    "HTMLElement",
+    class extends TestElement {
+      constructor() {
+        super();
+        this.append(shell);
+        this.selectors.set(".deck-shell", shell);
+        this.selectors.set("#deck-window-placeholder", placeholder);
+        this.selectors.set('button[data-window="picture-in-picture"]', floatingButton);
+        this.selectors.set('button[data-window="return"]', returnButton);
+        this.selectors.set("row-control", rowButton);
+      }
+    },
+  );
   vi.stubGlobal("customElements", {
     define: (_name: string, constructor: new () => TestElement): void => {
       createPanel = () => new constructor();
@@ -169,8 +181,8 @@ describe("deck Picture-in-Picture", () => {
     expect(shell.parentElement).toBe(floatingWindow.document.body);
     expect(floatingWindow.document.body.className).toBe("deck-page");
     expect(floatingWindow.document.createElement).toHaveBeenCalledWith("link");
-    const stylesheet = floatingWindow.document.createElement.mock.results[0].value;
-    expect(stylesheet?.href).toBe("http://127.0.0.1:43682/styles.css");
+    const stylesheet: unknown = floatingWindow.document.createElement.mock.results[0]?.value;
+    expect(stylesheet).toMatchObject({ href: "http://127.0.0.1:43682/styles.css" });
     expect(placeholder.hidden).toBe(false);
     expect(floatingButton.textContent).toBe("Return to deck");
     expect(floatingButton.attributes.get("aria-pressed")).toBe("true");
@@ -186,15 +198,27 @@ describe("deck Picture-in-Picture", () => {
     await click(floatingButton);
     const events = TestEventSource.instances[0];
 
-    events.onmessage?.({ data: JSON.stringify({
-      type: "snapshot",
-      sessions: [{
-        id: "test-session", source: "test", label: "Test session", state: "working",
-        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-        lastActivityAt: new Date().toISOString(),
-      }],
-    }) });
+    events.onmessage?.({
+      data: JSON.stringify({
+        type: "snapshot",
+        sessions: [
+          {
+            id: "test-session",
+            source: "test",
+            label: "Test session",
+            state: "working",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            lastActivityAt: new Date().toISOString(),
+          },
+        ],
+      }),
+    });
     expect(grid.innerHTML).toContain("Test session");
+    // An event that does not agree with the contract does not change the keys.
+    events.onmessage?.({ data: JSON.stringify({ type: "upsert", session: { id: "incomplete-session", label: "Incomplete session" } }) });
+    expect(grid.innerHTML).toContain("Test session");
+    expect(grid.innerHTML).not.toContain("Incomplete session");
     await click(rowButton);
     expect(rowButton.attributes.get("aria-pressed")).toBe("true");
 
@@ -233,7 +257,11 @@ describe("deck Picture-in-Picture", () => {
 
   it("reports a safe error and allows another attempt when the browser rejects the request", async () => {
     const panel = await loadPanel();
-    mainWindow.documentPictureInPicture = { requestWindow: vi.fn(async () => { throw new Error("Private browser error"); }) };
+    mainWindow.documentPictureInPicture = {
+      requestWindow: vi.fn(async () => {
+        throw new Error("Private browser error");
+      }),
+    };
 
     await click(floatingButton);
 

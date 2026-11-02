@@ -1,7 +1,28 @@
 import { mkdir, readFile, readdir, realpath, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { z } from "zod";
 import { focusTargetSchema, type FocusTarget } from "../shared/session.js";
 import { hostApplication, listOpenFiles, type ProcessInfo } from "./processes.js";
+
+// The saved file can come from an earlier version. Each entry is validated separately, so one bad entry does not discard the others.
+const persistedLifetimesSchema = z.object({
+  ideProcesses: z.array(z.unknown()).optional(),
+  runtimes: z.array(z.unknown()).optional(),
+});
+const persistedIdeProcessSchema = z.tuple([z.number(), z.string()]);
+const persistedRuntimeHostSchema = z.object({ pid: z.number(), identity: z.string(), target: focusTargetSchema });
+
+// The instance file that IntelliJ IDEA writes for each open project.
+const ideaInstanceSchema = z.object({ schema_version: z.literal(2), pid: z.number(), project_path: z.string() });
+
+/** Parses JSON text. Returns `undefined` for text that is not JSON, so that schema validation rejects it. */
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
 
 export interface HostLifetime {
   status: "open" | "closed" | "unverified";
@@ -42,25 +63,16 @@ export class HostLifetimes {
   #loaded = false;
   #persisted = "";
 
-  constructor(private readonly instancesDirectory: string, private readonly persistencePath?: string) {}
+  constructor(
+    private readonly instancesDirectory: string,
+    private readonly persistencePath?: string,
+  ) {}
 
   async scan(processes: ProcessInfo[]): Promise<LifetimeInspector> {
     const byPid = new Map(processes.map((process) => [process.pid, process]));
     if (!this.#loaded) {
       this.#loaded = true;
-      if (this.persistencePath) {
-        try {
-          const saved = JSON.parse(await readFile(this.persistencePath, "utf8"));
-          const entries = saved?.ideProcesses;
-          if (Array.isArray(entries)) for (const entry of entries) {
-            if (Array.isArray(entry) && typeof entry[0] === "number" && typeof entry[1] === "string") this.#knownIdePids.set(entry[0], entry[1]);
-          }
-          if (Array.isArray(saved?.runtimes)) for (const entry of saved.runtimes) {
-            const target = focusTargetSchema.safeParse(entry?.target);
-            if (typeof entry?.pid === "number" && typeof entry.identity === "string" && target.success) this.#runtimeHosts.set(entry.pid, { identity: entry.identity, target: target.data });
-          }
-        } catch {}
-      }
+      await this.#restore();
     }
     const identity = (process: ProcessInfo) => JSON.stringify([process.name, process.startedAt]);
     for (const [pid, previous] of this.#knownIdePids) {
@@ -81,29 +93,32 @@ export class HostLifetimes {
     let registryAvailable = true;
     try {
       const entries = await readdir(this.instancesDirectory);
-      await Promise.all(entries.map(async (entry) => {
-        const match = entry.match(/_(\d+)\.json$/);
-        const pid = match ? Number(match[1]) : 0;
-        const host = byPid.get(pid);
-        if (!host || !/\/IntelliJ IDEA[^/]*\.app\/Contents\/MacOS\/idea$/.test(host.name)) return;
-        const path = join(this.instancesDirectory, entry);
-        try {
-          const [content, info] = await Promise.all([readFile(path, "utf8"), stat(path)]);
-          const instance = JSON.parse(content);
-          if (instance.schema_version !== 2 || instance.pid !== pid || typeof instance.project_path !== "string" || !isAbsolute(instance.project_path)) {
-            unavailablePids.add(pid);
-            return;
+      await Promise.all(
+        entries.map(async (entry) => {
+          const match = /_(\d+)\.json$/.exec(entry);
+          const pid = match ? Number(match[1]) : 0;
+          const host = byPid.get(pid);
+          if (!host || !/\/IntelliJ IDEA[^/]*\.app\/Contents\/MacOS\/idea$/.test(host.name)) return;
+          const path = join(this.instancesDirectory, entry);
+          try {
+            const [content, info] = await Promise.all([readFile(path, "utf8"), stat(path)]);
+            const instance = ideaInstanceSchema.safeParse(JSON.parse(content));
+            if (!instance.success || instance.data.pid !== pid || !isAbsolute(instance.data.project_path)) {
+              unavailablePids.add(pid);
+              return;
+            }
+            const instanceProjectPath = instance.data.project_path;
+            const projectPath = await realpath(instanceProjectPath).catch(() => resolve(instanceProjectPath));
+            if (host.startedAt && info.birthtimeMs < Date.parse(host.startedAt)) return;
+            const open = projects.get(pid) ?? [];
+            open.push({ path: projectPath, openedAt: info.birthtimeMs || info.mtimeMs });
+            projects.set(pid, open);
+            this.#knownIdePids.set(pid, identity(host));
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ENOENT") unavailablePids.add(pid);
           }
-          const projectPath = await realpath(instance.project_path).catch(() => resolve(instance.project_path));
-          if (host.startedAt && info.birthtimeMs < Date.parse(host.startedAt)) return;
-          const open = projects.get(pid) ?? [];
-          open.push({ path: projectPath, openedAt: info.birthtimeMs || info.mtimeMs });
-          projects.set(pid, open);
-          this.#knownIdePids.set(pid, identity(host));
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ENOENT") unavailablePids.add(pid);
-        }
-      }));
+        }),
+      );
     } catch {
       registryAvailable = false;
     }
@@ -114,7 +129,9 @@ export class HostLifetimes {
         await writeFile(`${this.persistencePath}.tmp`, persisted, { mode: 0o600 });
         await rename(`${this.persistencePath}.tmp`, this.persistencePath);
         this.#persisted = persisted;
-      } catch {}
+      } catch {
+        // The next scan tries to save again, because `#persisted` changes only after a successful save.
+      }
     }
     const terminalPids = new Set<number>();
     for (const candidate of candidates) {
@@ -141,11 +158,15 @@ export class HostLifetimes {
           return { status: "unverified", evidence: "Project registration unavailable" };
         }
         const projectPath = await realpath(project).catch(() => resolve(project));
-        const open = (projects.get(pid) ?? []).filter((candidate) => {
-          const local = relative(candidate.path, projectPath);
-          return local === "" || local !== ".." && !local.startsWith(`..${sep}`) && !isAbsolute(local);
-        }).sort((left, right) => right.path.length - left.path.length)[0];
-        return open ? { status: "open", evidence: "JetBrains project registration", openedAt: open.openedAt } : { status: "closed", evidence: "JetBrains project unregistered" };
+        const open = (projects.get(pid) ?? [])
+          .filter((candidate) => {
+            const local = relative(candidate.path, projectPath);
+            return local === "" || (local !== ".." && !local.startsWith(`..${sep}`) && !isAbsolute(local));
+          })
+          .sort((left, right) => right.path.length - left.path.length)[0];
+        return open
+          ? { status: "open", evidence: "JetBrains project registration", openedAt: open.openedAt }
+          : { status: "closed", evidence: "JetBrains project unregistered" };
       }
       const visited = new Set<number>();
       let current = byPid.get(owner.pid);
@@ -160,6 +181,27 @@ export class HostLifetimes {
       return { status: "unverified", evidence: "Runtime ownership only" };
     };
   }
+
+  /** Reads the IDE processes and runtime hosts that an earlier hub saved. A missing or damaged file gives no entries. */
+  async #restore(): Promise<void> {
+    if (!this.persistencePath) return;
+    let content: string;
+    try {
+      content = await readFile(this.persistencePath, "utf8");
+    } catch {
+      return;
+    }
+    const saved = persistedLifetimesSchema.safeParse(parseJson(content));
+    if (!saved.success) return;
+    for (const entry of saved.data.ideProcesses ?? []) {
+      const ideProcess = persistedIdeProcessSchema.safeParse(entry);
+      if (ideProcess.success) this.#knownIdePids.set(ideProcess.data[0], ideProcess.data[1]);
+    }
+    for (const entry of saved.data.runtimes ?? []) {
+      const runtimeHost = persistedRuntimeHostSchema.safeParse(entry);
+      if (runtimeHost.success) this.#runtimeHosts.set(runtimeHost.data.pid, { identity: runtimeHost.data.identity, target: runtimeHost.data.target });
+    }
+  }
 }
 
 export class SessionLifetimeGate {
@@ -172,7 +214,7 @@ export class SessionLifetimeGate {
     }
     if (this.#suppressed.has(id)) {
       const baseline = this.#suppressed.get(id);
-      if (lifetime.status !== "open" || !triggeredAt || baseline && triggeredAt <= baseline) return false;
+      if (lifetime.status !== "open" || !triggeredAt || (baseline && triggeredAt <= baseline)) return false;
     }
     if (lifetime.openedAt && triggeredAt && Date.parse(triggeredAt) < lifetime.openedAt) {
       this.#suppressed.set(id, triggeredAt);

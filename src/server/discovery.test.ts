@@ -16,10 +16,22 @@ describe("desktop app process matching", () => {
   });
 
   it("does not mistake an IntelliJ Copilot plugin process for the Copilot app", () => {
-    expect(matchesMainAppProcess("/Users/example/Library/Application Support/JetBrains/IntelliJIdea2026.2/plugins/github-copilot-intellij/copilot-agent/native/darwin-arm64/copilot-language-server", "Copilot.app", "Copilot")).toBe(false);
+    expect(
+      matchesMainAppProcess(
+        "/Users/example/Library/Application Support/JetBrains/IntelliJIdea2026.2/plugins/github-copilot-intellij/copilot-agent/native/darwin-arm64/copilot-language-server",
+        "Copilot.app",
+        "Copilot",
+      ),
+    ).toBe(false);
   });
 
   it("does not match app helper processes", () => {
-    expect(matchesMainAppProcess("/Applications/Copilot.app/Contents/Frameworks/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper", "Copilot.app", "Copilot")).toBe(false);
+    expect(
+      matchesMainAppProcess(
+        "/Applications/Copilot.app/Contents/Frameworks/Microsoft Edge Helper.app/Contents/MacOS/Microsoft Edge Helper",
+        "Copilot.app",
+        "Copilot",
+      ),
+    ).toBe(false);
   });
 });

@@ -1,6 +1,15 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { dashboardImage, emptyImage, pagerImage, sessionColors, sessionImage, sessionSignature, sessionType, waitingPulseIntervalMs } from "../../streamdeck/src/cards.js";
+import {
+  dashboardImage,
+  emptyImage,
+  pagerImage,
+  sessionColors,
+  sessionImage,
+  sessionSignature,
+  sessionType,
+  waitingPulseIntervalMs,
+} from "../../streamdeck/src/cards.js";
 import { cardIdentities, cardStates, renderCard } from "../shared/card-design.js";
 import { cardIcons } from "../shared/card-assets.js";
 import { defaultPaletteId, getPalette, palettes } from "../shared/palette.js";
@@ -8,18 +17,29 @@ import type { Session } from "../shared/session.js";
 import { svgDataUri } from "../../streamdeck/src/images.js";
 
 const session: Session = {
-  id: "copilot:first-session", source: "copilot-local", harness: "copilot-ide", label: "Project", state: "working", project: "/projects/example", model: "gpt-6.1-sol",
-  metadata: { sessionId: "first-session", host: "IntelliJ IDEA" }, createdAt: "2026-10-25T12:00:00.000Z", updatedAt: "2026-10-25T12:00:00.000Z", lastActivityAt: "2026-10-25T12:00:00.000Z",
+  id: "copilot:first-session",
+  source: "copilot-local",
+  harness: "copilot-ide",
+  label: "Project",
+  state: "working",
+  project: "/projects/example",
+  model: "gpt-6.1-sol",
+  metadata: { sessionId: "first-session", host: "IntelliJ IDEA" },
+  createdAt: "2026-10-25T12:00:00.000Z",
+  updatedAt: "2026-10-25T12:00:00.000Z",
+  lastActivityAt: "2026-10-25T12:00:00.000Z",
 };
 
 function luminance(color: string): number {
-  const channels = [1, 3, 5].map((offset) => parseInt(color.slice(offset, offset + 2), 16) / 255).map((channel) => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
-  return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+  const channels = [1, 3, 5]
+    .map((offset) => parseInt(color.slice(offset, offset + 2), 16) / 255)
+    .map((channel) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4));
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
 }
 
 function contrast(first: string, second: string): number {
   const levels = [luminance(first), luminance(second)].sort((left, right) => left - right);
-  return (levels[1] + .05) / (levels[0] + .05);
+  return (levels[1] + 0.05) / (levels[0] + 0.05);
 }
 
 describe("Stream Deck design implementation", () => {
@@ -52,7 +72,14 @@ describe("Stream Deck design implementation", () => {
   });
 
   it("uses full state wording and no unreadable session details", () => {
-    for (const [state, label] of [["starting", "STARTING"], ["working", "WORKING"], ["waiting", "WAITING"], ["done", "DONE"], ["failed", "FAILED"], ["unknown", "UNK"]] as const) {
+    for (const [state, label] of [
+      ["starting", "STARTING"],
+      ["working", "WORKING"],
+      ["waiting", "WAITING"],
+      ["done", "DONE"],
+      ["failed", "FAILED"],
+      ["unknown", "UNK"],
+    ] as const) {
       const image = sessionImage({ ...session, state }, 1);
       expect(image).toContain(`>${label}<`);
       expect(image).toContain(">IJ<");
@@ -70,7 +97,12 @@ describe("Stream Deck design implementation", () => {
 
   it("uses a single SVG viewport and explicit icon colors for Stream Deck compatibility", () => {
     for (const palette of palettes) {
-      const images = [sessionImage(session, 1, { palette: palette.id }), dashboardImage(palette.id), pagerImage("next", "1/2", palette.id), emptyImage(palette.id)];
+      const images = [
+        sessionImage(session, 1, { palette: palette.id }),
+        dashboardImage(palette.id),
+        pagerImage("next", "1/2", palette.id),
+        emptyImage(palette.id),
+      ];
       for (const image of images) {
         expect([...image.matchAll(/<svg\b/g)]).toHaveLength(1);
         expect(image).not.toMatch(/currentColor|<symbol|<use/);
@@ -88,9 +120,15 @@ describe("Stream Deck design implementation", () => {
     for (const palette of palettes) {
       expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 0 }).accent).toBe(palette.states["waiting-bright"].accent);
       expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 0, waitingDimmed: true }).accent).toBe(palette.states["waiting-dim"].accent);
-      expect(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0 })).not.toBe(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0, waitingDimmed: true }));
-      expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 0, waitingDimmed: true, reducedMotion: true }).accent).toBe(palette.states["waiting-bright"].accent);
-      expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 4, waitingDimmed: true, reducedMotion: true })).toEqual(sessionColors(waiting, { palette: palette.id, flashIntensity: 4 }));
+      expect(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0 })).not.toBe(
+        sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0, waitingDimmed: true }),
+      );
+      expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 0, waitingDimmed: true, reducedMotion: true }).accent).toBe(
+        palette.states["waiting-bright"].accent,
+      );
+      expect(sessionColors(waiting, { palette: palette.id, flashIntensity: 4, waitingDimmed: true, reducedMotion: true })).toEqual(
+        sessionColors(waiting, { palette: palette.id, flashIntensity: 4 }),
+      );
     }
     for (const state of ["starting", "working", "done", "failed", "unknown"] as const) {
       expect(sessionImage({ ...session, state }, 1, { waitingDimmed: true })).toBe(sessionImage({ ...session, state }, 1, { waitingDimmed: false }));
@@ -103,7 +141,11 @@ describe("Stream Deck design implementation", () => {
     for (const palette of palettes) {
       const frames = [0, 250, 600_000].map((age) => ({ palette: palette.id, flashIntensity: 0, now: completedAt + age }));
       const colors = frames.map((options) => sessionColors(completed, options));
-      expect(colors.map((color) => color.accent)).toEqual([palette.states["done-bright"].accent, palette.states["done-dim"].accent, palette.states["done-aged"].accent]);
+      expect(colors.map((color) => color.accent)).toEqual([
+        palette.states["done-bright"].accent,
+        palette.states["done-dim"].accent,
+        palette.states["done-aged"].accent,
+      ]);
       expect(luminance(colors[0].accent)).toBeGreaterThan(luminance(colors[1].accent));
       expect(luminance(colors[1].accent)).toBeGreaterThan(luminance(colors[2].accent));
       expect(new Set(frames.map((options) => sessionSignature(completed, 1, options))).size).toBe(3);
@@ -131,12 +173,12 @@ describe("Stream Deck design implementation", () => {
       const doneAged = sessionColors(completed, { palette: palette.id, flashIntensity: 4, now: completedAt + 600_000 });
       const waitingBrightFill = luminance(waitingZero.background) >= luminance(waitingZero.accent) ? waitingZero.background : waitingZero.accent;
       const doneBrightFill = luminance(doneZero.background) >= luminance(doneZero.accent) ? doneZero.background : doneZero.accent;
-      const waitingDimTarget = luminance(palette.states["waiting-dim"].background) <= luminance(palette.canvas)
-        ? palette.states["waiting-dim"].background
-        : palette.canvas;
-      const doneDimTarget = luminance(palette.states["done-dim"].background) <= luminance(palette.states["done-aged"].background)
-        ? palette.states["done-dim"].background
-        : palette.states["done-aged"].background;
+      const waitingDimTarget =
+        luminance(palette.states["waiting-dim"].background) <= luminance(palette.canvas) ? palette.states["waiting-dim"].background : palette.canvas;
+      const doneDimTarget =
+        luminance(palette.states["done-dim"].background) <= luminance(palette.states["done-aged"].background)
+          ? palette.states["done-dim"].background
+          : palette.states["done-aged"].background;
       expect(waitingZero).toEqual(palette.states["waiting-bright"]);
       expect(doneZero).toEqual(palette.states["done-bright"]);
       expect(waitingDimZero).toEqual(palette.states["waiting-dim"]);
@@ -171,9 +213,13 @@ describe("Stream Deck design implementation", () => {
       }
       expect(waitingFour.background === waitingZero.background && waitingFour.accent === waitingZero.accent).toBe(false);
       expect(doneFour.background === doneZero.background && doneFour.accent === doneZero.accent).toBe(false);
-      expect(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0 })).not.toBe(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 4 }));
+      expect(sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 0 })).not.toBe(
+        sessionSignature(waiting, 1, { palette: palette.id, flashIntensity: 4 }),
+      );
     }
-    expect(sessionColors({ ...waiting, metadata: { ...waiting.metadata, flashIntensity: "4" } }, { flashIntensity: 0 })).toEqual(sessionColors(waiting, { flashIntensity: 4 }));
+    expect(sessionColors({ ...waiting, metadata: { ...waiting.metadata, flashIntensity: "4" } }, { flashIntensity: 0 })).toEqual(
+      sessionColors(waiting, { flashIntensity: 4 }),
+    );
   });
 
   it("changes every key type with the palette and caches metadata-only updates", () => {
@@ -190,7 +236,15 @@ describe("Stream Deck design implementation", () => {
 
   it("identifies every harness/host combination without using the model or title", () => {
     for (const identity of cardIdentities) {
-      const entry = { ...session, source: identity.id, harness: identity.id, focusTarget: undefined, metadata: { host: identity.host === "ide" || identity.id === "intellij-ai" ? "IntelliJ IDEA" : identity.host === "app-window" ? "Desktop app" : "Terminal" } };
+      const entry = {
+        ...session,
+        source: identity.id,
+        harness: identity.id,
+        focusTarget: undefined,
+        metadata: {
+          host: identity.host === "ide" || identity.id === "intellij-ai" ? "IntelliJ IDEA" : identity.host === "app-window" ? "Desktop app" : "Terminal",
+        },
+      };
       expect(sessionType(entry)).toBe(identity.id);
       expect(sessionImage(entry)).not.toBe("");
     }

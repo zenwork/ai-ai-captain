@@ -296,13 +296,13 @@ Push a budget key to open the usage page of the provider.
 
 #### Where each key gets its values
 
-| Key            | Source                                              | When the key updates                                     |
-|----------------|-----------------------------------------------------|----------------------------------------------------------|
-| OpenAI         | Codex log files on this computer. Automatic         | After Codex runs on this computer. The hub reads every 30 seconds |
-| Claude         | Claude Code status line                             | After each Claude Code response                          |
-| Claude         | Usage page of the Claude desktop app (macOS)        | Every 1.5 seconds, but only while the page is open       |
-| GitHub Copilot | `report budget` command or the API                  | When you report values                                   |
-| JetBrains AI   | `report budget` command or the API                  | When you report values                                   |
+| Key            | Source                                       | When the key updates                                              |
+| -------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| OpenAI         | Codex log files on this computer. Automatic  | After Codex runs on this computer. The hub reads every 30 seconds |
+| Claude         | Claude Code status line                      | After each Claude Code response                                   |
+| Claude         | Usage page of the Claude desktop app (macOS) | Every 1.5 seconds, but only while the page is open                |
+| GitHub Copilot | `report budget` command or the API           | When you report values                                            |
+| JetBrains AI   | `report budget` command or the API           | When you report values                                            |
 
 A key without values shows dashed bars and "?".
 
@@ -332,7 +332,6 @@ npm run report -- budget copilot --plan pro --credits-used 420 --credits-total 1
 The hub keeps reported values in `budgets.json` in its data folder, so they stay after a restart. Refer to `INT-12` in [intagration.md](intagration.md) for all options.
 
 A budget key shows the last values that a source gave. For the limits of each source, refer to [8. Known limitations](#8-known-limitations).
-
 
 ### 6.5 Give Accessibility permission (macOS)
 
@@ -519,7 +518,7 @@ The limits are in groups by operating system. In each group, they are in groups 
 ## 9. Troubleshooting
 
 | Problem                                              | Possible cause                                                                                    | Action                                                                                                                                                       |
-|------------------------------------------------------|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | All keys show **UNK**.                               | The hub starts or restarts. Or the hub cannot start.                                              | Wait 30 seconds. If the problem continues, quit the Stream Deck app and open it again.                                                                       |
 | One key shows **UNK**.                               | AI AI Captain cannot read the status of this session.                                             | On the dashboard, open **State details & evidence** for this session.                                                                                        |
 | The keys show a star only.                           | The plugin did not start correctly.                                                               | Quit the Stream Deck app and open it again. If the problem continues, install it again.                                                                      |

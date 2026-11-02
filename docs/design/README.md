@@ -7,7 +7,7 @@ Open [the self-contained default SVG](palettes/default.svg) to inspect the propo
 The [palettes directory](palettes/) contains three refined standard options plus two high-contrast directions. Every option has a complete sheet with the same identities, state phases, controls, and readability samples:
 
 | Palette     | Direction                                             | Full SVG                        | PNG                               |
-|-------------|-------------------------------------------------------|---------------------------------|-----------------------------------|
+| ----------- | ----------------------------------------------------- | ------------------------------- | --------------------------------- |
 | Fjord       | Cool slate, seafoam, powder blue; implemented default | [Sheet](palettes/fjord.svg)     | [Preview](palettes/fjord.png)     |
 | Nocturne    | Ink violet, jade, cornflower                          | [Sheet](palettes/nocturne.svg)  | [Preview](palettes/nocturne.png)  |
 | Ember & Ice | Warm graphite, olive, icy blue                        | [Sheet](palettes/ember-ice.svg) | [Preview](palettes/ember-ice.png) |
@@ -33,7 +33,7 @@ Signal and Porcelain target at least 7:1 text and identity contrast in every pha
 Assessment is a substate of DONE, not a new work state. It means that the user visited this session after its current completion, so its result is presumed reviewed; it is not proof that every word was read.
 
 | Completion substate                  | Appearance                              | Attention                              |
-|--------------------------------------|-----------------------------------------|----------------------------------------|
+| ------------------------------------ | --------------------------------------- | -------------------------------------- |
 | Fresh, not assessed                  | Bright blue, single check               | Existing progressively slower flashing |
 | Older than ten minutes, not assessed | Dark blue, single check                 | Steady                                 |
 | Assessed after a visit               | Even darker midnight blue, double check | Steady immediately, regardless of age  |
@@ -53,7 +53,7 @@ The full state wording, harness/host artwork, controls, and selectable palettes 
 The **AI Session Info** key is **Implemented**. It is a 72 × 72 key that you place directly below a session key. It shows the session of the key above it. The [info key study](session-freedom-key.svg) ([PNG](session-freedom-key.png)) is the design reference. The runtime renderer is `renderInfoCard` in `src/shared/card-design.ts`. It takes all colors from the selected palette.
 
 | Element     | Content                                                                    |
-|-------------|----------------------------------------------------------------------------|
+| ----------- | -------------------------------------------------------------------------- |
 | Top row     | Model name on the left, tokens used on the right                           |
 | Bar         | Context used, with a mark at 80%. The bar uses the warning color from 80%. |
 | Lower left  | AUTO symbol and label. The host never asks for decisions.                  |
@@ -63,11 +63,11 @@ The dashboard has a **Show info keys** option. It is on by default. It controls 
 
 A missing value shows a dashed shape or a dash. The symbol, the label, and the color carry the meaning together. Color is never the only signal.
 
-| Freedom | Symbol         | Label | Meaning                                  |
-| ------- | -------------- | ----- | ---------------------------------------- |
-| Limited | Closed padlock | LIMIT | The host restricts or asks for changes   |
-| Full    | Open padlock   | FULL  | The host can change without a barrier    |
-| Unknown | Dashed padlock | ?     | The host does not report the mode        |
+| Freedom | Symbol         | Label | Meaning                                |
+| ------- | -------------- | ----- | -------------------------------------- |
+| Limited | Closed padlock | LIMIT | The host restricts or asks for changes |
+| Full    | Open padlock   | FULL  | The host can change without a barrier  |
+| Unknown | Dashed padlock | ?     | The host does not report the mode      |
 
 | Approval | Symbol                | Label | Meaning                                    |
 | -------- | --------------------- | ----- | ------------------------------------------ |
@@ -80,7 +80,7 @@ The AUTO symbol shows only when the mode is on or unknown. A session that report
 ### Data that each host supplies
 
 | Host        | Model, tokens, context                                               | Freedom and approval                                                                      | Status                                                                                   |
-|-------------|----------------------------------------------------------------------|-------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| ----------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Codex       | `turn_context.model`; `token_count` total, last turn, context window | `sandbox_policy.type` (`danger-full-access` is full); `approval_policy` (`never` is AUTO) | **Implemented**. Verified in local rollout files. The `never` value is not seen locally. |
 | Junie       | Not read yet                                                         | `brave` key is not read yet                                                               | Not implemented. The meaning of `brave` is not verified.                                 |
 | Claude Code | Not in `sessions/<pid>.json`                                         | Not in `sessions/<pid>.json`                                                              | Not implemented. Needs a hook or a status line reporter.                                 |
@@ -101,21 +101,21 @@ The **subscription budget key** is **Implemented**. The [budget key study](subsc
 
 The key shows how much of one AI subscription is used and when it resets. It is a 72 × 72 key in the same family as the info key. It uses the canvas background, the 80% mark, and the warning color from 80%.
 
-| Element      | Content                                                                                  |
-|--------------|------------------------------------------------------------------------------------------|
-| Top row      | Brand tab: a solid header in the brand color, with the product mark and the plan name      |
-| Bars         | `5H` 5-hour window and `WK` weekly window, or one `MO` bar for monthly or 30-day credits |
-| Credits row  | Credits used over the allowance, for Copilot and JetBrains AI only                       |
-| Bottom row   | Reset time of the window that is nearest to its limit, and its percent used              |
-| Border       | Normal border below 80%. Warning border from 80% or when paid extras are in use          |
+| Element     | Content                                                                                  |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| Top row     | Brand tab: a solid header in the brand color, with the product mark and the plan name    |
+| Bars        | `5H` 5-hour window and `WK` weekly window, or one `MO` bar for monthly or 30-day credits |
+| Credits row | Credits used over the allowance, for Copilot and JetBrains AI only                       |
+| Bottom row  | Reset time of the window that is nearest to its limit, and its percent used              |
+| Border      | Normal border below 80%. Warning border from 80% or when paid extras are in use          |
 
-| Level        | Bar color     | Border       | Bottom                                      | Top right                    |
-|--------------|---------------|--------------|---------------------------------------------|------------------------------|
-| Normal       | Working color | Badge border | Reset time and percent                      | Plan                         |
-| Low (≥ 80%)  | Warning color | Warning      | Reset time and percent in the warning color | Plan                         |
-| Limit (100%) | Error color   | Error        | Error band, warning triangle, `LIMIT`       | Reset time                   |
-| Paid extras  | Error color   | Warning      | Warning band, `EXTRA` or `TOP-UP`           | Extra spend or credits left  |
-| Not reported | None          | Dashed       | `—` and `?`                                 | `?`                          |
+| Level        | Bar color     | Border       | Bottom                                      | Top right                   |
+| ------------ | ------------- | ------------ | ------------------------------------------- | --------------------------- |
+| Normal       | Working color | Badge border | Reset time and percent                      | Plan                        |
+| Low (≥ 80%)  | Warning color | Warning      | Reset time and percent in the warning color | Plan                        |
+| Limit (100%) | Error color   | Error        | Error band, warning triangle, `LIMIT`       | Reset time                  |
+| Paid extras  | Error color   | Warning      | Warning band, `EXTRA` or `TOP-UP`           | Extra spend or credits left |
+| Not reported | None          | Dashed       | `—` and `?`                                 | `?`                         |
 
 `EXTRA` is extra spend up to a budget, for example Copilot. `TOP-UP` is a balance of bought credits, for example JetBrains AI or Codex credits. A paid extra shows only while it is in use.
 
@@ -131,10 +131,10 @@ The **Toggle Info Keys**, **Cycle Theme**, and **Cycle Brightness** keys use the
 
 The key has the canvas color with a control-accent outline and no band, so it is different from the PREV and NEXT keys. The INFO key uses the same frame: DASHBOARD is small at the top, the dashboard symbol is in the middle, and INFO is large at the bottom. The name of the setting is small at the top. The current value is large in the middle:
 
-| Key              | Name at the top | Value                                                                                         |
-|------------------|-----------------|-----------------------------------------------------------------------------------------------|
-| Toggle Info Keys | INFO KEYS       | A switch, and ON or OFF. On: a filled track in the control accent. Off: an outline track      |
-| Cycle Theme      | THEME           | Four swatches with the WORKING, WAITING, DONE, and FAILED colors of the palette, and its name |
+| Key              | Name at the top | Value                                                                                                   |
+| ---------------- | --------------- | ------------------------------------------------------------------------------------------------------- |
+| Toggle Info Keys | INFO KEYS       | A switch, and ON or OFF. On: a filled track in the control accent. Off: an outline track                |
+| Cycle Theme      | THEME           | Four swatches with the WORKING, WAITING, DONE, and FAILED colors of the palette, and its name           |
 | Cycle Brightness | FLASH           | A meter with one bar for each level from 1 to 4, and the level, for example `2/4`. Level 0 fills no bar |
 
 The symbol, the label, and the color show each value together. The renderer is `renderSettingCard` in `src/shared/card-design.ts`.

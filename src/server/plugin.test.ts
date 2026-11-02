@@ -21,43 +21,68 @@ interface TestAction {
   onKeyDown(event: { action: TestKey }): Promise<void>;
 }
 
-const sdk = { actions: [] as TestAction[], info: vi.fn(), warn: vi.fn(), openUrl: vi.fn(async (_url: string) => {}) };
+const sdk = { actions: [] as TestAction[], info: vi.fn(), warn: vi.fn(), openUrl: vi.fn<(url: string) => Promise<void>>(() => Promise.resolve()) };
 let pluginCode: string;
 
 beforeAll(() => {
   pluginCode = buildSync({
     entryPoints: [fileURLToPath(new URL("../../streamdeck/src/plugin.ts", import.meta.url))],
-    bundle: true, platform: "node", format: "cjs", target: "node20", write: false, external: ["@elgato/streamdeck"],
+    bundle: true,
+    platform: "node",
+    format: "cjs",
+    target: "node20",
+    write: false,
+    external: ["@elgato/streamdeck"],
   }).outputFiles[0].text;
 });
 
 function loadPlugin(): void {
   const nodeRequire = createRequire(import.meta.url);
-  const require = (name: string) => {
+  const require = (name: string): unknown => {
     // The plugin can use Node.js built-in modules. It must bundle all other dependencies.
     if (name.startsWith("node:")) return nodeRequire(name);
     if (name !== "@elgato/streamdeck") throw new Error(`Unexpected plugin dependency: ${name}`);
     return {
       action: () => (constructor: unknown) => constructor,
-      SingletonAction: class {},
+      // A small copy of the SDK class. The plugin action classes extend it. The plugin does not read the visible actions.
+      SingletonAction: class SingletonAction {
+        readonly actions: unknown[] = [];
+      },
       streamDeck: {
         actions: { registerAction: (action: TestAction) => sdk.actions.push(action) },
         logger: { info: sdk.info, warn: sdk.warn },
         system: { openUrl: sdk.openUrl },
-        connect: async () => {},
+        connect: () => Promise.resolve(),
       },
     };
   };
-  new Function("require", pluginCode)(require);
+  // The Function constructor returns the type Function. The plugin bundle is a CommonJS module body.
+  const runPlugin = new Function("require", pluginCode) as (load: typeof require) => void;
+  runPlugin(require);
 }
 
 const waiting: Session = {
-  id: "needs-input", source: "codex-local", harness: "codex-ide", label: "Question", state: "waiting", metadata: { host: "IntelliJ IDEA" },
-  createdAt: "2026-10-25T12:00:00.000Z", updatedAt: "2026-10-25T12:00:00.000Z", lastActivityAt: "2026-10-25T12:00:00.000Z",
+  id: "needs-input",
+  source: "codex-local",
+  harness: "codex-ide",
+  label: "Question",
+  state: "waiting",
+  metadata: { host: "IntelliJ IDEA" },
+  createdAt: "2026-10-25T12:00:00.000Z",
+  updatedAt: "2026-10-25T12:00:00.000Z",
+  lastActivityAt: "2026-10-25T12:00:00.000Z",
 };
 
 function key(id: string, column: number): TestKey {
-  return { id, device: { id: "stream-deck-xl" }, coordinates: { row: 0, column }, isKey: () => true, setImage: vi.fn(async () => {}), setTitle: vi.fn(async () => {}), showAlert: vi.fn(async () => {}) };
+  return {
+    id,
+    device: { id: "stream-deck-xl" },
+    coordinates: { row: 0, column },
+    isKey: () => true,
+    setImage: vi.fn(() => Promise.resolve()),
+    setTitle: vi.fn(() => Promise.resolve()),
+    showAlert: vi.fn(() => Promise.resolve()),
+  };
 }
 
 function lastImage(action: TestKey): string {
@@ -114,7 +139,10 @@ describe("Stream Deck waiting animation", () => {
 
   it("stops pulsing when a session resumes working", async () => {
     let sessions = [waiting];
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions }))),
+    );
     loadPlugin();
     const action = sdk.actions[0];
     const sessionKey = key("session", 0);
@@ -131,7 +159,13 @@ describe("Stream Deck waiting animation", () => {
 
   it("replaces the WAIT pulse with a fresh blue completion alert", async () => {
     let sessions = [waiting];
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions, settings: { flashIntensity: 0 } }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async (url: string) =>
+          new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions, settings: { flashIntensity: 0 } })),
+      ),
+    );
     loadPlugin();
     const sessionKey = key("session", 0);
     await sdk.actions[0].onWillAppear({ action: sessionKey });
@@ -146,7 +180,9 @@ describe("Stream Deck waiting animation", () => {
 
   it("slows completion flashes, ages after ten minutes, and does not restart on polling or reappearance", async () => {
     const completed = { ...waiting, state: "done", stateChangedAt: new Date(0).toISOString() };
-    const fetchSessions = vi.fn(async () => new Response(JSON.stringify({ sessions: [{ ...completed, updatedAt: new Date().toISOString() }], settings: { flashIntensity: 0 } })));
+    const fetchSessions = vi.fn(
+      async () => new Response(JSON.stringify({ sessions: [{ ...completed, updatedAt: new Date().toISOString() }], settings: { flashIntensity: 0 } })),
+    );
     vi.stubGlobal("fetch", fetchSessions);
     loadPlugin();
     const action = sdk.actions[0];
@@ -177,7 +213,10 @@ describe("Stream Deck waiting animation", () => {
   it("stops an active completion animation exactly at the ten-minute boundary", async () => {
     vi.setSystemTime(599_900);
     const completed = { ...waiting, state: "done", stateChangedAt: new Date(0).toISOString() };
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ sessions: [completed] }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ sessions: [completed] }))),
+    );
     loadPlugin();
     const sessionKey = key("session", 0);
     await sdk.actions[0].onWillAppear({ action: sessionKey });
@@ -206,7 +245,10 @@ describe("Stream Deck waiting animation", () => {
   });
 
   it("stops attention blinking rather than showing stale WAIT when the hub is unavailable", async () => {
-    const fetchSessions = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ sessions: [waiting] }))).mockRejectedValue(new Error("Offline"));
+    const fetchSessions = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ sessions: [waiting] })))
+      .mockRejectedValue(new Error("Offline"));
     vi.stubGlobal("fetch", fetchSessions);
     loadPlugin();
     const sessionKey = key("session", 0);
@@ -265,7 +307,10 @@ describe("live palette configuration", () => {
   });
 
   it("retains the selected palette when the hub disconnects while marking sessions UNKNOWN", async () => {
-    const fetchSessions = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ sessions: [waiting], settings: { palette: "signal" } }))).mockRejectedValue(new Error("Offline"));
+    const fetchSessions = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ sessions: [waiting], settings: { palette: "signal" } })))
+      .mockRejectedValue(new Error("Offline"));
     vi.stubGlobal("fetch", fetchSessions);
     loadPlugin();
     const sessionKey = key("session", 0);
@@ -277,7 +322,10 @@ describe("live palette configuration", () => {
   });
 
   it("falls back to default artwork for an unsupported palette from an incompatible hub", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ sessions: [waiting], settings: { palette: "not-installed", flashIntensity: 0 } }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ sessions: [waiting], settings: { palette: "not-installed", flashIntensity: 0 } }))),
+    );
     loadPlugin();
     const sessionKey = key("session", 0);
     await sdk.actions[0].onWillAppear({ action: sessionKey });
@@ -287,7 +335,9 @@ describe("live palette configuration", () => {
 
 describe("dashboard keys", () => {
   it("reuses the tab through the hub and opens a new tab after a permission failure", async () => {
-    const request = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ opened: true, reused: true })))
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ opened: true, reused: true })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ opened: false, reason: "Accessibility permission required" })));
     vi.stubGlobal("fetch", request);
     loadPlugin();
@@ -301,8 +351,13 @@ describe("dashboard keys", () => {
   });
 
   it("opens a new tab for older hubs and server errors", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response("Not found", { status: 404 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "Failed" }), { status: 500 })));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response("Not found", { status: 404 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ error: "Failed" }), { status: 500 })),
+    );
     loadPlugin();
     const info = key("info", 0);
     await sdk.actions[3].onKeyDown({ action: info });
@@ -313,7 +368,10 @@ describe("dashboard keys", () => {
   });
 
   it("does not open another tab when the hub already used its fallback", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ opened: true, reused: false, reason: "Tab reuse failed" }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ opened: true, reused: false, reason: "Tab reuse failed" }))),
+    );
     loadPlugin();
     const info = key("info", 0);
     await sdk.actions[3].onKeyDown({ action: info });
@@ -322,7 +380,10 @@ describe("dashboard keys", () => {
   });
 
   it("opens a new tab when the hub response is not valid JSON", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("invalid")));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("invalid")),
+    );
     loadPlugin();
     const info = key("info", 0);
     await sdk.actions[3].onKeyDown({ action: info });
@@ -351,7 +412,9 @@ describe("dashboard keys", () => {
 
   it("keeps a custom INFO location fixed as sessions arrive and fills session keys around it", async () => {
     let sessions = [waiting];
-    const fetchSessions = vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions })));
+    const fetchSessions = vi.fn(
+      async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions })),
+    );
     vi.stubGlobal("fetch", fetchSessions);
     loadPlugin();
     const first = key("first", 0);
@@ -392,7 +455,10 @@ describe("dashboard keys", () => {
   });
 
   it("does not add an automatic INFO key when there are no sessions", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ sessions: [] }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ sessions: [] }))),
+    );
     loadPlugin();
     const first = key("first", 0);
     await sdk.actions[0].onWillAppear({ action: first });
@@ -403,7 +469,9 @@ describe("dashboard keys", () => {
 
   it("pages and focuses every session when INFO and other controls occupy custom positions", async () => {
     const sessions = Array.from({ length: 3 }, (_unused, index) => ({ ...waiting, id: `session-${index}` }));
-    const fetchSessions = vi.fn(async (_url: string, options?: RequestInit) => new Response(JSON.stringify(options?.method === "POST" ? { focused: true } : { sessions })));
+    const fetchSessions = vi.fn(
+      async (_url: string, options?: RequestInit) => new Response(JSON.stringify(options?.method === "POST" ? { focused: true } : { sessions })),
+    );
     vi.stubGlobal("fetch", fetchSessions);
     loadPlugin();
     const first = key("first", 2);
@@ -441,11 +509,11 @@ describe("dashboard keys", () => {
     let sessions: Session[] = [done, active];
     const fetchSessions = vi.fn(async (url: string, options?: RequestInit) => {
       if (url.endsWith("/dismiss")) {
-        sessions = sessions.map((session) => session.id === "finished" ? { ...session, dismissedAt: new Date().toISOString() } : session);
+        sessions = sessions.map((session) => (session.id === "finished" ? { ...session, dismissedAt: new Date().toISOString() } : session));
         return new Response(JSON.stringify({ session: sessions[0] }));
       }
       if (url.endsWith("/attend")) {
-        sessions = sessions.map((session) => session.id === "finished" ? { ...session, attendedAt: new Date().toISOString() } : session);
+        sessions = sessions.map((session) => (session.id === "finished" ? { ...session, attendedAt: new Date().toISOString() } : session));
         return new Response(JSON.stringify({ session: sessions[0] }));
       }
       return new Response(JSON.stringify(options?.method === "POST" ? { focused: true } : { sessions }));
@@ -456,7 +524,7 @@ describe("dashboard keys", () => {
     const second = key("second", 1);
     await sdk.actions[0].onWillAppear({ action: first });
     await sdk.actions[0].onWillAppear({ action: second });
-    const urls = () => fetchSessions.mock.calls.map(([url]) => String(url));
+    const urls = () => fetchSessions.mock.calls.map(([url]) => url);
     // A WORKING session gets focus at once.
     await sdk.actions[0].onKeyDown({ action: second });
     expect(urls()).toContain("http://127.0.0.1:43681/api/sessions/active/focus");
@@ -483,7 +551,10 @@ describe("dashboard keys", () => {
 
   it("keeps session layouts and paging independent across devices", async () => {
     const sessions = Array.from({ length: 3 }, (_unused, index) => ({ ...waiting, id: `session-${index}` }));
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions }))),
+    );
     loadPlugin();
     const first = key("first", 0);
     const second = key("second", 2);
@@ -520,7 +591,10 @@ describe("dashboard keys", () => {
 
   it("never replaces a real session with INFO on a full session page", async () => {
     const sessions = Array.from({ length: 30 }, (_unused, index) => ({ ...waiting, id: `session-${String(index).padStart(2, "0")}` }));
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/api/dashboard/open") ? { opened: true, reused: true } : { sessions }))),
+    );
     loadPlugin();
     const keys = Array.from({ length: 30 }, (_unused, index) => {
       const action = key(`key-${index}`, index % 8);

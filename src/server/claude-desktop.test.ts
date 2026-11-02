@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
+import { z } from "zod";
 import { ClaudeDesktopTracker, claudeDesktopInspectionScript, claudeModelName } from "./claude-desktop.js";
 import { SessionStore } from "./store.js";
 import { BudgetStore } from "./budgets.js";
@@ -10,6 +11,18 @@ import { doneAttention } from "../shared/attention.js";
 const sessionId = "6ef2c5c7-a520-49a1-b6fb-5b3831863a22";
 const taskId = "cse_019ewEg4CX1aSU5w19VAT66W";
 const codeTaskId = "session_019ewEg4CX1aSU5w19VAT66W";
+
+// The raw output of the inspector script. The schemas keep unknown keys, so that the privacy checks see all the output.
+const inspectorSessionSchema = z.looseObject({
+  kind: z.string().optional(),
+  sessionId: z.string(),
+  state: z.string(),
+  titleKey: z.string().optional(),
+  model: z.string().optional(),
+  seen: z.boolean().optional(),
+});
+const inspectorSnapshotSchema = z.looseObject({ status: z.string(), sessions: z.array(inspectorSessionSchema), usage: z.unknown().optional() });
+type InspectorScript = (objectiveC: unknown, bridge: unknown, reference: unknown, argv: string[]) => unknown;
 const application = { pid: 10, parentPid: 1, name: "/Applications/Claude.app/Contents/MacOS/Claude" };
 const stores: SessionStore[] = [];
 
@@ -25,16 +38,19 @@ function element(role: string, attributes: Record<string, unknown> = {}, childre
 
 // Build a sidebar row like the Claude desktop app 1.x exposes it. Static text holds the title and must not be read.
 function row(prefix: string, indicator: NativeElement, title: string): NativeElement {
-  return element("AXGroup", {}, [element("AXGroup", {}, [
-    element("AXButton", { AXTitle: `${prefix} ${title}` }, [indicator, element("AXGroup", {}, [element("AXStaticText", { AXValue: title })])]),
-    element("AXGroup", {}, [element("AXPopUpButton", { AXDescription: `More options for ${title}` })]),
-  ])]);
+  return element("AXGroup", {}, [
+    element("AXGroup", {}, [
+      element("AXButton", { AXTitle: `${prefix} ${title}` }, [indicator, element("AXGroup", {}, [element("AXStaticText", { AXValue: title })])]),
+      element("AXGroup", {}, [element("AXPopUpButton", { AXDescription: `More options for ${title}` })]),
+    ]),
+  ]);
 }
 const status = (label: string) => element("AXGroup", { AXSubrole: "AXApplicationStatus", AXDescription: label });
 const running = (title: string) => row("Running", element("AXGroup", {}, [status("Running")]), title);
 const awaiting = (title: string) => row("Awaiting input", status("Awaiting input"), title);
 const unread = (title: string) => row("Mark as read", element("AXButton", { AXDescription: "Mark as read" }, [status("Unread response")]), title);
-const done = (title: string) => row("Mark as unread", element("AXButton", { AXDescription: "Mark as unread" }, [element("AXImage", { AXDescription: "Done" })]), title);
+const done = (title: string) =>
+  row("Mark as unread", element("AXButton", { AXDescription: "Mark as unread" }, [element("AXImage", { AXDescription: "Done" })]), title);
 const idle = (title: string) => row("Idle", element("AXImage", { AXDescription: "Idle" }), title);
 const activity = (label: string, title: string) => row(label, element("AXGroup", {}, [status(label)]), title);
 function sidebar(rows: NativeElement[]): NativeElement {
@@ -86,10 +102,10 @@ interface InspectOptions {
   onClick?: (point: { x: number; y: number }) => void;
 }
 
-function inspect(controls: NativeElement[], options: InspectOptions = {}) {
+function runInspector(controls: NativeElement[], options: InspectOptions) {
   const inspected = vi.fn();
-  const pressed = vi.fn((_entry: NativeElement, _action: string) => 0);
-  const activated = vi.fn();
+  const pressed = vi.fn<(entry: NativeElement, action: string) => number>(() => 0);
+  const activated = vi.fn<(pid: number) => void>();
   const posted = vi.fn();
   const warped = vi.fn();
   const cursor = { x: 1, y: 2 };
@@ -108,7 +124,13 @@ function inspect(controls: NativeElement[], options: InspectOptions = {}) {
     AXUIElementSetMessagingTimeout: vi.fn(),
     AXUIElementPerformAction: pressed,
     NSApplicationActivateIgnoringOtherApps: 2,
-    NSRunningApplication: { runningApplicationWithProcessIdentifier: (pid: number) => ({ activateWithOptions: () => activated(pid) }) },
+    NSRunningApplication: {
+      runningApplicationWithProcessIdentifier: (pid: number) => ({
+        activateWithOptions: () => {
+          activated(pid);
+        },
+      }),
+    },
     CGEventCreate: () => ({}),
     CGEventGetLocation: () => cursor,
     CGEventCreateMouseEvent: (_source: unknown, type: number, point: { x: number; y: number }) => ({ type, point }),
@@ -124,8 +146,10 @@ function inspect(controls: NativeElement[], options: InspectOptions = {}) {
       else if (attribute === "AXWindows") value = array(windows);
       else if (attribute === "AXChildren") value = array(entry.children);
       else if (attribute === "AXParent") value = parentOf(windows, entry);
-      else if (attribute === "AXPosition" || attribute === "AXSize") value = entry.attributes[attribute] === undefined ? undefined : { description: entry.attributes[attribute] };
-      else if (attribute === "AXURL") value = entry.attributes.AXURL === undefined ? undefined : { isKindOfClass: () => true, absoluteString: entry.attributes.AXURL };
+      else if (attribute === "AXPosition" || attribute === "AXSize")
+        value = entry.attributes[attribute] === undefined ? undefined : { description: entry.attributes[attribute] };
+      else if (attribute === "AXURL")
+        value = entry.attributes.AXURL === undefined ? undefined : { isKindOfClass: () => true, absoluteString: entry.attributes.AXURL };
       else value = entry.attributes[attribute];
       if (value === undefined) return -25205;
       // An element reference (AXParent) is used as it is, like the elements in a children array.
@@ -133,10 +157,28 @@ function inspect(controls: NativeElement[], options: InspectOptions = {}) {
       return 0;
     },
   });
-  const script = new Function("ObjC", "$", "Ref", "argv", `${claudeDesktopInspectionScript}; return run(argv);`);
+  // The Function constructor returns the type Function. The inspector script has this signature.
+  const script = new Function("ObjC", "$", "Ref", "argv", `${claudeDesktopInspectionScript}; return run(argv);`) as InspectorScript;
   const argv = options.pressKey ? ["10", options.pressKey] : ["10"];
-  const result = script({ import: vi.fn(), castRefToObject: (value: object) => references.get(value), unwrap: (value: unknown) => value }, bridge, () => [], argv);
-  return { snapshot: options.pressKey ? result : JSON.parse(result), inspected, pressed, activated, posted, warped, cursor };
+  const output = script(
+    { import: vi.fn(), castRefToObject: (value: object) => references.get(value), unwrap: (value: unknown) => value },
+    bridge,
+    () => [],
+    argv,
+  );
+  return { output, inspected, pressed, activated, posted, warped, cursor };
+}
+
+/** Runs the inspector and validates its snapshot. */
+function inspect(controls: NativeElement[], options: Omit<InspectOptions, "pressKey"> = {}) {
+  const { output, ...calls } = runInspector(controls, options);
+  return { snapshot: inspectorSnapshotSchema.parse(JSON.parse(String(output))), ...calls };
+}
+
+/** Runs the inspector to press the sidebar row with the key. Returns the outcome text, for example "clicked". */
+function press(controls: NativeElement[], options: InspectOptions & { pressKey: string }) {
+  const { output, ...calls } = runInspector(controls, options);
+  return { outcome: String(output), ...calls };
 }
 
 afterEach(async () => {
@@ -146,7 +188,10 @@ afterEach(async () => {
 
 describe("Claude desktop chat inspection", () => {
   it.skipIf(process.platform !== "darwin")("converts native URL and array references without reading an application", async () => {
-    const helpers = claudeDesktopInspectionScript.slice(claudeDesktopInspectionScript.indexOf("  function scalar"), claudeDesktopInspectionScript.indexOf("  try {"));
+    const helpers = claudeDesktopInspectionScript.slice(
+      claudeDesktopInspectionScript.indexOf("  function scalar"),
+      claudeDesktopInspectionScript.indexOf("  try {"),
+    );
     const script = `
       ObjC.import("Foundation");
       ObjC.import("CoreFoundation");
@@ -182,26 +227,35 @@ describe("Claude desktop chat inspection", () => {
   it("identifies Claude Code and Cowork tasks from their session URL", () => {
     const working = inspect([element("AXButton", { AXDescription: "Stop" })], { location: `https://claude.ai/cowork/${taskId}` });
     expect(working.snapshot).toEqual({ status: "available", sessions: [{ kind: "task", sessionId: taskId, state: "working" }] });
-    expect(inspect([element("AXButton", { AXTitle: "Allow" })], { location: `https://claude.ai/cowork/${taskId}?tab=1` }).snapshot.sessions[0].state).toBe("waiting");
-    expect(inspect([], { location: `https://claude.ai/code/${codeTaskId}` }).snapshot.sessions).toEqual([{ kind: "task", sessionId: codeTaskId, state: "unknown" }]);
+    expect(inspect([element("AXButton", { AXTitle: "Allow" })], { location: `https://claude.ai/cowork/${taskId}?tab=1` }).snapshot.sessions[0].state).toBe(
+      "waiting",
+    );
+    expect(inspect([], { location: `https://claude.ai/code/${codeTaskId}` }).snapshot.sessions).toEqual([
+      { kind: "task", sessionId: codeTaskId, state: "unknown" },
+    ]);
     expect(inspect([], { location: `https://claude.ai/code/${taskId}` }).snapshot.sessions).toEqual([]);
     expect(inspect([], { location: "https://claude.ai/cowork/cse_short" }).snapshot.sessions).toEqual([]);
-    expect(inspect([], { location: "file:///Applications/Claude.app/Contents/Resources/app.asar/.vite/renderer/main_window/index.html" }).snapshot.sessions).toEqual([]);
+    expect(
+      inspect([], { location: "file:///Applications/Claude.app/Contents/Resources/app.asar/.vite/renderer/main_window/index.html" }).snapshot.sessions,
+    ).toEqual([]);
     expect(inspect([], { location: "https://claude.ai/code" }).snapshot.sessions).toEqual([]);
   });
 
   it("reports each active sidebar row with a title key and no title text", () => {
-    const result = inspect([sidebar([
-      unread("private-a"), running("private-b"), done("private-c"), awaiting("private-d"), idle("private-e"),
-    ])], { location: "https://claude.ai/new" });
+    const result = inspect([sidebar([unread("private-a"), running("private-b"), done("private-c"), awaiting("private-d"), idle("private-e")])], {
+      location: "https://claude.ai/new",
+    });
     expect(result.snapshot.status).toBe("available");
     const rows = result.snapshot.sessions;
-    expect(rows.map((session: { state: string }) => session.state).sort()).toEqual(["done", "done", "waiting", "working"]);
-    for (const session of rows) expect(session).toMatchObject({ kind: "row", sessionId: expect.stringMatching(/^[0-9a-f]{16}$/) });
-    expect(new Set(rows.map((session: { sessionId: string }) => session.sessionId)).size).toBe(4);
+    expect(rows.map((session) => session.state).sort()).toEqual(["done", "done", "waiting", "working"]);
+    for (const session of rows) {
+      expect(session.kind).toBe("row");
+      expect(session.sessionId).toMatch(/^[0-9a-f]{16}$/);
+    }
+    expect(new Set(rows.map((session) => session.sessionId)).size).toBe(4);
     expect(JSON.stringify(result.snapshot)).not.toContain("private-");
     // The read row (Done) has seen; the unread row (Unread response) does not.
-    expect(rows.filter((session: { seen?: boolean }) => session.seen === true)).toHaveLength(1);
+    expect(rows.filter((session) => session.seen === true)).toHaveLength(1);
     expect(result.inspected.mock.calls.some(([role, attribute]) => role === "AXStaticText" && attribute !== "AXRole")).toBe(false);
   });
 
@@ -209,16 +263,20 @@ describe("Claude desktop chat inspection", () => {
     const running = inspect([sidebar([row("Running", element("AXGroup", {}, [status("Running")]), "Task")])], { location: "https://claude.ai/new" });
     const browsing = inspect([sidebar([activity("Using the browser", "Task")])], { location: "https://claude.ai/new" });
     expect(browsing.snapshot.sessions).toEqual([{ kind: "row", sessionId: running.snapshot.sessions[0].sessionId, state: "working" }]);
-    const states = ["Awaiting answer", "Completed", "Error", "Archived"].map((label) => inspect([sidebar([activity(label, "Task")])], { location: "https://claude.ai/new" }).snapshot.sessions[0]?.state);
+    const states = ["Awaiting answer", "Completed", "Error", "Archived"].map(
+      (label) => inspect([sidebar([activity(label, "Task")])], { location: "https://claude.ai/new" }).snapshot.sessions[0]?.state,
+    );
     expect(states).toEqual(["waiting", "done", "failed", undefined]);
   });
 
   it("gives rows with the same title different keys and does not apply page controls to the sidebar", () => {
-    const result = inspect([sidebar([running("Same"), running("Same"), row("Stop", status("Running"), "x")])], { location: `https://claude.ai/cowork/${taskId}` });
-    const keys = result.snapshot.sessions.filter((session: { kind: string }) => session.kind === "row").map((session: { sessionId: string }) => session.sessionId);
+    const result = inspect([sidebar([running("Same"), running("Same"), row("Stop", status("Running"), "x")])], {
+      location: `https://claude.ai/cowork/${taskId}`,
+    });
+    const keys = result.snapshot.sessions.filter((session) => session.kind === "row").map((session) => session.sessionId);
     expect(keys).toHaveLength(3);
     expect(keys.filter((key: string) => key.endsWith("-2"))).toHaveLength(1);
-    expect(result.snapshot.sessions.find((session: { kind: string }) => session.kind === "task").state).toBe("unknown");
+    expect(result.snapshot.sessions.find((session) => session.kind === "task")?.state).toBe("unknown");
   });
 
   it("gives the open page the title key of its sidebar row", () => {
@@ -231,24 +289,29 @@ describe("Claude desktop chat inspection", () => {
     const windows = parseTree(readFileSync(new URL("./fixtures/claude-desktop-cowork-sidebar.txt", import.meta.url), "utf8"));
     const { snapshot } = inspect([], { windows });
     expect(snapshot.status).toBe("available");
-    const rows = snapshot.sessions.filter((session: { kind: string }) => session.kind === "row");
-    const count = (state: string) => rows.filter((session: { state: string }) => session.state === state).length;
-    expect({ working: count("working"), waiting: count("waiting"), done: count("done"), total: rows.length }).toEqual({ working: 3, waiting: 1, done: 3, total: 7 });
+    const rows = snapshot.sessions.filter((session) => session.kind === "row");
+    const count = (state: string) => rows.filter((session) => session.state === state).length;
+    expect({ working: count("working"), waiting: count("waiting"), done: count("done"), total: rows.length }).toEqual({
+      working: 3,
+      waiting: 1,
+      done: 3,
+      total: 7,
+    });
     // "Mark as unread" rows are read (Done). The fixture has no unread row.
-    expect(rows.filter((session: { seen?: boolean }) => session.seen === true)).toHaveLength(3);
-    expect(rows.filter((session: { state: string; seen?: boolean }) => session.state !== "done" && session.seen)).toHaveLength(0);
-    const page = snapshot.sessions.find((session: { kind: string }) => session.kind === "task");
+    expect(rows.filter((session) => session.seen === true)).toHaveLength(3);
+    expect(rows.filter((session) => session.state !== "done" && session.seen)).toHaveLength(0);
+    const page = snapshot.sessions.find((session) => session.kind === "task");
     expect(page).toMatchObject({ sessionId: "cse_000000000000000000000001", state: "working" });
-    expect(rows.find((session: { sessionId: string }) => session.sessionId === page.titleKey)?.state).toBe("working");
-    expect(page.model).toBe("Opus 5.5 Medium");
-    expect(rows.every((session: { model?: string }) => session.model === undefined)).toBe(true);
+    expect(rows.find((session) => session.sessionId === page?.titleKey)?.state).toBe("working");
+    expect(page?.model).toBe("Opus 5.5 Medium");
+    expect(rows.every((session) => session.model === undefined)).toBe(true);
   });
 
   it("reads the model picker of the open page but not of the sidebar", () => {
-    const result = inspect([
-      sidebar([element("AXPopUpButton", { AXDescription: "Model: Sidebar 1" })]),
-      element("AXPopUpButton", { AXDescription: "Model: Sonnet 5 High" }),
-    ], { location: `https://claude.ai/cowork/${taskId}` });
+    const result = inspect(
+      [sidebar([element("AXPopUpButton", { AXDescription: "Model: Sidebar 1" })]), element("AXPopUpButton", { AXDescription: "Model: Sonnet 5 High" })],
+      { location: `https://claude.ai/cowork/${taskId}` },
+    );
     expect(result.snapshot.sessions[0]).toMatchObject({ kind: "task", model: "Sonnet 5 High" });
     expect(claudeModelName("Opus 5.5 Medium")).toBe("claude-opus-5-5");
     expect(claudeModelName("Sonnet 5 High")).toBe("claude-sonnet-5");
@@ -265,18 +328,38 @@ describe("Claude desktop chat inspection", () => {
       }
       return undefined;
     };
-    const page = (windows: NativeElement[]) => find(windows, (node) => node.role === "AXWebArea" && String(node.attributes.AXURL).startsWith("https://claude.ai/"))!;
+    const page = (windows: NativeElement[]) =>
+      find(windows, (node) => node.role === "AXWebArea" && String(node.attributes.AXURL).startsWith("https://claude.ai/"))!;
     const rowFor = (windows: NativeElement[], title: string) => find(windows, (node) => node.role === "AXButton" && node.attributes.AXTitle === title)!;
-    const keyOf = (windows: NativeElement[], state: string) => inspect([], { windows }).snapshot.sessions.find((session: { kind: string; state: string }) => session.kind === "row" && session.state === state).sessionId;
-    const open = (windows: NativeElement[], title: string) => { page(windows).attributes.AXTitle = `${title} - Claude`; };
+    const keyOf = (windows: NativeElement[], state: string) => {
+      const session = inspect([], { windows }).snapshot.sessions.find((candidate) => candidate.kind === "row" && candidate.state === state);
+      if (!session) throw new Error(`The fixture has no ${state} row`);
+      return session.sessionId;
+    };
+    const open = (windows: NativeElement[], title: string) => {
+      page(windows).attributes.AXTitle = `${title} - Claude`;
+    };
 
     it("clicks the center of the row without an Accessibility press, then restores the pointer", () => {
       const windows = fixture();
-      Object.assign(rowFor(windows, "Awaiting input Task 8").attributes, { AXPosition: "{value = x:100.000000 y:200.000000 type = kAXValueCGPointType}", AXSize: "{value = w:240.000000 h:30.000000 type = kAXValueCGSizeType}" });
-      const result = inspect([], { windows, pressKey: keyOf(windows, "waiting"), onClick: () => open(windows, "Task 8") });
-      expect(result.snapshot).toBe("clicked");
+      Object.assign(rowFor(windows, "Awaiting input Task 8").attributes, {
+        AXPosition: "{value = x:100.000000 y:200.000000 type = kAXValueCGPointType}",
+        AXSize: "{value = w:240.000000 h:30.000000 type = kAXValueCGSizeType}",
+      });
+      const result = press([], {
+        windows,
+        pressKey: keyOf(windows, "waiting"),
+        onClick: () => {
+          open(windows, "Task 8");
+        },
+      });
+      expect(result.outcome).toBe("clicked");
       expect(result.pressed).not.toHaveBeenCalled();
-      expect(result.posted.mock.calls).toEqual([[5, { x: 220, y: 215 }], [1, { x: 220, y: 215 }], [2, { x: 220, y: 215 }]]);
+      expect(result.posted.mock.calls).toEqual([
+        [5, { x: 220, y: 215 }],
+        [1, { x: 220, y: 215 }],
+        [2, { x: 220, y: 215 }],
+      ]);
       expect(result.warped).toHaveBeenCalledWith(result.cursor);
       expect(result.activated).toHaveBeenCalledWith(10);
     });
@@ -284,8 +367,8 @@ describe("Claude desktop chat inspection", () => {
     it("reports an already open row without pressing it", () => {
       const windows = fixture();
       open(windows, "Task 8");
-      const result = inspect([], { windows, pressKey: keyOf(windows, "waiting") });
-      expect(result.snapshot).toBe("open");
+      const result = press([], { windows, pressKey: keyOf(windows, "waiting") });
+      expect(result.outcome).toBe("open");
       expect(result.posted).not.toHaveBeenCalled();
       expect(result.activated).toHaveBeenCalledWith(10);
     });
@@ -293,33 +376,42 @@ describe("Claude desktop chat inspection", () => {
     it("throws when the row does not open, is missing, or access is denied", () => {
       const windows = fixture();
       Object.assign(rowFor(windows, "Awaiting input Task 8").attributes, { AXPosition: "x:1.0 y:1.0", AXSize: "w:1.0 h:1.0" });
-      expect(() => inspect([], { windows, pressKey: keyOf(windows, "waiting") })).toThrow("ROW_NOT_OPENED");
-      expect(() => inspect([], { windows, pressKey: "0000000000000000" })).toThrow("ROW_NOT_PRESSED");
-      expect(() => inspect([], { windows, pressKey: "0000000000000000", trusted: false })).toThrow("ROW_NOT_PRESSED");
+      expect(() => press([], { windows, pressKey: keyOf(windows, "waiting") })).toThrow("ROW_NOT_OPENED");
+      expect(() => press([], { windows, pressKey: "0000000000000000" })).toThrow("ROW_NOT_PRESSED");
+      expect(() => press([], { windows, pressKey: "0000000000000000", trusted: false })).toThrow("ROW_NOT_PRESSED");
     });
   });
 
   it("reads the two limit meters of the Usage page and only the reset texts next to them", () => {
-    const meter = (title: string, value: string, reset: string) => element("AXGroup", {}, [
-      element("AXStaticText", { AXValue: reset }),
-      element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: title, AXValue: value }),
-      element("AXStaticText", { AXValue: value }),
-    ]);
-    const result = inspect([
-      element("AXHeading", { AXTitle: "Your usage" }),
-      meter("Current session", "46% used", "Resets Mon 12:50 AM"),
-      meter("This week", "8% used", "Resets Sunday 5:00 PM"),
-      meter("Claude Code", "1%", "private 12%"),
-      element("AXStaticText", { AXValue: "private message with 99%" }),
-    ], { location: `https://claude.ai/cowork/${taskId}#settings/usage` });
+    const meter = (title: string, value: string, reset: string) =>
+      element("AXGroup", {}, [
+        element("AXStaticText", { AXValue: reset }),
+        element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: title, AXValue: value }),
+        element("AXStaticText", { AXValue: value }),
+      ]);
+    const result = inspect(
+      [
+        element("AXHeading", { AXTitle: "Your usage" }),
+        meter("Current session", "46% used", "Resets Mon 12:50 AM"),
+        meter("This week", "8% used", "Resets Sunday 5:00 PM"),
+        meter("Claude Code", "1%", "private 12%"),
+        element("AXStaticText", { AXValue: "private message with 99%" }),
+      ],
+      { location: `https://claude.ai/cowork/${taskId}#settings/usage` },
+    );
     expect(result.snapshot.usage).toEqual({ session: { percent: 46, reset: "Resets Mon 12:50 AM" }, week: { percent: 8, reset: "Resets Sunday 5:00 PM" } });
     // On the real page, both meters share one group. Each one takes the reset text just before it.
-    const shared = inspect([element("AXGroup", {}, [
-      element("AXStaticText", { AXValue: "Resets Mon 12:50 AM" }),
-      element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: "Current session", AXValue: "46% used" }),
-      element("AXStaticText", { AXValue: "Resets Sunday 5:00 PM" }),
-      element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: "This week", AXValue: "8% used" }),
-    ])], { location: `https://claude.ai/cowork/${taskId}#settings/usage` });
+    const shared = inspect(
+      [
+        element("AXGroup", {}, [
+          element("AXStaticText", { AXValue: "Resets Mon 12:50 AM" }),
+          element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: "Current session", AXValue: "46% used" }),
+          element("AXStaticText", { AXValue: "Resets Sunday 5:00 PM" }),
+          element("AXLevelIndicator", { AXSubrole: "AXMeter", AXTitle: "This week", AXValue: "8% used" }),
+        ]),
+      ],
+      { location: `https://claude.ai/cowork/${taskId}#settings/usage` },
+    );
     expect(shared.snapshot.usage).toEqual({ session: { percent: 46, reset: "Resets Mon 12:50 AM" }, week: { percent: 8, reset: "Resets Sunday 5:00 PM" } });
     expect(JSON.stringify(result.snapshot)).not.toContain("private");
     expect(inspect([], { location: `https://claude.ai/cowork/${taskId}` }).snapshot.usage).toBeUndefined();
@@ -360,7 +452,10 @@ describe("Claude desktop chat tracking", () => {
     const store = new SessionStore();
     stores.push(store);
     let clock = Date.parse("2026-11-01T10:00:00Z");
-    const rows = [{ kind: "row", sessionId: "0123456789abcdef", state: "working" }, { kind: "row", sessionId: "fedcba9876543210", state: "working" }];
+    const rows = [
+      { kind: "row", sessionId: "0123456789abcdef", state: "working" },
+      { kind: "row", sessionId: "fedcba9876543210", state: "working" },
+    ];
     const read = vi.fn(async () => ({ status: "available", sessions: rows }));
     const tracker = new ClaudeDesktopTracker(store, read, () => clock);
     await tracker.scan([application]);
@@ -389,7 +484,11 @@ describe("Claude desktop chat tracking", () => {
     let clock = Date.parse("2026-11-01T10:00:00Z");
     const row = { kind: "row", sessionId: "0123456789abcdef", state: "working" } as Record<string, unknown>;
     const old = { kind: "row", sessionId: "fedcba9876543210", state: "done" };
-    const tracker = new ClaudeDesktopTracker(store, async () => ({ status: "available", sessions: [row, old] }), () => clock);
+    const tracker = new ClaudeDesktopTracker(
+      store,
+      async () => ({ status: "available", sessions: [row, old] }),
+      () => clock,
+    );
     await tracker.scan([application]);
     // A row that is already DONE at the first scan has no known completion time.
     expect(doneAttention(store.get("claude-row:fedcba9876543210")!, clock)?.phase).toBe("aged");
@@ -415,10 +514,20 @@ describe("Claude desktop chat tracking", () => {
     const budgets = new BudgetStore();
     budgets.upsert({ provider: "claude", source: "claude-statusline", plan: "max", windows: [{ kind: "five-hour", usedPercent: 10 }] });
     const now = new Date(2026, 10, 1, 22, 0).getTime();
-    const tracker = new ClaudeDesktopTracker(store, async () => ({ status: "available", sessions: [], usage: { session: { percent: 46, reset: "Resets Mon 12:50 AM" }, week: { percent: 8, reset: "Resets Sunday 5:00 PM" } } }), () => now, budgets);
+    const tracker = new ClaudeDesktopTracker(
+      store,
+      async () => ({
+        status: "available",
+        sessions: [],
+        usage: { session: { percent: 46, reset: "Resets Mon 12:50 AM" }, week: { percent: 8, reset: "Resets Sunday 5:00 PM" } },
+      }),
+      () => now,
+      budgets,
+    );
     await tracker.scan([application]);
     expect(budgets.get("claude")).toMatchObject({
-      source: "claude-desktop-usage", plan: "max",
+      source: "claude-desktop-usage",
+      plan: "max",
       windows: [
         { kind: "five-hour", usedPercent: 46, resetsAt: new Date(2026, 10, 2, 0, 50).toISOString() },
         { kind: "weekly", usedPercent: 8, resetsAt: new Date(2026, 10, 8, 17, 0).toISOString() },
@@ -431,7 +540,9 @@ describe("Claude desktop chat tracking", () => {
     vi.setSystemTime(new Date("2026-10-26T08:00:00Z"));
     const store = new SessionStore();
     stores.push(store);
-    const read = vi.fn().mockResolvedValueOnce({ status: "available", sessions: [{ sessionId, state: "done" }] })
+    const read = vi
+      .fn()
+      .mockResolvedValueOnce({ status: "available", sessions: [{ sessionId, state: "done" }] })
       .mockResolvedValueOnce({ status: "permission-denied", sessions: [] })
       .mockResolvedValueOnce({ status: "available", sessions: [{ sessionId, state: "done" }] });
     const tracker = new ClaudeDesktopTracker(store, read);
@@ -459,7 +570,10 @@ describe("Claude desktop chat tracking", () => {
   it("rejects malformed task identifiers from the inspector", async () => {
     const store = new SessionStore();
     stores.push(store);
-    const tracker = new ClaudeDesktopTracker(store, async () => ({ status: "available", sessions: [{ kind: "task", sessionId: "session_../x", state: "working" }] }));
+    const tracker = new ClaudeDesktopTracker(store, async () => ({
+      status: "available",
+      sessions: [{ kind: "task", sessionId: "session_../x", state: "working" }],
+    }));
     await expect(tracker.scan([application])).rejects.toThrow();
     expect(store.list()).toEqual([]);
   });
@@ -467,12 +581,15 @@ describe("Claude desktop chat tracking", () => {
   it("tracks each sidebar row as a session and merges the open page into its row", async () => {
     const store = new SessionStore();
     stores.push(store);
-    const read = vi.fn(async () => ({ status: "available", sessions: [
-      { kind: "row", sessionId: "0123456789abcdef", state: "working" },
-      { kind: "row", sessionId: "fedcba9876543210", state: "waiting" },
-      { kind: "chat", sessionId, titleKey: "fedcba9876543210", state: "done" },
-      { kind: "task", sessionId: taskId, titleKey: "0123456789abcdef", state: "unknown" },
-    ] }));
+    const read = vi.fn(async () => ({
+      status: "available",
+      sessions: [
+        { kind: "row", sessionId: "0123456789abcdef", state: "working" },
+        { kind: "row", sessionId: "fedcba9876543210", state: "waiting" },
+        { kind: "chat", sessionId, titleKey: "fedcba9876543210", state: "done" },
+        { kind: "task", sessionId: taskId, titleKey: "0123456789abcdef", state: "unknown" },
+      ],
+    }));
     const tracker = new ClaudeDesktopTracker(store, read);
     await tracker.scan([application]);
     const sessions = store.list();
@@ -487,8 +604,15 @@ describe("Claude desktop chat tracking", () => {
   it("keeps the row identity when the user leaves the open page", async () => {
     const store = new SessionStore();
     stores.push(store);
-    const read = vi.fn()
-      .mockResolvedValueOnce({ status: "available", sessions: [{ kind: "row", sessionId: "0123456789abcdef", state: "working" }, { kind: "task", sessionId: taskId, titleKey: "0123456789abcdef", model: "Opus 5.5 Medium", state: "working" }] })
+    const read = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: "available",
+        sessions: [
+          { kind: "row", sessionId: "0123456789abcdef", state: "working" },
+          { kind: "task", sessionId: taskId, titleKey: "0123456789abcdef", model: "Opus 5.5 Medium", state: "working" },
+        ],
+      })
       .mockResolvedValueOnce({ status: "available", sessions: [{ kind: "row", sessionId: "0123456789abcdef", state: "done" }] });
     const tracker = new ClaudeDesktopTracker(store, read);
     await tracker.scan([application]);
@@ -503,7 +627,13 @@ describe("Claude desktop chat tracking", () => {
   it("reports conflicting states for the same conversation as UNKNOWN", async () => {
     const store = new SessionStore();
     stores.push(store);
-    const tracker = new ClaudeDesktopTracker(store, async () => ({ status: "available", sessions: [{ sessionId, state: "working" }, { sessionId, state: "done" }] }));
+    const tracker = new ClaudeDesktopTracker(store, async () => ({
+      status: "available",
+      sessions: [
+        { sessionId, state: "working" },
+        { sessionId, state: "done" },
+      ],
+    }));
     await tracker.scan([application]);
     expect(store.list()[0].state).toBe("unknown");
   });

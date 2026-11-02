@@ -17,9 +17,9 @@ const minute = 60_000;
 export function parseClaudeReset(text: string | undefined, now: number): string | undefined {
   if (!text) return undefined;
   const value = text.trim().replace(/\s+/g, " ");
-  const relative = value.match(/^Resets in (?:(\d+) ?(?:hr|hrs|hour|hours|h))?\s*(?:(\d+) ?(?:min|mins|minutes|m))?$/i);
+  const relative = /^Resets in (?:(\d+) ?(?:hr|hrs|hour|hours|h))?\s*(?:(\d+) ?(?:min|mins|minutes|m))?$/i.exec(value);
   if (relative && (relative[1] || relative[2])) return new Date(now + (Number(relative[1] ?? 0) * 60 + Number(relative[2] ?? 0)) * minute).toISOString();
-  const clock = value.match(/^Resets (?:(today|tomorrow|[a-z]{3,9})\.? )?(?:at )?(\d{1,2})(?::(\d{2}))? ?(AM|PM)$/i);
+  const clock = /^Resets (?:(today|tomorrow|[a-z]{3,9})\.? )?(?:at )?(\d{1,2})(?::(\d{2}))? ?(AM|PM)$/i.exec(value);
   if (!clock) return undefined;
   const [, dayWord, hourText, minuteText, meridiem] = clock;
   const hour = (Number(hourText) % 12) + (meridiem.toUpperCase() === "PM" ? 12 : 0);

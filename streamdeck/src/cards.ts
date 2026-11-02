@@ -1,6 +1,29 @@
 import type { Client, Session } from "../../src/shared/session.js";
 import { doneAttention } from "../../src/shared/attention.js";
-import { cardIdentities, cardStates, describeBudgetCard, describeInfoCard, describeSettingCard, escapeXml, inKeySafeArea, renderBudgetCard, renderCard, renderControl, renderDashboardKey, renderInfoCard, renderSettingCard, type SettingCardData, renderInfoPlaceholder, renderSessionPlaceholder, type BudgetProviderId, type CardColors, type CardPalette, type CardPhase, type InfoCardData } from "../../src/shared/card-design.js";
+import {
+  cardIdentities,
+  cardStates,
+  findById,
+  describeBudgetCard,
+  describeInfoCard,
+  describeSettingCard,
+  escapeXml,
+  inKeySafeArea,
+  renderBudgetCard,
+  renderCard,
+  renderControl,
+  renderDashboardKey,
+  renderInfoCard,
+  renderSettingCard,
+  type SettingCardData,
+  renderInfoPlaceholder,
+  renderSessionPlaceholder,
+  type BudgetProviderId,
+  type CardColors,
+  type CardPalette,
+  type CardPhase,
+  type InfoCardData,
+} from "../../src/shared/card-design.js";
 import { budgetCardData, type Budget } from "../../src/shared/budget.js";
 import { cardIcons } from "../../src/shared/card-assets.js";
 import { applyFlashIntensity, resolveFlashIntensity } from "../../src/shared/flash-intensity.js";
@@ -16,7 +39,7 @@ export interface CardOptions {
 }
 
 export const waitingPulseIntervalMs = 1200;
-export type SessionType = typeof cardIdentities[number]["id"];
+export type SessionType = (typeof cardIdentities)[number]["id"];
 
 export function sessionType(session: Session): SessionType {
   const identity = `${session.harness ?? ""} ${session.source}`.toLowerCase();
@@ -36,13 +59,24 @@ export function sessionType(session: Session): SessionType {
 }
 
 export const sessionTypeLabels: Record<SessionType, string> = {
-  "copilot-app": "Copilot app", "copilot-cli": "Copilot CLI", "copilot-ide": "Copilot in IntelliJ", "intellij-ai": "IntelliJ AI",
-  "codex-cli": "Codex CLI", "codex-ide": "Codex in IntelliJ", "codex-app": "Codex desktop app", "claude-cli": "Claude CLI", "claude-ide": "Claude in IntelliJ", "claude-app": "Claude Desktop", chatgpt: "ChatGPT", generic: "AI session",
+  "copilot-app": "Copilot app",
+  "copilot-cli": "Copilot CLI",
+  "copilot-ide": "Copilot in IntelliJ",
+  "intellij-ai": "IntelliJ AI",
+  "codex-cli": "Codex CLI",
+  "codex-ide": "Codex in IntelliJ",
+  "codex-app": "Codex desktop app",
+  "claude-cli": "Claude CLI",
+  "claude-ide": "Claude in IntelliJ",
+  "claude-app": "Claude Desktop",
+  chatgpt: "ChatGPT",
+  generic: "AI session",
 };
 
 export function sessionPhase(session: Session, options: CardOptions = {}): CardPhase {
   if (session.state === "waiting") return options.waitingDimmed && !options.reducedMotion ? "waiting-dim" : "waiting-bright";
-  if (session.state === "done") return `done-${doneAttention(session, options.now, options.reducedMotion)!.phase}`;
+  // doneAttention gives a phase for each DONE session. The fallback only satisfies the type.
+  if (session.state === "done") return `done-${doneAttention(session, options.now, options.reducedMotion)?.phase ?? "aged"}`;
   return session.state;
 }
 
@@ -59,16 +93,22 @@ function svg(content: string, title: string): string {
 
 export function sessionImage(session: Session, keyNumber?: number, options: CardOptions = {}): string {
   const type = sessionType(session);
-  const identity = cardIdentities.find((entry) => entry.id === type)!;
+  const identity = findById(cardIdentities, type, "card identity");
   const phase = sessionPhase(session, options);
-  const state = cardStates.find((entry) => entry.id === phase)!;
+  const state = findById(cardStates, phase, "card state");
   const number = keyNumber !== undefined && Number.isFinite(keyNumber) ? Math.trunc(keyNumber) : undefined;
   const palette = paletteForSession(session, options);
   return svg(renderCard(identity, state, palette, number, cardIcons), `${sessionTypeLabels[type]}: ${state.label}`);
 }
 
 function infoData(session: Session): InfoCardData {
-  return { model: session.model, tokensUsed: session.tokensUsed, contextUsedPercent: session.contextUsedPercent, freedom: session.freedom, approval: session.approval };
+  return {
+    model: session.model,
+    tokensUsed: session.tokensUsed,
+    contextUsedPercent: session.contextUsedPercent,
+    freedom: session.freedom,
+    approval: session.approval,
+  };
 }
 
 export function infoImage(session: Session, palette?: PaletteId): string {
@@ -93,7 +133,10 @@ export function infoPlaceholderImage(palette?: PaletteId): string {
 
 export function emptyImage(palette?: PaletteId): string {
   const colors = getPalette(palette);
-  return svg(`<rect width="72" height="72" rx="8" fill="${colors.canvas}"/><path d="M27 36h18" stroke="${colors.badge.border}" stroke-width="3" stroke-linecap="round"/>`, "Unused session key");
+  return svg(
+    `<rect width="72" height="72" rx="8" fill="${colors.canvas}"/><path d="M27 36h18" stroke="${colors.badge.border}" stroke-width="3" stroke-linecap="round"/>`,
+    "Unused session key",
+  );
 }
 
 export function appIconName(client: Client): string {
@@ -152,7 +195,16 @@ export function settingControlSignature(kind: SettingControlKind, state: Setting
 }
 
 export function pagerImage(direction: "previous" | "next", page: string, palette?: PaletteId): string {
-  return svg(renderControl(direction === "previous" ? "chevron-left" : "chevron-right", direction === "previous" ? "PREV" : "NEXT", getPalette(palette), cardIcons, page), `${direction === "previous" ? "Previous" : "Next"} session page: ${page}`);
+  return svg(
+    renderControl(
+      direction === "previous" ? "chevron-left" : "chevron-right",
+      direction === "previous" ? "PREV" : "NEXT",
+      getPalette(palette),
+      cardIcons,
+      page,
+    ),
+    `${direction === "previous" ? "Previous" : "Next"} session page: ${page}`,
+  );
 }
 
 export function sessionSignature(session: Session, keyNumber?: number, options: CardOptions = {}): string {

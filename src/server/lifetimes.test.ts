@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { connectedTerminals, HostLifetimes, revokedTerminals, SessionLifetimeGate } from "./lifetimes.js";
 import { listOpenFiles } from "./processes.js";
+import type * as processesModule from "./processes.js";
 
 vi.mock("./processes.js", async (importOriginal) => ({
-  ...await importOriginal<typeof import("./processes.js")>(),
+  ...(await importOriginal<typeof processesModule>()),
   listOpenFiles: vi.fn(async () => ""),
 }));
 
@@ -48,7 +49,9 @@ describe("host lifetimes", () => {
     const { hosts, instances, project, registration, root } = await fixture();
     await writeFile(join(instances, "stale_999.json"), JSON.stringify({ schema_version: 2, pid: 999, project_path: join(root, "closed") }));
     let inspect = await hosts.scan(processes);
-    expect(await inspect(owner, project)).toMatchObject({ status: "open", evidence: "JetBrains project registration", openedAt: expect.any(Number) });
+    const registered = await inspect(owner, project);
+    expect(registered).toMatchObject({ status: "open", evidence: "JetBrains project registration" });
+    expect(typeof registered.openedAt).toBe("number");
     expect(await inspect(owner, join(root, "closed"))).toMatchObject({ status: "closed" });
     expect(await inspect({ pid: 31, focusTarget: { pid: 30, appName: "IntelliJ IDEA" } }, project)).toMatchObject({ status: "unverified" });
     expect(JSON.stringify(await inspect(owner, project))).not.toContain("private-token");

@@ -5,15 +5,18 @@ import type { SessionInput, SessionState } from "../shared/session.js";
 import { SessionLifetimeGate, type LifetimeInspector } from "./lifetimes.js";
 import { platform } from "node:os";
 import { hostApplication, type ProcessInfo } from "./processes.js";
-import { SessionStore } from "./store.js";
+import type { SessionStore } from "./store.js";
 
 const maximumRegistrationBytes = 64 * 1024;
 const processStartToleranceMilliseconds = 1000;
 const registrationSchema = z.object({
   pid: z.number().int().positive(),
-  sessionId: z.string().uuid().toLowerCase(),
+  sessionId: z.uuid().toLowerCase(),
   cwd: z.string().max(240).refine(isAbsolute),
-  startedAt: z.number().positive().refine((value) => Number.isFinite(new Date(value).getTime())),
+  startedAt: z
+    .number()
+    .positive()
+    .refine((value) => Number.isFinite(new Date(value).getTime())),
   procStart: z.string().max(80).optional(),
   pidDomain: z.string().optional(),
   status: z.string().max(80).optional(),
@@ -29,11 +32,13 @@ const transcriptLineSchema = z.object({
   type: z.literal("assistant"),
   message: z.object({
     model: z.string().max(120).optional(),
-    usage: z.object({
-      input_tokens: z.number().nonnegative().optional(),
-      cache_creation_input_tokens: z.number().nonnegative().optional(),
-      cache_read_input_tokens: z.number().nonnegative().optional(),
-    }).optional(),
+    usage: z
+      .object({
+        input_tokens: z.number().nonnegative().optional(),
+        cache_creation_input_tokens: z.number().nonnegative().optional(),
+        cache_read_input_tokens: z.number().nonnegative().optional(),
+      })
+      .optional(),
   }),
 });
 
@@ -103,7 +108,8 @@ function ownsRegistration(registration: Registration, process: ProcessInfo, file
   if (!Number.isFinite(processStartedAt) || registration.startedAt + processStartToleranceMilliseconds < processStartedAt) return false;
   if (!registration.procStart) return true;
   const processStartText = /^\w{3} \w{3}\s+\d+ \d{2}:\d{2}:\d{2} \d{4}$/.test(registration.procStart)
-    ? `${registration.procStart} UTC` : registration.procStart;
+    ? `${registration.procStart} UTC`
+    : registration.procStart;
   const registeredProcessStart = Date.parse(processStartText);
   return Number.isFinite(registeredProcessStart) && Math.abs(registeredProcessStart - processStartedAt) <= processStartToleranceMilliseconds;
 }
@@ -114,7 +120,10 @@ export class ClaudeTracker {
   readonly #triggers = new Map<string, string>();
   readonly #lifetimes = new SessionLifetimeGate();
 
-  constructor(private readonly store: SessionStore, private readonly root: string) {}
+  constructor(
+    private readonly store: SessionStore,
+    private readonly root: string,
+  ) {}
 
   async scan(processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<void> {
     const directory = join(this.root, "sessions");
@@ -125,7 +134,7 @@ export class ClaudeTracker {
     const present = new Set<string>();
     const uncertainProcesses = new Set<number>();
     for (const name of names) {
-      const match = name.match(/^(\d+)\.json$/);
+      const match = /^(\d+)\.json$/.exec(name);
       if (!match) continue;
       const process = processes.find((candidate) => candidate.pid === Number(match[1]));
       if (!process || !/(?:^|\/)claude$/.test(process.name)) continue;
@@ -138,12 +147,14 @@ export class ClaudeTracker {
         present.add(identifier);
         const focusTarget = hostApplication(process.pid, processes);
         const owner = { pid: process.pid, focusTarget };
-        const lifetime = await lifetimes?.(owner, registration.cwd) ?? { status: "unverified", evidence: "Live Claude registration" };
+        const lifetime = (await lifetimes?.(owner, registration.cwd)) ?? { status: "unverified", evidence: "Live Claude registration" };
         const state = claudeRegistryState(registration.status);
         const usage = await readClaudeUsage(this.root, registration);
         const statusTimestamp = registration.statusUpdatedAt;
-        const observedAt = statusTimestamp && Number.isFinite(new Date(statusTimestamp).getTime()) && statusTimestamp >= registration.startedAt
-          ? statusTimestamp : registration.startedAt;
+        const observedAt =
+          statusTimestamp && Number.isFinite(new Date(statusTimestamp).getTime()) && statusTimestamp >= registration.startedAt
+            ? statusTimestamp
+            : registration.startedAt;
         const timestamp = new Date(observedAt).toISOString();
         const previousTrigger = this.#triggers.get(identifier);
         const latestTrigger = new Date(state === "working" || state === "starting" ? observedAt : registration.startedAt).toISOString();
@@ -220,7 +231,15 @@ export class ClaudeTracker {
   #unavailable(identifier: string, errorCode: string): void {
     const session = this.store.get(identifier);
     if (session?.state !== "unknown" && session) {
-      this.store.upsert({ ...session, state: "unknown", metadata: { ...session.metadata, stateEvent: "registry.unavailable", telemetryStatus: "unreadable", telemetryError: errorCode } }, session.lastActivityAt, new Date().toISOString());
+      this.store.upsert(
+        {
+          ...session,
+          state: "unknown",
+          metadata: { ...session.metadata, stateEvent: "registry.unavailable", telemetryStatus: "unreadable", telemetryError: errorCode },
+        },
+        session.lastActivityAt,
+        new Date().toISOString(),
+      );
     }
     this.#signatures.delete(identifier);
   }

@@ -6,7 +6,8 @@ import { z } from "zod";
 import type { FocusTarget } from "../shared/session.js";
 
 const execute = promisify(execFile);
-const windowsProcessScript = "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ pid = [int]$_.ProcessId; parentPid = [int]$_.ParentProcessId; name = if ($_.ExecutablePath) { $_.ExecutablePath } else { $_.Name }; startedAt = if ($_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') } else { $null } } } | ConvertTo-Json -Compress";
+const windowsProcessScript =
+  "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ pid = [int]$_.ProcessId; parentPid = [int]$_.ParentProcessId; name = if ($_.ExecutablePath) { $_.ExecutablePath } else { $_.Name }; startedAt = if ($_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') } else { $null } } } | ConvertTo-Json -Compress";
 const windowsProcessSchema = z.object({
   pid: z.number(),
   parentPid: z.number(),
@@ -40,12 +41,20 @@ export async function listProcesses(platform: NodeJS.Platform = process.platform
   if (platform === "win32") return listWindowsProcesses();
   // macOS has /bin/ps. Other systems find ps on the PATH.
   const command = platform === "darwin" ? "/bin/ps" : "ps";
-  const { stdout } = await execute(command, ["-axo", "pid=,ppid=,lstart=,comm="], { timeout: 4000, maxBuffer: 4 * 1024 * 1024, env: { ...process.env, LC_ALL: "C" } });
+  const { stdout } = await execute(command, ["-axo", "pid=,ppid=,lstart=,comm="], {
+    timeout: 4000,
+    maxBuffer: 4 * 1024 * 1024,
+    env: { ...process.env, LC_ALL: "C" },
+  });
   return parseProcesses(stdout);
 }
 
 async function listWindowsProcesses(): Promise<ProcessInfo[]> {
-  const { stdout } = await execute("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", windowsProcessScript], { timeout: 10_000, maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+  const { stdout } = await execute("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", windowsProcessScript], {
+    timeout: 10_000,
+    maxBuffer: 8 * 1024 * 1024,
+    windowsHide: true,
+  });
   return parseWindowsProcesses(stdout);
 }
 
@@ -64,7 +73,7 @@ export function parseWindowsProcesses(output: string): ProcessInfo[] {
 
 export function parseProcesses(output: string): ProcessInfo[] {
   return output.split("\n").flatMap((line) => {
-    const match = line.trim().match(/^(\d+)\s+(\d+)\s+(\w{3}\s+\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s+(.+)$/);
+    const match = /^(\d+)\s+(\d+)\s+(\w{3}\s+\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s+(.+)$/.exec(line.trim());
     if (!match || !Number.isFinite(Date.parse(match[3]))) return [];
     return [{ pid: Number(match[1]), parentPid: Number(match[2]), name: match[4], startedAt: new Date(match[3]).toISOString() }];
   });
@@ -95,7 +104,10 @@ export async function listOpenFiles(pids: number[], descriptors?: string, platfo
   if (platform === "win32") return "";
   if (platform === "linux") return listLinuxOpenFiles(pids, descriptors);
   try {
-    const { stdout } = await execute("/usr/sbin/lsof", ["-n", "-a", "-p", pids.join(","), ...(descriptors ? ["-d", descriptors] : []), "-Fpn"], { timeout: 4000, maxBuffer: 8 * 1024 * 1024 });
+    const { stdout } = await execute("/usr/sbin/lsof", ["-n", "-a", "-p", pids.join(","), ...(descriptors ? ["-d", descriptors] : []), "-Fpn"], {
+      timeout: 4000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
     return stdout;
   } catch (error) {
     const failure = error as { code?: number; stdout?: string };
@@ -111,7 +123,9 @@ function hostProgram(pid: number, processes: ProcessInfo[]): FocusTarget | undef
   let current = byPid.get(pid);
   while (current && !visited.has(current.pid)) {
     visited.add(current.pid);
-    const programName = basename(current.name.replaceAll("\\", "/")).toLowerCase().replace(/\.exe$/, "");
+    const programName = basename(current.name.replaceAll("\\", "/"))
+      .toLowerCase()
+      .replace(/\.exe$/, "");
     const displayName = knownHostPrograms.get(programName);
     if (displayName) return { pid: current.pid, appName: displayName };
     current = byPid.get(current.parentPid);
@@ -127,7 +141,7 @@ export function hostApplication(pid: number, processes: ProcessInfo[], platform:
   while (current && !visited.has(current.pid)) {
     visited.add(current.pid);
     // Use the outermost app bundle. Helper apps nested inside an app cannot be activated.
-    const match = current.name.match(/^(.*?\/([^/]+)\.app)\/Contents\/.*[^/]$/);
+    const match = /^(.*?\/([^/]+)\.app)\/Contents\/.*[^/]$/.exec(current.name);
     if (match) {
       const appName = match[2].startsWith("IntelliJ IDEA") ? "IntelliJ IDEA" : match[2];
       return { pid: current.pid, appName, appPath: match[1] };

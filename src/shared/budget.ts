@@ -5,13 +5,13 @@ export const budgetProviderIds = budgetProviders.map((provider) => provider.id) 
 export const budgetWindowKinds = ["five-hour", "weekly", "monthly"] as const;
 export type BudgetWindowKind = (typeof budgetWindowKinds)[number];
 
-const percentSchema = z.number().finite().min(0).max(100);
-const amountSchema = z.number().finite().min(0).max(1_000_000_000);
+const percentSchema = z.number().min(0).max(100);
+const amountSchema = z.number().min(0).max(1_000_000_000);
 
 export const budgetWindowSchema = z.object({
   kind: z.enum(budgetWindowKinds),
   usedPercent: percentSchema.optional(),
-  resetsAt: z.string().datetime().optional(),
+  resetsAt: z.iso.datetime().optional(),
 });
 
 /**
@@ -26,18 +26,20 @@ export const budgetInputSchema = z.object({
   plan: z.string().trim().min(1).max(24).optional(),
   windows: z.array(budgetWindowSchema).max(3),
   credits: z.object({ used: amountSchema, total: amountSchema.positive() }).optional(),
-  extra: z.object({
-    kind: z.enum(["extra", "topup"]),
-    active: z.boolean(),
-    used: amountSchema.optional(),
-    limit: amountSchema.optional(),
-    balance: amountSchema.optional(),
-    currency: z.enum(["usd", "credits"]).optional(),
-  }).optional(),
+  extra: z
+    .object({
+      kind: z.enum(["extra", "topup"]),
+      active: z.boolean(),
+      used: amountSchema.optional(),
+      limit: amountSchema.optional(),
+      balance: amountSchema.optional(),
+      currency: z.enum(["usd", "credits"]).optional(),
+    })
+    .optional(),
 });
 export type BudgetInput = z.infer<typeof budgetInputSchema>;
 
-export const budgetSchema = budgetInputSchema.extend({ updatedAt: z.string().datetime() });
+export const budgetSchema = budgetInputSchema.extend({ updatedAt: z.iso.datetime() });
 export type Budget = z.infer<typeof budgetSchema>;
 
 const windowLabels: Record<BudgetWindowKind, string> = { "five-hour": "5H", weekly: "WK", monthly: "MO" };
@@ -67,7 +69,8 @@ export function formatCredits(value: number): string {
 
 function windowCard(kind: BudgetWindowKind, budget: Budget | undefined, now: number): BudgetWindowCard {
   const window = budget?.windows.find((entry) => entry.kind === kind);
-  const percent = window?.usedPercent ?? (kind === "monthly" && budget?.credits ? Math.min(100, (budget.credits.used / budget.credits.total) * 100) : undefined);
+  const percent =
+    window?.usedPercent ?? (kind === "monthly" && budget?.credits ? Math.min(100, (budget.credits.used / budget.credits.total) * 100) : undefined);
   const reset = formatResetIn(window?.resetsAt, now);
   // After its reset, a window starts again at 0%. The hub assumes no use since the last report: Codex writes a new snapshot each time it runs.
   if (window?.resetsAt && !reset) return { label: windowLabels[kind], percent: 0 };

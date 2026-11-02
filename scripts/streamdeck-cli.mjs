@@ -62,9 +62,7 @@ function runStreamDeckCommand(streamDeckCliPath, commandArguments, allowAlreadyL
 const streamDeckCliPath = findStreamDeckCli();
 
 if (streamDeckCliPath === undefined) {
-  console.error(
-    "Stream Deck CLI not found. Install it with `npm install -g @elgato/cli`, then run `npm run reload:streamdeck` again.",
-  );
+  console.error("Stream Deck CLI not found. Install it with `npm install -g @elgato/cli`, then run `npm run reload:streamdeck` again.");
   process.exitCode = 1;
 } else {
   const streamDeckCommands = [
@@ -74,11 +72,7 @@ if (streamDeckCliPath === undefined) {
   ];
 
   for (const streamDeckCommand of streamDeckCommands) {
-    const exitCode = runStreamDeckCommand(
-      streamDeckCliPath,
-      streamDeckCommand.arguments,
-      streamDeckCommand.allowAlreadyLinked,
-    );
+    const exitCode = runStreamDeckCommand(streamDeckCliPath, streamDeckCommand.arguments, streamDeckCommand.allowAlreadyLinked);
     if (exitCode !== 0) {
       process.exitCode = exitCode;
       break;

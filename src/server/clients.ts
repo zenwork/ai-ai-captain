@@ -16,6 +16,8 @@ export class ClientRegistry {
 
   subscribe(listener: (clients: Client[]) => void): () => void {
     this.#listeners.add(listener);
-    return () => { this.#listeners.delete(listener); };
+    return () => {
+      this.#listeners.delete(listener);
+    };
   }
 }
