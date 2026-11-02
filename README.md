@@ -163,6 +163,6 @@ npm run lint
 npm run build
 ```
 
-GitHub Actions runs typecheck, tests, and build on pull requests and on `main`. Release Please reads Conventional Commits on `main` and opens a release pull request. Refer to [AGENTS.md](AGENTS.md) for the commit rules.
+GitHub Actions runs typecheck, lint, tests, and build on pull requests and on `main`. Lint runs on Linux only, because the result is the same on each system. Release Please reads Conventional Commits on `main` and opens a release pull request. Refer to [AGENTS.md](AGENTS.md) for the commit rules.
 
 Release Please needs the repository setting **Allow GitHub Actions to create and approve pull requests**. Set the optional `RELEASE_PLEASE_TOKEN` secret to run CI on release pull requests.
