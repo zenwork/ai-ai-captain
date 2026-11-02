@@ -14,7 +14,7 @@ const timestamp = "2026-10-25T12:00:00.000Z";
 const event = (type: string, data: Record<string, unknown> = {}) => JSON.stringify({ type, timestamp, data }) + "\n";
 
 afterEach(async () => {
-  for (const store of stores.splice(0)) store.close();
+  await Promise.all(stores.splice(0).map((store) => store.close()));
   await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
   vi.useRealTimers();
 });

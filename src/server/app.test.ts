@@ -175,7 +175,7 @@ describe("session API", () => {
     expect(page.body).not.toContain("active sessions</span>");
   });
 
-  it("retains terminal states for ten seconds then removes them", () => {
+  it("retains terminal states for ten seconds then removes them", async () => {
     vi.useFakeTimers();
     const store = new SessionStore();
     const events: string[] = [];
@@ -187,11 +187,11 @@ describe("session API", () => {
     vi.advanceTimersByTime(1);
     expect(store.get("done")).toBeUndefined();
     expect(events).toEqual(["upsert", "remove"]);
-    store.close();
+    await store.close();
     vi.useRealTimers();
   });
 
-  it("preserves optional session metadata on sparse updates", () => {
+  it("preserves optional session metadata on sparse updates", async () => {
     const store = new SessionStore();
     store.upsert({
       id: "session",
@@ -204,7 +204,7 @@ describe("session API", () => {
     });
     store.upsert({ id: "session", source: "test", label: "Task", state: "waiting", model: undefined, project: undefined, focusTarget: undefined });
     expect(store.get("session")).toMatchObject({ model: "gpt-5", project: "/repo", focusTarget: { appName: "IntelliJ IDEA" }, state: "waiting" });
-    store.close();
+    await store.close();
   });
 
   it("keeps a completed open session blue until it resumes or actually closes", () => {
