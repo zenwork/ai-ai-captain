@@ -10,7 +10,7 @@ import { ClientRegistry } from "./clients.js";
 import { SettingsStore } from "./settings.js";
 import { settingsWriteSchema } from "../shared/settings.js";
 import { palettes } from "../shared/palette.js";
-import { canonicalDashboardUrl, createDashboardController } from "./dashboard.js";
+import { canonicalDashboardUrl, createDashboardController, type DashboardController } from "./dashboard.js";
 import { BudgetStore } from "./budgets.js";
 import { budgetInputSchema } from "../shared/budget.js";
 
@@ -20,7 +20,7 @@ export interface AppOptions {
   webRoot?: string;
   clients?: ClientRegistry;
   settings?: SettingsStore;
-  dashboard?: ReturnType<typeof createDashboardController>;
+  dashboard?: DashboardController;
   dashboardUrl?: string;
   logLevel?: HubLogLevel;
   budgets?: BudgetStore;
