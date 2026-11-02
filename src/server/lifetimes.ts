@@ -129,7 +129,9 @@ export class HostLifetimes {
         await writeFile(`${this.persistencePath}.tmp`, persisted, { mode: 0o600 });
         await rename(`${this.persistencePath}.tmp`, this.persistencePath);
         this.#persisted = persisted;
-      } catch {}
+      } catch {
+        // The next scan tries to save again, because `#persisted` changes only after a successful save.
+      }
     }
     const terminalPids = new Set<number>();
     for (const candidate of candidates) {
