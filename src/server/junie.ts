@@ -71,6 +71,16 @@ async function readJunieSettings(directory: string): Promise<ReturnType<typeof p
   }
 }
 
+/** Reads one line of the Junie index. A line that is not JSON or not an index entry gives undefined. */
+function parseIndexEntry(line: string): IndexEntry | undefined {
+  try {
+    const parsed = indexEntrySchema.safeParse(JSON.parse(line));
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function isMissingFile(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
@@ -187,12 +197,8 @@ export class JunieTracker {
       const entries: IndexEntry[] = [];
       for (const line of content.split("\n")) {
         if (!line.trim()) continue;
-        try {
-          const parsed = indexEntrySchema.safeParse(JSON.parse(line));
-          if (parsed.success && Date.now() - parsed.data.updatedAt <= maximumSessionAgeMilliseconds) entries.push(parsed.data);
-        } catch {
-          continue;
-        }
+        const entry = parseIndexEntry(line);
+        if (entry && Date.now() - entry.updatedAt <= maximumSessionAgeMilliseconds) entries.push(entry);
       }
       return entries.sort((left, right) => right.updatedAt - left.updatedAt).slice(0, maximumInspectedSessions);
     } catch (error) {

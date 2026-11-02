@@ -23,25 +23,40 @@ function finite(value: unknown): number | undefined {
  * Only file times are read here. The file contents are read for the newest files only.
  */
 async function newestRollouts(sessions: string): Promise<string[]> {
-  const numbered = async (path: string) => (await readdir(path).catch(() => [] as string[])).filter((name) => /^\d+$/.test(name));
   const files: { path: string; time: number }[] = [];
-  for (const year of await numbered(sessions)) {
-    for (const month of await numbered(join(sessions, year))) {
-      for (const day of await numbered(join(sessions, year, month))) {
-        const directory = join(sessions, year, month, day);
-        for (const name of await readdir(directory).catch(() => [] as string[])) {
-          if (!/^rollout-.+\.jsonl$/.test(name)) continue;
-          const path = join(directory, name);
-          const info = await stat(path).catch(() => undefined);
-          if (info?.isFile()) files.push({ path, time: info.mtimeMs });
-        }
-      }
-    }
-  }
+  for (const directory of await dayDirectories(sessions)) files.push(...(await rolloutFiles(directory)));
   return files
     .sort((left, right) => right.time - left.time)
     .slice(0, newestFiles)
     .map((file) => file.path);
+}
+
+/** Returns the names of the entries that are only digits, such as the year, month, and day folders. */
+async function numberedEntries(path: string): Promise<string[]> {
+  return (await readdir(path).catch(() => [] as string[])).filter((name) => /^\d+$/.test(name));
+}
+
+/** Returns all sessions/YYYY/MM/DD folders. */
+async function dayDirectories(sessions: string): Promise<string[]> {
+  const directories: string[] = [];
+  for (const year of await numberedEntries(sessions)) {
+    for (const month of await numberedEntries(join(sessions, year))) {
+      for (const day of await numberedEntries(join(sessions, year, month))) directories.push(join(sessions, year, month, day));
+    }
+  }
+  return directories;
+}
+
+/** Returns the rollout files of one day folder with their change times. */
+async function rolloutFiles(directory: string): Promise<{ path: string; time: number }[]> {
+  const files: { path: string; time: number }[] = [];
+  for (const name of await readdir(directory).catch(() => [] as string[])) {
+    if (!/^rollout-.+\.jsonl$/.test(name)) continue;
+    const path = join(directory, name);
+    const info = await stat(path).catch(() => undefined);
+    if (info?.isFile()) files.push({ path, time: info.mtimeMs });
+  }
+  return files;
 }
 
 async function tail(path: string): Promise<string> {
@@ -105,6 +120,26 @@ export function codexBudgetFromEvent(value: unknown): { budget: BudgetInput; obs
 }
 
 /** Reads the newest Codex rate-limit snapshot from the rollout files and reports it as the OpenAI budget. */
+/** Returns the last rate limit snapshot in the end of one rollout file. */
+async function newestBudgetInFile(path: string): Promise<ReturnType<typeof codexBudgetFromEvent>> {
+  const lines = (await tail(path).catch(() => "")).split("\n");
+  for (let index = lines.length - 1; index >= 0; index--) {
+    if (!lines[index].includes('"rate_limits"')) continue;
+    const budget = budgetFromLine(lines[index]);
+    if (budget) return budget;
+  }
+  return undefined;
+}
+
+/** Reads one rollout line. A line that is not JSON gives no budget. */
+function budgetFromLine(line: string): ReturnType<typeof codexBudgetFromEvent> {
+  try {
+    return codexBudgetFromEvent(JSON.parse(line));
+  } catch {
+    return undefined;
+  }
+}
+
 export class CodexBudgetReader {
   #lastObservedAt?: string;
 
@@ -118,21 +153,8 @@ export class CodexBudgetReader {
     if (force) this.#lastObservedAt = undefined;
     let newest: { budget: BudgetInput; observedAt: string } | undefined;
     for (const path of await newestRollouts(join(this.codexHome, "sessions"))) {
-      const text = await tail(path).catch(() => "");
-      const lines = text.split("\n");
-      for (let index = lines.length - 1; index >= 0; index--) {
-        if (!lines[index].includes('"rate_limits"')) continue;
-        let parsed: ReturnType<typeof codexBudgetFromEvent>;
-        try {
-          parsed = codexBudgetFromEvent(JSON.parse(lines[index]));
-        } catch {
-          continue;
-        }
-        if (parsed) {
-          if (!newest || parsed.observedAt > newest.observedAt) newest = parsed;
-          break;
-        }
-      }
+      const found = await newestBudgetInFile(path);
+      if (found && (!newest || found.observedAt > newest.observedAt)) newest = found;
     }
     if (!newest || newest.observedAt === this.#lastObservedAt) return;
     this.#lastObservedAt = newest.observedAt;
