@@ -301,7 +301,7 @@ class BudgetAction extends SingletonAction<SessionSettings> {
     budgetActions.set(event.action.id, { provider: this.provider, action: event.action });
     renderedControls.delete(event.action.id);
     await renderBudgetKeys();
-    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    refreshTimer ??= setInterval(() => void refresh(), 1500);
     await refresh();
   }
 
@@ -380,7 +380,7 @@ class DashboardAction extends SingletonAction<SessionSettings> {
     dashboardActions.set(event.action.id, event.action);
     renderedControls.delete(event.action.id);
     await renderDashboards();
-    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    refreshTimer ??= setInterval(() => void refresh(), 1500);
     await refresh();
   }
 
@@ -447,7 +447,7 @@ class SessionKey extends SingletonAction<SessionSettings> {
     if (!event.action.isKey()) return;
     visibleKeys.set(event.action.id, event.action);
     renderedCards.delete(event.action.id);
-    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    refreshTimer ??= setInterval(() => void refresh(), 1500);
     await refresh();
   }
 
@@ -553,7 +553,7 @@ class SessionInfoKey extends SingletonAction<SessionSettings> {
     if (!event.action.isKey()) return;
     infoKeys.set(event.action.id, event.action);
     renderedCards.delete(event.action.id);
-    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    refreshTimer ??= setInterval(() => void refresh(), 1500);
     await refresh();
   }
 
@@ -603,7 +603,7 @@ class SettingControlAction extends SingletonAction<SessionSettings> {
     settingActions.set(event.action.id, { kind: this.kind, action: event.action });
     renderedControls.delete(event.action.id);
     await renderSettingControls();
-    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    refreshTimer ??= setInterval(() => void refresh(), 1500);
     await refresh();
   }
 
@@ -663,7 +663,7 @@ class PagerAction extends SingletonAction<PagerSettings> {
     if (!event.action.isKey()) return;
     pagerActions.set(event.action.id, { direction: this.direction, action: event.action });
     renderedControls.delete(event.action.id);
-    if (!refreshTimer) refreshTimer = setInterval(() => void refresh(), 1500);
+    refreshTimer ??= setInterval(() => void refresh(), 1500);
     await refresh();
   }
 
