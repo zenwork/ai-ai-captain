@@ -109,7 +109,7 @@ async function main(): Promise<void> {
 
 async function readInput(): Promise<Record<string, unknown>> {
   let data = "";
-  for await (const chunk of stdin) data += chunk;
+  for await (const chunk of stdin) data += String(chunk);
   if (!data.trim()) return {};
   try {
     const value: unknown = JSON.parse(data);
