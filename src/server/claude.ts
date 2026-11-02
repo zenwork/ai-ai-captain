@@ -11,7 +11,7 @@ const maximumRegistrationBytes = 64 * 1024;
 const processStartToleranceMilliseconds = 1000;
 const registrationSchema = z.object({
   pid: z.number().int().positive(),
-  sessionId: z.string().uuid().toLowerCase(),
+  sessionId: z.uuid().toLowerCase(),
   cwd: z.string().max(240).refine(isAbsolute),
   startedAt: z
     .number()

@@ -15,7 +15,7 @@ const titleKeySchema = z.string().regex(/^[0-9a-f]{16}(?:-\d{1,2})?$/);
 const modelLabelSchema = z.string().trim().min(1).max(120);
 const chatSessionSchema = z.object({
   kind: z.literal("chat").default("chat"),
-  sessionId: z.string().uuid().toLowerCase(),
+  sessionId: z.uuid().toLowerCase(),
   titleKey: titleKeySchema.optional(),
   model: modelLabelSchema.optional(),
   state: sessionStateSchema,
@@ -36,7 +36,7 @@ const rowSessionSchema = z.object({
   // The app shows the row as read ("Done", "Completed"), not "Unread response". The user has opened the result.
   seen: z.literal(true).optional(),
 });
-const usageMeterSchema = z.object({ percent: z.number().finite().min(0).max(100), reset: z.string().max(60).optional() });
+const usageMeterSchema = z.object({ percent: z.number().min(0).max(100), reset: z.string().max(60).optional() });
 const snapshotSchema = z.object({
   usage: z.object({ session: usageMeterSchema.optional(), week: usageMeterSchema.optional() }).optional(),
   // "partial": the inspection reached its element limit. The sessions that it found are correct, but others can be missing.

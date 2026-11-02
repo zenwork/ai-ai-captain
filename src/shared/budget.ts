@@ -5,13 +5,13 @@ export const budgetProviderIds = budgetProviders.map((provider) => provider.id) 
 export const budgetWindowKinds = ["five-hour", "weekly", "monthly"] as const;
 export type BudgetWindowKind = (typeof budgetWindowKinds)[number];
 
-const percentSchema = z.number().finite().min(0).max(100);
-const amountSchema = z.number().finite().min(0).max(1_000_000_000);
+const percentSchema = z.number().min(0).max(100);
+const amountSchema = z.number().min(0).max(1_000_000_000);
 
 export const budgetWindowSchema = z.object({
   kind: z.enum(budgetWindowKinds),
   usedPercent: percentSchema.optional(),
-  resetsAt: z.string().datetime().optional(),
+  resetsAt: z.iso.datetime().optional(),
 });
 
 /**
@@ -39,7 +39,7 @@ export const budgetInputSchema = z.object({
 });
 export type BudgetInput = z.infer<typeof budgetInputSchema>;
 
-export const budgetSchema = budgetInputSchema.extend({ updatedAt: z.string().datetime() });
+export const budgetSchema = budgetInputSchema.extend({ updatedAt: z.iso.datetime() });
 export type Budget = z.infer<typeof budgetSchema>;
 
 const windowLabels: Record<BudgetWindowKind, string> = { "five-hour": "5H", weekly: "WK", monthly: "MO" };
