@@ -90,7 +90,8 @@ async function main(): Promise<void> {
       state,
       ended: hookEndsSession(eventName),
       ...(event.cwd || event.workspace ? { project: String(event.cwd ?? event.workspace) } : {}),
-      ...(event.model ? { model: String(event.model) } : {}),
+      // Send only a text or number model name. An object would become the text "[object Object]".
+      ...(typeof event.model === "string" || typeof event.model === "number" ? { model: String(event.model) } : {}),
       ...(option(args, "--app") || option(args, "--bundle-id")
         ? {
             focusTarget: {
