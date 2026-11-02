@@ -40,34 +40,34 @@ The main mark represents the harness/client, never whichever model it currently 
 
 Claude Code registrations use the Claude mark with a terminal, IntelliJ, or desktop badge from host ancestry. Regular desktop chats use the desktop badge. These adapters use the existing artwork, state labels, palette, and attention timing. Unsupported telemetry stays UNK; app presence alone never creates a session tile.
 
-| Client/session type | Proposed main mark | Host badge |
-| --- | --- | --- |
-| GitHub Copilot CLI | Recognizable Copilot goggles | Terminal `>_` |
-| GitHub Copilot in IntelliJ | Same goggles | `IJ` |
-| Microsoft Copilot app | Microsoft Copilot ribbon, not GitHub goggles | App window |
-| Codex CLI | Square code brackets; deliberately not another terminal icon | Terminal `>_` |
-| Codex in IntelliJ / JetBrains AI | Same code brackets | `IJ` |
-| Codex desktop app (ChatGPT app) | Same code brackets | App window |
-| Native JetBrains AI | Neutral `IJ` monogram with sparkle | Included in main symbol |
-| Claude CLI | Claude starburst | Terminal `>_` |
-| Claude in IntelliJ | Same starburst | `IJ` |
-| Claude Desktop | Same starburst | App window |
-| ChatGPT | OpenAI knot | App window |
-| Unclassified harness | Generic agent/bot | Only a host supported by evidence |
+| Client/session type              | Proposed main mark                                           | Host badge                        |
+| -------------------------------- | ------------------------------------------------------------ | --------------------------------- |
+| GitHub Copilot CLI               | Recognizable Copilot goggles                                 | Terminal `>_`                     |
+| GitHub Copilot in IntelliJ       | Same goggles                                                 | `IJ`                              |
+| Microsoft Copilot app            | Microsoft Copilot ribbon, not GitHub goggles                 | App window                        |
+| Codex CLI                        | Square code brackets; deliberately not another terminal icon | Terminal `>_`                     |
+| Codex in IntelliJ / JetBrains AI | Same code brackets                                           | `IJ`                              |
+| Codex desktop app (ChatGPT app)  | Same code brackets                                           | App window                        |
+| Native JetBrains AI              | Neutral `IJ` monogram with sparkle                           | Included in main symbol           |
+| Claude CLI                       | Claude starburst                                             | Terminal `>_`                     |
+| Claude in IntelliJ               | Same starburst                                               | `IJ`                              |
+| Claude Desktop                   | Same starburst                                               | App window                        |
+| ChatGPT                          | OpenAI knot                                                  | App window                        |
+| Unclassified harness             | Generic agent/bot                                            | Only a host supported by evidence |
 
 The icon proposal uses selected static Lobe Icons 1.100.0 brand artwork and Lucide 0.468.0 interface symbols. The Codex coding glyph and neutral IJ monogram are identifying conventions, not claims that they are official product logos. Artwork must be bundled locally, with provenance and appropriate license notices; trademarks retain their owners' rights. No runtime CDN or React dependency is needed.
 
 ## DSN-03 — State wording and non-color cues
 
-| Domain state | Required key wording | Proposed symbol | Color role |
-| --- | --- | --- | --- |
-| `starting` | STARTING | Hourglass | Purple/lilac |
-| `working` | WORKING | Activity/spinner ring | Green/teal family |
-| `waiting` | WAITING | Raised hand | Amber/gold family |
-| `done`, not assessed | DONE | Single check | Blue family, age-dependent |
-| `done`, assessed | DONE | Double check | Darkest blue family |
-| `failed` | FAILED | Warning triangle | Red/rose/terracotta family |
-| `unknown` | UNK | Circled question mark | Neutral gray/steel |
+| Domain state         | Required key wording | Proposed symbol       | Color role                 |
+| -------------------- | -------------------- | --------------------- | -------------------------- |
+| `starting`           | STARTING             | Hourglass             | Purple/lilac               |
+| `working`            | WORKING              | Activity/spinner ring | Green/teal family          |
+| `waiting`            | WAITING              | Raised hand           | Amber/gold family          |
+| `done`, not assessed | DONE                 | Single check          | Blue family, age-dependent |
+| `done`, assessed     | DONE                 | Double check          | Darkest blue family        |
+| `failed`             | FAILED               | Warning triangle      | Red/rose/terracotta family |
+| `unknown`            | UNK                  | Circled question mark | Neutral gray/steel         |
 
 The raised hand replaces ambiguous pause bars: WAITING means a user action is needed, not just that processing stopped. A working glyph must not look like a start button the user is expected to press. Symbols and labels carry meaning even without color or animation.
 
@@ -77,11 +77,11 @@ The runtime uses STARTING/WORKING/WAITING/DONE/FAILED/UNK and the bundled Lobe/L
 
 The required hierarchy is:
 
-| Completion condition | Appearance | Attention |
-| --- | --- | --- |
-| Fresh, not assessed | Bright blue; single check | Quick flashes, progressively slowing |
-| Recent, not assessed | Bright/dim blue phases; single check | Existing age-based schedule |
-| Older than ten minutes, not assessed | Dark blue; single check | Steady |
+| Completion condition                           | Appearance                                                             | Attention                             |
+| ---------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------- |
+| Fresh, not assessed                            | Bright blue; single check                                              | Quick flashes, progressively slowing  |
+| Recent, not assessed                           | Bright/dim blue phases; single check                                   | Existing age-based schedule           |
+| Older than ten minutes, not assessed           | Dark blue; single check                                                | Steady                                |
 | Assessed after visiting that completed session | Even darker midnight blue; double check; subdued but readable identity | Immediately steady, regardless of age |
 
 All four remain DONE. Assessment does not close, remove, or disable a session. No elapsed-time threshold can assess a result. A new turn clears assessment and permits a fresh completion alert. An app/project focus operation without session-specific evidence cannot assess every conversation in that host.
@@ -96,15 +96,15 @@ WAITING alternates bright/dim every 1.2 seconds, giving a 2.4-second cycle. Neit
 
 Unassessed DONE uses a 250 ms bright flash and the following periods:
 
-| Age since actual completion | Period                         |
-| --------------------------- | ------------------------------ |
-| 0–10 seconds                | 0.5 seconds                    |
-| 10–30 seconds               | 1 second                       |
-| 30–60 seconds               | 2 seconds                      |
-| 1–2 minutes                 | 5 seconds                      |
-| 2–5 minutes                 | 10 seconds                     |
-| 5–10 minutes                | 30 seconds                     |
-| Ten minutes or older        | No flashing; steady aged blue  |
+| Age since actual completion | Period                        |
+| --------------------------- | ----------------------------- |
+| 0–10 seconds                | 0.5 seconds                   |
+| 10–30 seconds               | 1 second                      |
+| 30–60 seconds               | 2 seconds                     |
+| 1–2 minutes                 | 5 seconds                     |
+| 2–5 minutes                 | 10 seconds                    |
+| 5–10 minutes                | 30 seconds                    |
+| Ten minutes or older        | No flashing; steady aged blue |
 
 The hub setting `flashIntensity` is an integer from 0 to 4. The default is 2. Level 0 uses the palette colors. Higher levels make WAITING and DONE bright phases brighter and dim phases darker. Bright backgrounds mix toward the lighter of that state's background and accent. Bright accents mix toward the lighter of the palette `foreground` and `canvas` tokens. WAITING dim backgrounds mix toward the darker of their token and `canvas`. Recent DONE dim backgrounds mix toward the darker of their token and aged DONE background. Dim accents, aged DONE, foreground, ink, and identity colors do not mix. Session metadata `flashIntensity` can override the hub setting for demo keys.
 
@@ -126,13 +126,13 @@ The runtime defaults to the Fjord artwork in `docs/design/palettes/default.svg`.
 
 Five alternatives are available, including two high-contrast directions:
 
-| Palette | Character | WORKING band | WAITING band | Fresh DONE band |
-| --- | --- | --- | --- | --- |
-| Fjord | Cool slate, seafoam, powder blue, soft rose; implemented default | `#79C4B5` | `#E3C291` | `#B0D4EE` |
-| Nocturne | Ink violet, jade, cornflower, raspberry; more vivid | `#55D6B0` | `#F0BA67` | `#A9C1FF` |
-| Ember & Ice | Warm graphite, olive, icy blue, terracotta; warmer and understated | `#BCD2AA` | `#E8BC94` | `#CAE2E9` |
-| Signal | High-contrast dark; near-black, luminous accents, crisp white marks | `#54F2B4` | `#FFD166` | `#BFE5FF` |
-| Porcelain | High-contrast light; pale surfaces, deep ink, rich bands; dark blue DONE aging | `#14553F` | `#6B4800` | `#BFE3FF` |
+| Palette     | Character                                                                      | WORKING band | WAITING band | Fresh DONE band |
+| ----------- | ------------------------------------------------------------------------------ | ------------ | ------------ | --------------- |
+| Fjord       | Cool slate, seafoam, powder blue, soft rose; implemented default               | `#79C4B5`    | `#E3C291`    | `#B0D4EE`       |
+| Nocturne    | Ink violet, jade, cornflower, raspberry; more vivid                            | `#55D6B0`    | `#F0BA67`    | `#A9C1FF`       |
+| Ember & Ice | Warm graphite, olive, icy blue, terracotta; warmer and understated             | `#BCD2AA`    | `#E8BC94`    | `#CAE2E9`       |
+| Signal      | High-contrast dark; near-black, luminous accents, crisp white marks            | `#54F2B4`    | `#FFD166`    | `#BFE5FF`       |
+| Porcelain   | High-contrast light; pale surfaces, deep ink, rich bands; dark blue DONE aging | `#14553F`    | `#6B4800`    | `#BFE3FF`       |
 
 All alternatives preserve amber WAITING and blue-family DONE, with distinct fresh, aged, and assessed values. `docs/design/palettes/tokens.json` is the complete shared token specification, including neutral badges, controls, surfaces, identity foregrounds, label ink, and bright/dim phases. Its `previewPalette` identifies the main sheet; `selectedPalette` identifies the shipped fallback (Fjord), not the current user's setting. The [palette gallery](docs/design/README.md#palette-gallery) links to full sheets that use the same identities, states, and layout for comparison.
 

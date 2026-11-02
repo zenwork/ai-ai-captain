@@ -24,7 +24,12 @@ async function fixture(): Promise<{ store: SessionStore; tracker: CopilotTracker
   directories.push(root);
   const store = new SessionStore();
   stores.push(store);
-  const owners = ["first-session", "second-session"].map((sessionId) => ({ sessionId, directory: join(root, sessionId), pid: 123, focusTarget: { appName: "IntelliJ IDEA", pid: 10 } }));
+  const owners = ["first-session", "second-session"].map((sessionId) => ({
+    sessionId,
+    directory: join(root, sessionId),
+    pid: 123,
+    focusTarget: { appName: "IntelliJ IDEA", pid: 10 },
+  }));
   for (const owner of owners) {
     await mkdir(owner.directory);
     await writeFile(join(owner.directory, "events.jsonl"), event("session.start", { selectedModel: "gpt-6.1-sol", context: { cwd: "/projects/example" } }));
@@ -37,7 +42,10 @@ describe("Copilot session tracking", () => {
     const { store, tracker, owners } = await fixture();
     const first = join(owners[0].directory, "events.jsonl");
     let closed = false;
-    const inspect = async (owner: CopilotOwner) => ({ status: closed && owner === owners[0] ? "closed" as const : "open" as const, evidence: "test project registry" });
+    const inspect = async (owner: CopilotOwner) => ({
+      status: closed && owner === owners[0] ? ("closed" as const) : ("open" as const),
+      evidence: "test project registry",
+    });
     await tracker.reconcile(owners, inspect);
     expect(store.list()).toHaveLength(2);
     closed = true;
@@ -70,10 +78,18 @@ describe("Copilot session tracking", () => {
   it("tracks two sessions in the same IDE runtime independently and discards chat content", async () => {
     const { store, tracker, owners } = await fixture();
     await appendFile(join(owners[0].directory, "events.jsonl"), event("user.message", { content: "private prompt" }) + event("assistant.turn_start"));
-    await appendFile(join(owners[1].directory, "events.jsonl"), event("assistant.message", { content: "private response", model: "claude-opus-5.5" }) + event("assistant.turn_end"));
+    await appendFile(
+      join(owners[1].directory, "events.jsonl"),
+      event("assistant.message", { content: "private response", model: "claude-opus-5.5" }) + event("assistant.turn_end"),
+    );
     await tracker.reconcile(owners);
     expect(store.list()).toHaveLength(2);
-    expect(store.get("copilot:first-session")).toMatchObject({ state: "working", model: "gpt-6.1-sol", lastActivityAt: timestamp, metadata: { host: "IntelliJ IDEA" } });
+    expect(store.get("copilot:first-session")).toMatchObject({
+      state: "working",
+      model: "gpt-6.1-sol",
+      lastActivityAt: timestamp,
+      metadata: { host: "IntelliJ IDEA" },
+    });
     expect(store.get("copilot:second-session")).toMatchObject({ state: "done", ended: false, model: "claude-opus-5.5" });
     expect(JSON.stringify(store.list())).not.toMatch(/private prompt|private response|content/);
     let updates = 0;
@@ -132,7 +148,10 @@ describe("Copilot session tracking", () => {
     await tracker.reconcile(owners);
     await rm(path);
     await tracker.reconcile(owners);
-    expect(store.get("copilot:first-session")).toMatchObject({ state: "unknown", metadata: { telemetryStatus: "missing", telemetryError: "ENOENT", telemetryLocation: path } });
+    expect(store.get("copilot:first-session")).toMatchObject({
+      state: "unknown",
+      metadata: { telemetryStatus: "missing", telemetryError: "ENOENT", telemetryLocation: path },
+    });
     await writeFile(path, event("assistant.turn_start"));
     await tracker.reconcile(owners);
     expect(store.get("copilot:first-session")).toMatchObject({ state: "working", metadata: { telemetryStatus: "available", lastTelemetryAt: timestamp } });
@@ -214,8 +233,19 @@ describe("Copilot session tracking", () => {
 
   it("uses open hold files rather than stale lock files and resolves the IDE ancestor", () => {
     const root = "/home/example/.copilot/session-state";
-    const processes = [{ pid: 123, parentPid: 20, name: "/cache/copilot-runtime" }, { pid: 20, parentPid: 10, name: "/plugins/copilot-language-server" }, { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea" }];
+    const processes = [
+      { pid: 123, parentPid: 20, name: "/cache/copilot-runtime" },
+      { pid: 20, parentPid: 10, name: "/plugins/copilot-language-server" },
+      { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea" },
+    ];
     const output = `p123\nn${root}/first-session/inuse.123.hold\nn${root}/old-session/inuse.123.lock\nn${root}/wrong-owner/inuse.456.hold\nn/other/root/unrelated/inuse.123.hold\n`;
-    expect(copilotOwners(output, root, processes)).toEqual([{ sessionId: "first-session", pid: 123, directory: join(root, "first-session"), focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA.app" } }]);
+    expect(copilotOwners(output, root, processes)).toEqual([
+      {
+        sessionId: "first-session",
+        pid: 123,
+        directory: join(root, "first-session"),
+        focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA.app" },
+      },
+    ]);
   });
 });

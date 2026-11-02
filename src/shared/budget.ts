@@ -26,14 +26,16 @@ export const budgetInputSchema = z.object({
   plan: z.string().trim().min(1).max(24).optional(),
   windows: z.array(budgetWindowSchema).max(3),
   credits: z.object({ used: amountSchema, total: amountSchema.positive() }).optional(),
-  extra: z.object({
-    kind: z.enum(["extra", "topup"]),
-    active: z.boolean(),
-    used: amountSchema.optional(),
-    limit: amountSchema.optional(),
-    balance: amountSchema.optional(),
-    currency: z.enum(["usd", "credits"]).optional(),
-  }).optional(),
+  extra: z
+    .object({
+      kind: z.enum(["extra", "topup"]),
+      active: z.boolean(),
+      used: amountSchema.optional(),
+      limit: amountSchema.optional(),
+      balance: amountSchema.optional(),
+      currency: z.enum(["usd", "credits"]).optional(),
+    })
+    .optional(),
 });
 export type BudgetInput = z.infer<typeof budgetInputSchema>;
 
@@ -67,7 +69,8 @@ export function formatCredits(value: number): string {
 
 function windowCard(kind: BudgetWindowKind, budget: Budget | undefined, now: number): BudgetWindowCard {
   const window = budget?.windows.find((entry) => entry.kind === kind);
-  const percent = window?.usedPercent ?? (kind === "monthly" && budget?.credits ? Math.min(100, (budget.credits.used / budget.credits.total) * 100) : undefined);
+  const percent =
+    window?.usedPercent ?? (kind === "monthly" && budget?.credits ? Math.min(100, (budget.credits.used / budget.credits.total) * 100) : undefined);
   const reset = formatResetIn(window?.resetsAt, now);
   // After its reset, a window starts again at 0%. The hub assumes no use since the last report: Codex writes a new snapshot each time it runs.
   if (window?.resetsAt && !reset) return { label: windowLabels[kind], percent: 0 };

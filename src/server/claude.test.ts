@@ -35,22 +35,38 @@ async function fixture() {
   const store = new SessionStore();
   stores.push(store);
   const registration = async (pid = 20, fields: Record<string, unknown> = {}) => {
-    await writeFile(join(root, "sessions", `${pid}.json`), JSON.stringify({
-      pid, sessionId, cwd: "/projects/example", startedAt: Date.parse(startedAt), procStart: startedAt,
-      pidDomain: platform(), status: "busy", statusUpdatedAt: Date.parse(startedAt), ...fields,
-    }));
+    await writeFile(
+      join(root, "sessions", `${pid}.json`),
+      JSON.stringify({
+        pid,
+        sessionId,
+        cwd: "/projects/example",
+        startedAt: Date.parse(startedAt),
+        procStart: startedAt,
+        pidDomain: platform(),
+        status: "busy",
+        statusUpdatedAt: Date.parse(startedAt),
+        ...fields,
+      }),
+    );
   };
   return { root, store, tracker: new ClaudeTracker(store, root), registration };
 }
 
 describe("Claude transcript usage", () => {
-  const assistantLine = (model: string, inputTokens: number, cacheRead: number): string => JSON.stringify({
-    type: "assistant",
-    message: { model, content: "private text", usage: { input_tokens: inputTokens, cache_creation_input_tokens: 0, cache_read_input_tokens: cacheRead } },
-  });
+  const assistantLine = (model: string, inputTokens: number, cacheRead: number): string =>
+    JSON.stringify({
+      type: "assistant",
+      message: { model, content: "private text", usage: { input_tokens: inputTokens, cache_creation_input_tokens: 0, cache_read_input_tokens: cacheRead } },
+    });
 
   it("reads the model and context tokens from the latest assistant line only", () => {
-    const tail = ["partial line", assistantLine("claude-opus-4", 10, 1000), JSON.stringify({ type: "user", message: "secret" }), assistantLine("claude-sonnet-5", 20, 49_980)].join("\n");
+    const tail = [
+      "partial line",
+      assistantLine("claude-opus-4", 10, 1000),
+      JSON.stringify({ type: "user", message: "secret" }),
+      assistantLine("claude-sonnet-5", 20, 49_980),
+    ].join("\n");
     expect(parseClaudeTranscriptTail(tail)).toEqual({ model: "claude-sonnet-5", tokensUsed: 50_000, contextUsedPercent: 25 });
   });
 
@@ -61,8 +77,14 @@ describe("Claude transcript usage", () => {
 
 describe("Claude registry tracking", () => {
   it.each([
-    ["busy", "working"], ["running", "working"], ["idle", "done"], ["waiting", "waiting"],
-    ["starting", "starting"], ["error", "failed"], ["new-format", "unknown"], [undefined, "unknown"],
+    ["busy", "working"],
+    ["running", "working"],
+    ["idle", "done"],
+    ["waiting", "waiting"],
+    ["starting", "starting"],
+    ["error", "failed"],
+    ["new-format", "unknown"],
+    [undefined, "unknown"],
   ])("maps registry status %s to %s", (status, state) => {
     expect(claudeRegistryState(status)).toBe(state);
   });
@@ -74,7 +96,11 @@ describe("Claude registry tracking", () => {
     await registration(60, { sessionId: "19e3d9a9-2375-41d2-833b-81005f9b1a6f", status: "idle" });
     await tracker.scan(processes);
     expect(store.list()).toHaveLength(3);
-    expect(store.get(`claude:${sessionId}`)).toMatchObject({ harness: "claude-ide", state: "working", focusTarget: { pid: 10, appPath: "/Applications/IntelliJ IDEA.app" } });
+    expect(store.get(`claude:${sessionId}`)).toMatchObject({
+      harness: "claude-ide",
+      state: "working",
+      focusTarget: { pid: 10, appPath: "/Applications/IntelliJ IDEA.app" },
+    });
     expect(store.get(`claude:${secondSessionId}`)).toMatchObject({ harness: "claude-cli", state: "waiting" });
     expect(store.list().find((session) => session.harness === "claude-app")).toMatchObject({ state: "done", ended: false });
   });
@@ -139,7 +165,7 @@ describe("Claude registry tracking", () => {
   it("filters closed projects and requires new work before a suppressed session returns", async () => {
     const { tracker, store, registration } = await fixture();
     let closed = false;
-    const lifetime = async () => ({ status: closed ? "closed" as const : "open" as const, evidence: "project registration" });
+    const lifetime = async () => ({ status: closed ? ("closed" as const) : ("open" as const), evidence: "project registration" });
     await registration();
     await tracker.scan(processes, lifetime);
     closed = true;

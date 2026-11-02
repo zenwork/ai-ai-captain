@@ -28,9 +28,22 @@ async function fixture(): Promise<{ root: string; store: SessionStore; tracker: 
   stores.push(store);
   const directory = join(root, "sessions", "2026", "10", "25");
   await mkdir(directory, { recursive: true });
-  const owners = sessionIds.map((sessionId) => ({ sessionId, rolloutPath: join(directory, `rollout-2026-10-25T10-27-31-${sessionId}.jsonl`), pid: 123, focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA.app" } }));
+  const owners = sessionIds.map((sessionId) => ({
+    sessionId,
+    rolloutPath: join(directory, `rollout-2026-10-25T10-27-31-${sessionId}.jsonl`),
+    pid: 123,
+    focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA.app" },
+  }));
   for (const owner of owners) {
-    await writeFile(owner.rolloutPath, event("session_meta", { id: owner.sessionId, cwd: "/projects/example", originator: "JetBrains.IntelliJ IDEA", base_instructions: "private instructions" }) + event("turn_context", { cwd: "/projects/example", model: "gpt-6.1-sol" }));
+    await writeFile(
+      owner.rolloutPath,
+      event("session_meta", {
+        id: owner.sessionId,
+        cwd: "/projects/example",
+        originator: "JetBrains.IntelliJ IDEA",
+        base_instructions: "private instructions",
+      }) + event("turn_context", { cwd: "/projects/example", model: "gpt-6.1-sol" }),
+    );
   }
   return { root, store, tracker: new CodexTracker(store, root), owners };
 }
@@ -39,7 +52,10 @@ describe("Codex session tracking", () => {
   it("removes closed projects while their Codex runtime stays alive and only restores a newly triggered turn", async () => {
     const { store, tracker, owners } = await fixture();
     let closed = false;
-    const inspect = async (owner: CodexOwner) => ({ status: closed && owner === owners[0] ? "closed" as const : "open" as const, evidence: "test project registry" });
+    const inspect = async (owner: CodexOwner) => ({
+      status: closed && owner === owners[0] ? ("closed" as const) : ("open" as const),
+      evidence: "test project registry",
+    });
     await tracker.reconcile(owners, inspect);
     closed = true;
     await tracker.reconcile(owners, inspect);
@@ -50,7 +66,10 @@ describe("Codex session tracking", () => {
     closed = false;
     await tracker.reconcile(owners, inspect);
     expect(store.get(`codex:${sessionIds[0]}`)).toBeUndefined();
-    await appendFile(owners[0].rolloutPath!, JSON.stringify({ type: "event_msg", timestamp: "2026-10-25T13:00:00.000Z", payload: { type: "task_started" } }) + "\n");
+    await appendFile(
+      owners[0].rolloutPath!,
+      JSON.stringify({ type: "event_msg", timestamp: "2026-10-25T13:00:00.000Z", payload: { type: "task_started" } }) + "\n",
+    );
     await tracker.reconcile(owners, inspect);
     expect(store.get(`codex:${sessionIds[0]}`)?.state).toBe("working");
     expect(store.list()).toHaveLength(2);
@@ -64,7 +83,10 @@ describe("Codex session tracking", () => {
     await appendFile(owners[0].rolloutPath!, event("turn_context", { cwd: "/projects/example", model: "updated-model" }) + message("token_count"));
     await tracker.reconcile(owners, async () => ({ status: "open", evidence: "test", openedAt }));
     expect(store.list()).toHaveLength(0);
-    await appendFile(owners[0].rolloutPath!, JSON.stringify({ type: "event_msg", timestamp: "2026-10-25T13:00:00.000Z", payload: { type: "task_started" } }) + "\n");
+    await appendFile(
+      owners[0].rolloutPath!,
+      JSON.stringify({ type: "event_msg", timestamp: "2026-10-25T13:00:00.000Z", payload: { type: "task_started" } }) + "\n",
+    );
     await tracker.reconcile(owners, async () => ({ status: "open", evidence: "test", openedAt }));
     expect(store.list()).toHaveLength(1);
     await tracker.reconcile(owners, async () => ({ status: "closed", evidence: "Terminal connection revoked" }));
@@ -73,11 +95,22 @@ describe("Codex session tracking", () => {
 
   it("tracks independent IDE conversations from real turn lifecycle events, not app presence or model names", async () => {
     const { store, tracker, owners } = await fixture();
-    await appendFile(owners[0].rolloutPath!, message("task_started", { turn_id: "active" }) + event("response_item", { type: "message", content: "private prompt" }));
+    await appendFile(
+      owners[0].rolloutPath!,
+      message("task_started", { turn_id: "active" }) + event("response_item", { type: "message", content: "private prompt" }),
+    );
     await appendFile(owners[1].rolloutPath!, message("task_started") + message("task_complete", { last_agent_message: "private response" }));
     await tracker.reconcile(owners);
     expect(store.list()).toHaveLength(2);
-    expect(store.get(`codex:${sessionIds[0]}`)).toMatchObject({ state: "working", source: "codex-local", harness: "codex-ide", model: "gpt-6.1-sol", project: "/projects/example", focusTarget: owners[0].focusTarget, lastActivityAt: timestamp });
+    expect(store.get(`codex:${sessionIds[0]}`)).toMatchObject({
+      state: "working",
+      source: "codex-local",
+      harness: "codex-ide",
+      model: "gpt-6.1-sol",
+      project: "/projects/example",
+      focusTarget: owners[0].focusTarget,
+      lastActivityAt: timestamp,
+    });
     expect(store.get(`codex:${sessionIds[1]}`)).toMatchObject({ state: "done", ended: false });
     expect(JSON.stringify(store.list())).not.toMatch(/private|instructions|content|last_agent_message/);
     const updates = vi.fn();
@@ -112,7 +145,10 @@ describe("Codex session tracking", () => {
   it("waits for blocking input requests without retaining their questions or answers", () => {
     const state = new CodexSessionState();
     state.apply(JSON.parse(message("task_started")));
-    for (const callId of ["first", "second"]) state.apply(JSON.parse(event("response_item", { type: "function_call", name: "functions.request_user_input", call_id: callId, arguments: "private questions" })));
+    for (const callId of ["first", "second"])
+      state.apply(
+        JSON.parse(event("response_item", { type: "function_call", name: "functions.request_user_input", call_id: callId, arguments: "private questions" })),
+      );
     expect(state.state).toBe("waiting");
     state.apply(JSON.parse(event("response_item", { type: "function_call_output", call_id: "first", output: "private answer" })));
     expect(state.state).toBe("waiting");
@@ -136,8 +172,19 @@ describe("Codex session tracking", () => {
 
   it("reads token totals, context use, freedom, and approval without keeping paths", () => {
     const state = new CodexSessionState();
-    state.apply({ type: "turn_context", timestamp, payload: { model: "gpt-5.5", approval_policy: "never", sandbox_policy: { type: "danger-full-access", writable_roots: ["/private/path"] } } });
-    state.apply({ type: "event_msg", timestamp, payload: { type: "token_count", info: { total_token_usage: { total_tokens: 148_000 }, last_token_usage: { total_tokens: 64_600 }, model_context_window: 258_400 } } });
+    state.apply({
+      type: "turn_context",
+      timestamp,
+      payload: { model: "gpt-5.5", approval_policy: "never", sandbox_policy: { type: "danger-full-access", writable_roots: ["/private/path"] } },
+    });
+    state.apply({
+      type: "event_msg",
+      timestamp,
+      payload: {
+        type: "token_count",
+        info: { total_token_usage: { total_tokens: 148_000 }, last_token_usage: { total_tokens: 64_600 }, model_context_window: 258_400 },
+      },
+    });
     expect(state).toMatchObject({ freedom: "full", approval: "never", tokensUsed: 148_000, contextUsedPercent: 25 });
     expect(JSON.stringify(state)).not.toContain("private");
     state.apply({ type: "turn_context", timestamp, payload: { approval_policy: "on-request", sandbox_policy: { type: "workspace-write" } } });
@@ -183,7 +230,10 @@ describe("Codex session tracking", () => {
     expect(store.get(`codex:${sessionIds[0]}`)?.state).toBe("working");
     await rename(path, `${path}.hidden`);
     await tracker.reconcile(owners);
-    expect(store.get(`codex:${sessionIds[0]}`)).toMatchObject({ state: "unknown", metadata: { telemetryStatus: "missing", telemetryError: "ENOENT", telemetryLocation: path, lastTelemetryAt: timestamp } });
+    expect(store.get(`codex:${sessionIds[0]}`)).toMatchObject({
+      state: "unknown",
+      metadata: { telemetryStatus: "missing", telemetryError: "ENOENT", telemetryLocation: path, lastTelemetryAt: timestamp },
+    });
     await rename(`${path}.hidden`, path);
     await tracker.reconcile(owners);
     expect(store.get(`codex:${sessionIds[0]}`)?.state).toBe("working");
@@ -207,7 +257,11 @@ describe("Codex session tracking", () => {
   it("reports genuinely owned sessions without rollout events as unknown, not working", async () => {
     const { store, tracker } = await fixture();
     await tracker.reconcile([{ sessionId: "01a17262-0000-0000-0000-000000000000", pid: 321, focusTarget: { appName: "Terminal" } }]);
-    expect(store.list()[0]).toMatchObject({ harness: "codex-cli", state: "unknown", metadata: { stateEvent: "events.unavailable", telemetryStatus: "missing" } });
+    expect(store.list()[0]).toMatchObject({
+      harness: "codex-cli",
+      state: "unknown",
+      metadata: { stateEvent: "events.unavailable", telemetryStatus: "missing" },
+    });
     expect(store.list()[0].metadata?.lastTelemetryAt).toBeUndefined();
   });
 
@@ -230,10 +284,16 @@ describe("Codex session tracking", () => {
 
   it("discovers live rollout and writer-lock ownership and the exact IntelliJ ancestor", () => {
     const root = "/home/example/.codex";
-    const processes = [{ pid: 123, parentPid: 20, name: "/cache/bin/codex" }, { pid: 20, parentPid: 10, name: "/runtime/node" }, { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea" }];
+    const processes = [
+      { pid: 123, parentPid: 20, name: "/cache/bin/codex" },
+      { pid: 20, parentPid: 10, name: "/runtime/node" },
+      { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea" },
+    ];
     const path = `${root}/sessions/2026/10/25/rollout-2026-10-25T10-27-31-${sessionIds[0]}.jsonl`;
     const output = `p123\nn${root}/thread-writer-locks/${sessionIds[0]}.lock\nn${path}\nn${root}/thread-writer-locks/.coordination.lock\nn${root}/sessions/../unrelated.jsonl\nn/other/root/thread-writer-locks/${sessionIds[1]}.lock\np999\nn${root}/thread-writer-locks/${sessionIds[1]}.lock\n`;
-    expect(codexOwners(output, root, processes)).toEqual([{ sessionId: sessionIds[0], pid: 123, rolloutPath: path, focusTarget: { appName: "IntelliJ IDEA", appPath: "/Applications/IntelliJ IDEA.app", pid: 10 } }]);
+    expect(codexOwners(output, root, processes)).toEqual([
+      { sessionId: sessionIds[0], pid: 123, rolloutPath: path, focusTarget: { appName: "IntelliJ IDEA", appPath: "/Applications/IntelliJ IDEA.app", pid: 10 } },
+    ]);
     expect(codexOwners(`p123\nn${path}\n`, root, processes)).toHaveLength(1);
   });
 });

@@ -29,7 +29,9 @@ function run(argv) {
   var lines = [];
   var windows = children(root, "AXWindows");
   lines.push("windows: " + windows.length);
-  var pending = windows.map(function(window) { return { element: window, depth: 0 }; });
+  var pending = windows.map(function (window) {
+    return { element: window, depth: 0 };
+  });
   var count = 0;
   var roles = {};
   while (pending.length && count++ < 20000) {
@@ -37,12 +39,15 @@ function run(argv) {
     var role = scalar(item.element, "AXRole");
     roles[role] = (roles[role] || 0) + 1;
     if (role === "AXStaticText" || role === "AXTextArea" || role === "AXTextField") continue;
-    if (role === "AXWebArea") lines.push("AXWebArea depth=" + item.depth + " hidden=" + scalar(item.element, "AXHidden") + " url=" + scalar(item.element, "AXURL"));
+    if (role === "AXWebArea")
+      lines.push("AXWebArea depth=" + item.depth + " hidden=" + scalar(item.element, "AXHidden") + " url=" + scalar(item.element, "AXURL"));
     if (role === "AXButton") {
       var label = scalar(item.element, "AXTitle") || scalar(item.element, "AXDescription");
       if (label) lines.push("  button: " + label + " enabled=" + scalar(item.element, "AXEnabled"));
     }
-    children(item.element).forEach(function(child) { pending.push({ element: child, depth: item.depth + 1 }); });
+    children(item.element).forEach(function (child) {
+      pending.push({ element: child, depth: item.depth + 1 });
+    });
   }
   lines.push("elements visited: " + count + (pending.length ? " (limit reached)" : ""));
   lines.push("roles: " + JSON.stringify(roles));

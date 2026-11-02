@@ -54,7 +54,10 @@ export class SettingsStore {
       this.#events.emit("change", this.get());
       return this.get();
     });
-    this.#queue = operation.then(() => {}, () => {});
+    this.#queue = operation.then(
+      () => {},
+      () => {},
+    );
     return operation;
   }
 

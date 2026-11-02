@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { SessionApproval, SessionFreedom, SessionInput, SessionState } from "../shared/session.js";
 import { SessionLifetimeGate, type HostLifetime, type LifetimeInspector } from "./lifetimes.js";
 import { hostApplication, type ProcessInfo } from "./processes.js";
-import { SessionStore } from "./store.js";
+import type { SessionStore } from "./store.js";
 
 const maximumIndexBytes = 4 * 1024 * 1024;
 const eventTailBytes = 256 * 1024;
@@ -81,7 +81,10 @@ export class JunieTracker {
   readonly #triggers = new Map<string, string>();
   readonly #lifetimes = new SessionLifetimeGate();
 
-  constructor(private readonly store: SessionStore, private readonly root: string) {}
+  constructor(
+    private readonly store: SessionStore,
+    private readonly root: string,
+  ) {}
 
   async scan(processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<void> {
     const entries = await this.#readIndex();
@@ -156,7 +159,15 @@ export class JunieTracker {
     for (const identifier of this.#tracked) {
       const session = this.store.get(identifier);
       if (session && session.state !== "unknown") {
-        this.store.upsert({ ...session, state: "unknown", metadata: { ...session.metadata, stateEvent: "junie.unavailable", telemetryStatus: "unreadable", telemetryError: "DISCOVERY_UNAVAILABLE" } }, session.lastActivityAt, new Date().toISOString());
+        this.store.upsert(
+          {
+            ...session,
+            state: "unknown",
+            metadata: { ...session.metadata, stateEvent: "junie.unavailable", telemetryStatus: "unreadable", telemetryError: "DISCOVERY_UNAVAILABLE" },
+          },
+          session.lastActivityAt,
+          new Date().toISOString(),
+        );
       }
       this.#signatures.delete(identifier);
     }
@@ -209,7 +220,12 @@ export class JunieTracker {
     }
   }
 
-  async #projectLifetime(entry: IndexEntry, hosts: ProcessInfo[], processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<{ lifetime: HostLifetime; focusTarget?: ReturnType<typeof hostApplication> }> {
+  async #projectLifetime(
+    entry: IndexEntry,
+    hosts: ProcessInfo[],
+    processes: ProcessInfo[],
+    lifetimes?: LifetimeInspector,
+  ): Promise<{ lifetime: HostLifetime; focusTarget?: ReturnType<typeof hostApplication> }> {
     if (!lifetimes) {
       return {
         lifetime: { status: "unverified", evidence: "Junie session files" },

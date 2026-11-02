@@ -8,13 +8,7 @@
  *
  * The aged and assessed DONE looks need real session age. The API cannot set them.
  */
-import {
-  allDemoSessionIdentifiers,
-  demoBrightnessSessions,
-  demoSessionIdPrefix,
-  demoSessions,
-  demoStateSequence,
-} from "./demo-keys-plan.js";
+import { allDemoSessionIdentifiers, demoBrightnessSessions, demoSessionIdPrefix, demoSessions, demoStateSequence } from "./demo-keys-plan.js";
 
 const hubUrl = process.env.AI_AI_CAPTAIN_URL ?? "http://127.0.0.1:43681";
 const defaultIntervalSeconds = 4;
@@ -37,9 +31,12 @@ async function sleep(milliseconds: number, stopped?: () => boolean): Promise<voi
       resolve();
     };
     const timeout = setTimeout(finish, milliseconds);
-    const poll = stopped === undefined ? undefined : setInterval(() => {
-      if (stopped()) finish();
-    }, stopPollMilliseconds);
+    const poll =
+      stopped === undefined
+        ? undefined
+        : setInterval(() => {
+            if (stopped()) finish();
+          }, stopPollMilliseconds);
   });
 }
 

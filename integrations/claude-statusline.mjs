@@ -59,7 +59,11 @@ async function main() {
   let text = "";
   for await (const chunk of process.stdin) text += chunk;
   let input = {};
-  try { input = JSON.parse(text); } catch { /* Claude Code always sends JSON. Show an empty line if it does not. */ }
+  try {
+    input = JSON.parse(text);
+  } catch {
+    /* Claude Code always sends JSON. Show an empty line if it does not. */
+  }
   const budget = budgetFromStatusLine(input, option("--plan"));
   if (budget) {
     // The hub can be stopped. The status line must not fail or wait for it.

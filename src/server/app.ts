@@ -41,17 +41,21 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
   const dashboardUrl = canonicalDashboardUrl(options.dashboardUrl ?? "http://127.0.0.1:43681/");
   const app = Fastify({ logger: { level: options.logLevel ?? "info" }, bodyLimit: 32 * 1024 });
 
-  app.get("/health", async () => ({ ok: true }));
+  app.get("/health", () => ({ ok: true }));
   app.get("/api/dashboard/browser", async (_request, reply) => {
-    try { return { browser: await dashboard.getBrowser(dashboardUrl) }; }
-    catch { return reply.code(503).send({ error: "Default browser detection is unavailable on this platform or macOS could not identify it" }); }
+    try {
+      return { browser: await dashboard.getBrowser(dashboardUrl) };
+    } catch {
+      return reply.code(503).send({ error: "Default browser detection is unavailable on this platform or macOS could not identify it" });
+    }
   });
   app.post("/api/dashboard/open", async (request, reply) => {
-    if (request.headers.origin && request.headers.origin !== new URL(dashboardUrl).origin) return reply.code(403).send({ error: "Cross-origin dashboard opening is not allowed" });
+    if (request.headers.origin && request.headers.origin !== new URL(dashboardUrl).origin)
+      return reply.code(403).send({ error: "Cross-origin dashboard opening is not allowed" });
     return dashboard.open(dashboardUrl);
   });
-  app.get("/api/sessions", async () => ({ sessions: store.list(), clients: clients.list(), settings: settings.get(), budgets: budgets.list() }));
-  app.get("/api/budgets", async () => ({ budgets: budgets.list() }));
+  app.get("/api/sessions", () => ({ sessions: store.list(), clients: clients.list(), settings: settings.get(), budgets: budgets.list() }));
+  app.get("/api/budgets", () => ({ budgets: budgets.list() }));
   // The Stream Deck plugin calls this when it starts, so a reused hub reads the automatic sources again.
   app.post("/api/budgets/refresh", async () => {
     await options.refreshBudgets?.();
@@ -71,8 +75,11 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     budgets.remove(known.provider);
     return { removed: true };
   });
-  app.get("/api/clients", async () => ({ clients: clients.list() }));
-  app.get("/api/settings", async () => ({ settings: settings.get(), palettes: palettes.map(({ id, name, mode, contrast }) => ({ id, name, mode, contrast })) }));
+  app.get("/api/clients", () => ({ clients: clients.list() }));
+  app.get("/api/settings", () => ({
+    settings: settings.get(),
+    palettes: palettes.map(({ id, name, mode, contrast }) => ({ id, name, mode, contrast })),
+  }));
   app.put("/api/settings", async (request, reply) => {
     const parsed = settingsWriteSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Choose supported appearance settings" });

@@ -41,20 +41,18 @@ AI AI Captain shows the status of your AI assistant sessions on a Stream Deck XL
 
 <img alt="Explainer of a session key and an info key. The session key shows the key number, the assistant symbol, the app badge, the state symbol, the state label, and the border color. The info key shows the model, the tokens used, the context bar with the 80% mark, the AUTO symbol, and the freedom padlock." src="docs/images/key-anatomy.svg" width="600px"/>
 
-
-
 ### Features by host
 
 The theme, brightness, and info key toggle settings apply to the whole hub. They do not depend on the host. Each host supplies its own info key data.
 
- Host            | Session key | Info key data                                    | Theme | Brightness | Info key toggle |
- --------------- | ----------- | ------------------------------------------------ | ----- | ---------- | --------------- |
- GitHub Copilot  | Yes         | Not read. Report it with the reporter or the API | Yes   | Yes        | Yes             |
- Codex           | Yes         | Model, tokens, context, freedom, and approval    | Yes   | Yes        | Yes             |
- Claude Code     | Yes         | Model, tokens, and context                       | Yes   | Yes        | Yes             |
- Claude desktop  | Yes         | Model only, after you open the chat or task once | Yes   | Yes        | Yes             |
- Junie           | Yes         | Model, tokens, context, freedom, and approval    | Yes   | Yes        | Yes             |
- Other harnesses | Yes         | Reporter or API fields                           | Yes   | Yes        | Yes             |
+| Host            | Session key | Info key data                                    | Theme | Brightness | Info key toggle |
+| --------------- | ----------- | ------------------------------------------------ | ----- | ---------- | --------------- |
+| GitHub Copilot  | Yes         | Not read. Report it with the reporter or the API | Yes   | Yes        | Yes             |
+| Codex           | Yes         | Model, tokens, context, freedom, and approval    | Yes   | Yes        | Yes             |
+| Claude Code     | Yes         | Model, tokens, and context                       | Yes   | Yes        | Yes             |
+| Claude desktop  | Yes         | Model only, after you open the chat or task once | Yes   | Yes        | Yes             |
+| Junie           | Yes         | Model, tokens, context, freedom, and approval    | Yes   | Yes        | Yes             |
+| Other harnesses | Yes         | Reporter or API fields                           | Yes   | Yes        | Yes             |
 
 Change the settings in the dashboard. On a physical Stream Deck, you can also use the **Toggle Info Keys**, **Cycle Theme**, and **Cycle Brightness** keys. Refer to [streamdeck/README.md](streamdeck/README.md).
 

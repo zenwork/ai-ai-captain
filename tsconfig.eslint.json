@@ -4,7 +4,7 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -12,5 +12,13 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "web-src/**/*.ts", "streamdeck/src/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "web-src/**/*.ts",
+    "streamdeck/src/**/*.ts",
+    "scripts/**/*.ts",
+    "scripts/**/*.d.mts",
+    "integrations/**/*.d.mts",
+    "vitest.config.ts"
+  ]
 }

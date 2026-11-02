@@ -108,12 +108,12 @@ The implemented `SessionInput` contains required `id`, `source`, `label`, and `s
 
 The store adds these distinct timestamps:
 
-| Field | Meaning |
-| --- | --- |
-| `createdAt` | When the hub first created that stored record |
-| `updatedAt` | When the latest report/update reached the store |
+| Field            | Meaning                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `createdAt`      | When the hub first created that stored record                                        |
+| `updatedAt`      | When the latest report/update reached the store                                      |
 | `lastActivityAt` | Adapter-observed event time, or receipt time when a reporter supplies no event clock |
-| `stateChangedAt` | Time of the actual observed state transition, used for completion age |
+| `stateChangedAt` | Time of the actual observed state transition, used for completion age                |
 
 Reports, model changes, token counts, and polling must not masquerade as a fresh completion. `ended: false` keeps a completed/failed conversation open; completion and closure are independent concepts.
 
@@ -134,7 +134,7 @@ When multiple IntelliJ IDEA processes run, Junie navigation targets the process 
 The implemented hub listens on `127.0.0.1:43681` by default. Consumers use:
 
 - HTTP snapshots and commands through the local API.
-- SSE for browser inventory changes, with a complete snapshot on each new connection and 15-second comment heartbeats. It is not a durable replay log.
+- SSE for browser inventory changes, with a complete snapshot on each new connection and 15-second comment heartbeats. It is not a durable replay log. The dashboard and the deck page validate each event with `hubEventSchema` from `src/shared/session.ts`. They ignore an event that does not agree with the contract. The next snapshot corrects the state.
 - A 1.5-second HTTP snapshot poll in the Stream Deck plugin; the plugin does not currently consume SSE.
 
 Key animations are local presentation timers, not extra discovery or HTTP requests. Hardware images use base64-encoded SVG data URIs. State/type changes, palette selection, flash intensity, and attention phases drive image signatures, avoiding unnecessary redraws and animation-frame logs.

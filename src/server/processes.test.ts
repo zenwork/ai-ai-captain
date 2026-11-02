@@ -63,10 +63,14 @@ describe("Windows and Linux support", () => {
 const processListTestTimeoutMilliseconds = 20_000;
 
 describe("process list smoke test", () => {
-  it("lists the current process on the real operating system", async () => {
-    const processes = await listProcesses();
-    const currentProcess = processes.find((entry) => entry.pid === process.pid);
-    expect(processes.length).toBeGreaterThan(0);
-    expect(currentProcess).toBeDefined();
-  }, processListTestTimeoutMilliseconds);
+  it(
+    "lists the current process on the real operating system",
+    async () => {
+      const processes = await listProcesses();
+      const currentProcess = processes.find((entry) => entry.pid === process.pid);
+      expect(processes.length).toBeGreaterThan(0);
+      expect(currentProcess).toBeDefined();
+    },
+    processListTestTimeoutMilliseconds,
+  );
 });

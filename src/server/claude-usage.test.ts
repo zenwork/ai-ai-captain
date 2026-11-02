@@ -17,13 +17,19 @@ describe("Claude Usage page", () => {
   });
 
   it("gives no reset time for a text in another form", () => {
-    for (const text of ["Resets soon", "Resets Funday 5:00 PM", "Resets 13:00 PM", "Zurücksetzen Mo 00:50", undefined]) expect(parseClaudeReset(text, now)).toBeUndefined();
+    for (const text of ["Resets soon", "Resets Funday 5:00 PM", "Resets 13:00 PM", "Zurücksetzen Mo 00:50", undefined])
+      expect(parseClaudeReset(text, now)).toBeUndefined();
   });
 
   it("makes the Claude budget from the two meters", () => {
     expect(claudeUsageBudget({ session: { percent: 46, reset: "Resets Mon 12:50 AM" }, week: { percent: 8 } }, "max", now)).toEqual({
-      provider: "claude", source: "claude-desktop-usage", plan: "max",
-      windows: [{ kind: "five-hour", usedPercent: 46, resetsAt: local(2, 0, 50) }, { kind: "weekly", usedPercent: 8 }],
+      provider: "claude",
+      source: "claude-desktop-usage",
+      plan: "max",
+      windows: [
+        { kind: "five-hour", usedPercent: 46, resetsAt: local(2, 0, 50) },
+        { kind: "weekly", usedPercent: 8 },
+      ],
     });
     expect(claudeUsageBudget({}, "max", now)).toBeUndefined();
   });

@@ -24,11 +24,13 @@ const browserSchema = z.object({
   adapter: z.enum(["chromium", "safari", "accessibility", "unsupported"]),
   accessibilityTrusted: z.boolean(),
 });
-const openResultSchema = z.object({
-  opened: z.boolean(),
-  reused: z.boolean().optional(),
-  reason: z.string().optional(),
-}).refine((result) => !result.opened || result.reused !== undefined);
+const openResultSchema = z
+  .object({
+    opened: z.boolean(),
+    reused: z.boolean().optional(),
+    reason: z.string().optional(),
+  })
+  .refine((result) => !result.opened || result.reused !== undefined);
 
 export function canonicalDashboardUrl(value: string): string {
   const url = new URL(value);
@@ -217,7 +219,9 @@ export function createDashboardController(options: { platform?: NodeJS.Platform;
   return {
     getBrowser,
     open(url: string): Promise<DashboardResult> {
-      inFlight ??= performOpen(url).finally(() => { inFlight = undefined; });
+      inFlight ??= performOpen(url).finally(() => {
+        inFlight = undefined;
+      });
       return inFlight;
     },
   };

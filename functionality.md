@@ -25,7 +25,7 @@ This anchor owns observable behavior and acceptance criteria. See [architecture.
 | Claude Code CLI and IntelliJ Claude runtimes             | Automatic sessions from live local registrations; requires a supported registration format                                              |
 | Claude Code in the desktop app                           | Same registrations with Claude app ancestry; remote/isolated runtimes need a reporter                                                   |
 | Other IntelliJ AI workflows                              | Optional manual bridge, one reported task per project; not automatic conversation discovery                                             |
-| Claude desktop chat                                      | Experimental adapter using Accessibility chat and task URLs and known English controls; hidden chats and tasks remain unsupported        |
+| Claude desktop chat                                      | Experimental adapter using Accessibility chat and task URLs and known English controls; hidden chats and tasks remain unsupported       |
 | ChatGPT and Microsoft Copilot desktop plain chats        | App presence only (APP key); session adapters not implemented                                                                           |
 
 Illustrated icons do not expand this coverage matrix.
@@ -44,14 +44,14 @@ Confirmed Claude runtime exit, registration removal, app exit, or removal of an 
 
 The public lifecycle enum remains independent of presentation wording:
 
-| API state | Required key wording | Meaning |
-| --- | --- | --- |
-| `starting` | STARTING | Session started/resumed; an active turn is not yet established |
-| `working` | WORKING | A supported signal reports an active turn or tool operation |
-| `waiting` | WAITING | Input, approval, permission, or another user action is needed |
-| `done` | DONE | Work finished or was cancelled; no action is currently required |
-| `failed` | FAILED | A session-level failure was reported |
-| `unknown` | UNK | Available evidence cannot establish a supported current state |
+| API state  | Required key wording | Meaning                                                         |
+| ---------- | -------------------- | --------------------------------------------------------------- |
+| `starting` | STARTING             | Session started/resumed; an active turn is not yet established  |
+| `working`  | WORKING              | A supported signal reports an active turn or tool operation     |
+| `waiting`  | WAITING              | Input, approval, permission, or another user action is needed   |
+| `done`     | DONE                 | Work finished or was cancelled; no action is currently required |
+| `failed`   | FAILED               | A session-level failure was reported                            |
+| `unknown`  | UNK                  | Available evidence cannot establish a supported current state   |
 
 The shared runtime renderer implements STARTING/WORKING/WAITING/DONE/FAILED/UNK with the approved harness/host artwork. Domain/API state values are unchanged.
 

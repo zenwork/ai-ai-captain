@@ -4,9 +4,23 @@ import { sessionDetails } from "../../web-src/session-details.js";
 import type { Session } from "./session.js";
 
 const session: Session = {
-  id: "codex:thread", source: "codex-local", harness: "codex-ide", label: "Codex", state: "unknown", ended: false,
-  createdAt: "2026-10-25T12:00:00.000Z", updatedAt: "2026-10-25T12:00:00.000Z", lastActivityAt: "2026-10-25T12:00:00.000Z",
-  metadata: { tracking: "codex-events", stateEvent: "events.unavailable", ownerPid: "123", host: "IntelliJ IDEA", telemetryStatus: "missing", telemetryLocation: "/home/example/.codex/sessions" },
+  id: "codex:thread",
+  source: "codex-local",
+  harness: "codex-ide",
+  label: "Codex",
+  state: "unknown",
+  ended: false,
+  createdAt: "2026-10-25T12:00:00.000Z",
+  updatedAt: "2026-10-25T12:00:00.000Z",
+  lastActivityAt: "2026-10-25T12:00:00.000Z",
+  metadata: {
+    tracking: "codex-events",
+    stateEvent: "events.unavailable",
+    ownerPid: "123",
+    host: "IntelliJ IDEA",
+    telemetryStatus: "missing",
+    telemetryLocation: "/home/example/.codex/sessions",
+  },
 };
 
 describe("session state diagnostics", () => {
@@ -61,7 +75,12 @@ describe("session state diagnostics", () => {
 
   it("escapes diagnostic fields and only renders whitelisted metadata, not transcripts or arbitrary fields", () => {
     const malicious = '<script>alert("private")</script>';
-    const html = sessionDetails({ ...session, id: malicious, project: malicious, metadata: { ...session.metadata, telemetryLocation: malicious, telemetryError: "EACCES", prompt: "secret prompt", transcript: "secret transcript" } });
+    const html = sessionDetails({
+      ...session,
+      id: malicious,
+      project: malicious,
+      metadata: { ...session.metadata, telemetryLocation: malicious, telemetryError: "EACCES", prompt: "secret prompt", transcript: "secret transcript" },
+    });
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("EACCES");

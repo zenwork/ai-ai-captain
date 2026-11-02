@@ -9,7 +9,24 @@ import { doneAttention } from "../../src/shared/attention.js";
 import { defaultPaletteId, getPalette, paletteIds, type PaletteId } from "../../src/shared/palette.js";
 import { defaultFlashIntensity, defaultShowInfoKeys, flashIntensityMax, flashIntensityMin, type HubSettings } from "../../src/shared/settings.js";
 import { isFlashIntensity } from "../../src/shared/flash-intensity.js";
-import { appImage, appSignature, budgetImage, budgetSignature, dashboardImage, infoImage, infoPlaceholderImage, infoSignature, pagerImage, sessionImage, sessionPlaceholderImage, sessionSignature, settingControlImage, settingControlSignature, waitingPulseIntervalMs, type SettingControlKind } from "./cards.js";
+import {
+  appImage,
+  appSignature,
+  budgetImage,
+  budgetSignature,
+  dashboardImage,
+  infoImage,
+  infoPlaceholderImage,
+  infoSignature,
+  pagerImage,
+  sessionImage,
+  sessionPlaceholderImage,
+  sessionSignature,
+  settingControlImage,
+  settingControlSignature,
+  waitingPulseIntervalMs,
+  type SettingControlKind,
+} from "./cards.js";
 import { svgDataUri } from "./images.js";
 import { HubSupervisor, isHubHealthy, localHubPort, spawnHubProcess } from "./hub-supervisor.js";
 
@@ -66,7 +83,9 @@ function keyItemCount(): number {
 }
 
 function sessionKeys(deviceId: string): KeyAction<SessionSettings>[] {
-  return [...visibleKeys.values()].filter((key) => key.device.id === deviceId && key.coordinates).sort((left, right) => left.coordinates!.row - right.coordinates!.row || left.coordinates!.column - right.coordinates!.column);
+  return [...visibleKeys.values()]
+    .filter((key) => key.device.id === deviceId && key.coordinates)
+    .sort((left, right) => left.coordinates!.row - right.coordinates!.row || left.coordinates!.column - right.coordinates!.column);
 }
 
 function pageSize(deviceId: string): number {
@@ -90,7 +109,9 @@ function sessionIndex(key: KeyAction<SessionSettings>): number | undefined {
 }
 
 function refresh(): Promise<void> {
-  refreshInFlight ??= readSessions().finally(() => { refreshInFlight = undefined; });
+  refreshInFlight ??= readSessions().finally(() => {
+    refreshInFlight = undefined;
+  });
   return refreshInFlight;
 }
 
@@ -98,7 +119,7 @@ async function readSessions(): Promise<void> {
   try {
     const response = await fetch(`${hubUrl}/api/sessions`, { signal: AbortSignal.timeout(4000) });
     if (!response.ok) throw new Error(`Hub returned ${response.status}`);
-    const payload = await response.json() as { sessions: Session[]; clients?: Client[]; settings?: HubSettings; budgets?: Budget[] };
+    const payload = (await response.json()) as { sessions: Session[]; clients?: Client[]; settings?: HubSettings; budgets?: Budget[] };
     budgets = payload.budgets ?? [];
     if (!budgetRefreshRequested && budgetActions.size) {
       budgetRefreshRequested = true;
@@ -146,11 +167,14 @@ function updateDoneTimer(nextChangeAt?: number): void {
   doneTimer = undefined;
   doneTimerAt = deadline;
   if (deadline !== undefined) {
-    doneTimer = setTimeout(() => {
-      doneTimer = undefined;
-      doneTimerAt = undefined;
-      void renderKeys(false).catch((error: unknown) => streamDeck.logger.warn("Could not update completion alert", error));
-    }, Math.max(1, deadline - Date.now()));
+    doneTimer = setTimeout(
+      () => {
+        doneTimer = undefined;
+        doneTimerAt = undefined;
+        void renderKeys(false).catch((error: unknown) => streamDeck.logger.warn("Could not update completion alert", error));
+      },
+      Math.max(1, deadline - Date.now()),
+    );
   }
 }
 
@@ -190,9 +214,17 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
     const completion = session && doneAttention(session, options.now);
     if (completion?.nextChangeAt !== undefined) nextDoneAt = Math.min(nextDoneAt ?? Infinity, completion.nextChangeAt);
     const keyNumber = index + 1;
-    const signature = session ? sessionSignature(session, keyNumber, options) : client ? appSignature(client, keyNumber, palette) : `empty:${keyNumber}:${palette}`;
+    const signature = session
+      ? sessionSignature(session, keyNumber, options)
+      : client
+        ? appSignature(client, keyNumber, palette)
+        : `empty:${keyNumber}:${palette}`;
     if (renderedCards.get(key.id) !== signature) {
-      const image = session ? sessionImage(session, keyNumber, options) : client ? appImage(client, keyNumber, palette) : sessionPlaceholderImage(keyNumber, palette);
+      const image = session
+        ? sessionImage(session, keyNumber, options)
+        : client
+          ? appImage(client, keyNumber, palette)
+          : sessionPlaceholderImage(keyNumber, palette);
       await key.setImage(svgDataUri(image));
       await key.setTitle("");
       renderedCards.set(key.id, signature);
@@ -215,7 +247,9 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
 function sessionAbove(infoKey: KeyAction<SessionSettings>, ordered: Session[]): Session | undefined {
   const coordinates = infoKey.coordinates;
   if (!coordinates) return undefined;
-  const above = sessionKeys(infoKey.device.id).find((candidate) => candidate.coordinates?.column === coordinates.column && candidate.coordinates.row === coordinates.row - 1);
+  const above = sessionKeys(infoKey.device.id).find(
+    (candidate) => candidate.coordinates?.column === coordinates.column && candidate.coordinates.row === coordinates.row - 1,
+  );
   if (!above) return undefined;
   const index = sessionIndex(above);
   return index === undefined ? undefined : ordered[index];
@@ -291,22 +325,30 @@ class BudgetAction extends SingletonAction<SessionSettings> {
 
 @action({ UUID: "com.local.ai-ai-captain.budget-claude" })
 class ClaudeBudgetAction extends BudgetAction {
-  constructor() { super("claude"); }
+  constructor() {
+    super("claude");
+  }
 }
 
 @action({ UUID: "com.local.ai-ai-captain.budget-openai" })
 class OpenAiBudgetAction extends BudgetAction {
-  constructor() { super("openai"); }
+  constructor() {
+    super("openai");
+  }
 }
 
 @action({ UUID: "com.local.ai-ai-captain.budget-copilot" })
 class CopilotBudgetAction extends BudgetAction {
-  constructor() { super("copilot"); }
+  constructor() {
+    super("copilot");
+  }
 }
 
 @action({ UUID: "com.local.ai-ai-captain.budget-jetbrains" })
 class JetBrainsBudgetAction extends BudgetAction {
-  constructor() { super("jetbrains"); }
+  constructor() {
+    super("jetbrains");
+  }
 }
 
 async function reuseDashboard(): Promise<boolean> {
@@ -315,7 +357,7 @@ async function reuseDashboard(): Promise<boolean> {
     if (!response.ok) return false;
     const result = dashboardResultSchema.parse(await response.json());
     if (result.reason) streamDeck.logger.warn(result.reason);
-    return result.opened === true;
+    return result.opened;
   } catch {
     return false;
   }
@@ -390,7 +432,7 @@ async function requestSessionRemoval(keyAction: KeyAction<SessionSettings>, sess
 async function focusClient(keyAction: KeyAction<SessionSettings>, client: Client): Promise<void> {
   try {
     const response = await fetch(`${hubUrl}/api/clients/${encodeURIComponent(client.id)}/focus`, { method: "POST", signal: AbortSignal.timeout(10000) });
-    const result = await response.json() as { focused?: boolean; reason?: string };
+    const result = (await response.json()) as { focused?: boolean; reason?: string };
     if (response.ok && result.focused) return;
     streamDeck.logger.warn(result.reason ?? "The hub could not focus the app");
   } catch {
@@ -453,9 +495,12 @@ class SessionKey extends SingletonAction<SessionSettings> {
 
 async function dismissSession(keyAction: KeyAction<SessionSettings>, sessionIdentifier: string): Promise<void> {
   try {
-    const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(sessionIdentifier)}/dismiss`, { method: "POST", signal: AbortSignal.timeout(4000) });
+    const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(sessionIdentifier)}/dismiss`, {
+      method: "POST",
+      signal: AbortSignal.timeout(4000),
+    });
     if (!response.ok) throw new Error(`Hub returned ${response.status}`);
-    sessions = sessions.map((session) => session.id === sessionIdentifier ? { ...session, dismissedAt: new Date().toISOString() } : session);
+    sessions = sessions.map((session) => (session.id === sessionIdentifier ? { ...session, dismissedAt: new Date().toISOString() } : session));
     await renderKeys();
   } catch {
     streamDeck.logger.warn("The hub could not dismiss the session");
@@ -465,10 +510,15 @@ async function dismissSession(keyAction: KeyAction<SessionSettings>, sessionIden
 
 async function attendSession(sessionIdentifier: string): Promise<void> {
   try {
-    const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(sessionIdentifier)}/attend`, { method: "POST", signal: AbortSignal.timeout(4000) });
+    const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(sessionIdentifier)}/attend`, {
+      method: "POST",
+      signal: AbortSignal.timeout(4000),
+    });
     if (!response.ok) throw new Error(`Hub returned ${response.status}`);
     const attendedAt = new Date().toISOString();
-    sessions = sessions.map((session) => session.id === sessionIdentifier && session.state === "done" ? { ...session, attendedAt: session.attendedAt ?? attendedAt } : session);
+    sessions = sessions.map((session) =>
+      session.id === sessionIdentifier && session.state === "done" ? { ...session, attendedAt: session.attendedAt ?? attendedAt } : session,
+    );
     await renderKeys();
   } catch {
     // The key keeps its normal DONE look. Focus still works.
@@ -486,7 +536,7 @@ async function focusSession(keyAction: KeyAction<SessionSettings>, session: Sess
   failedFocusTimes.delete(session.id);
   try {
     const response = await fetch(`${hubUrl}/api/sessions/${encodeURIComponent(session.id)}/focus`, { method: "POST", signal: AbortSignal.timeout(10000) });
-    const result = await response.json() as { focused?: boolean; reason?: string };
+    const result = (await response.json()) as { focused?: boolean; reason?: string };
     if (!response.ok || !result.focused) {
       streamDeck.logger.warn(result.reason ?? "The hub could not focus the session");
       failedFocusTimes.set(session.id, Date.now());
@@ -528,7 +578,7 @@ function nextSettings(kind: SettingControlKind): HubSettings {
     return { ...current, palette: paletteIds[(index + 1) % paletteIds.length] ?? current.palette };
   }
   const levelCount = flashIntensityMax - flashIntensityMin + 1;
-  const next = (current.flashIntensity - flashIntensityMin + 1) % levelCount + flashIntensityMin;
+  const next = ((current.flashIntensity - flashIntensityMin + 1) % levelCount) + flashIntensityMin;
   return { ...current, flashIntensity: isFlashIntensity(next) ? next : defaultFlashIntensity };
 }
 
@@ -583,17 +633,23 @@ class SettingControlAction extends SingletonAction<SessionSettings> {
 
 @action({ UUID: "com.local.ai-ai-captain.toggle-info-keys" })
 class ToggleInfoKeysAction extends SettingControlAction {
-  constructor() { super("info-keys"); }
+  constructor() {
+    super("info-keys");
+  }
 }
 
 @action({ UUID: "com.local.ai-ai-captain.cycle-theme" })
 class CycleThemeAction extends SettingControlAction {
-  constructor() { super("theme"); }
+  constructor() {
+    super("theme");
+  }
 }
 
 @action({ UUID: "com.local.ai-ai-captain.cycle-brightness" })
 class CycleBrightnessAction extends SettingControlAction {
-  constructor() { super("brightness"); }
+  constructor() {
+    super("brightness");
+  }
 }
 
 const pagerActions = new Map<string, { direction: "previous" | "next"; action: KeyAction<PagerSettings> }>();
@@ -629,12 +685,16 @@ class PagerAction extends SingletonAction<PagerSettings> {
 
 @action({ UUID: "com.local.ai-ai-captain.previous-page" })
 class PreviousPage extends PagerAction {
-  constructor() { super("previous"); }
+  constructor() {
+    super("previous");
+  }
 }
 
 @action({ UUID: "com.local.ai-ai-captain.next-page" })
 class NextPage extends PagerAction {
-  constructor() { super("next"); }
+  constructor() {
+    super("next");
+  }
 }
 
 function startHubSupervisor(): void {

@@ -43,7 +43,7 @@ function run(argv) {
     if (count++ > 12000) return;
     var role = scalar(element, "AXRole");
     var parts = [role];
-    ["AXSubrole", "AXTitle", "AXDescription", "AXHelp", "AXRoleDescription", "AXURL", "AXDOMIdentifier"].forEach(function(name) {
+    ["AXSubrole", "AXTitle", "AXDescription", "AXHelp", "AXRoleDescription", "AXURL", "AXDOMIdentifier"].forEach(function (name) {
       if (role === "AXStaticText" || role === "AXTextArea" || role === "AXTextField") return;
       var value = scalar(element, name);
       if (value !== null && value !== "" && !(name === "AXRoleDescription")) parts.push(name.slice(2) + "=" + JSON.stringify(String(value).slice(0, 120)));
@@ -58,9 +58,12 @@ function run(argv) {
     if (scalar(element, "AXSelected") === true) parts.push("selected");
     if (scalar(element, "AXEnabled") === false) parts.push("disabled");
     if (scalar(element, "AXBusy") === true) parts.push("busy");
-    if (usage && role === "AXStaticText") { var shown = usageText(element); if (shown) parts.push("text=" + shown); }
+    if (usage && role === "AXStaticText") {
+      var shown = usageText(element);
+      if (shown) parts.push("text=" + shown);
+    }
     if (usage && (role === "AXProgressIndicator" || role === "AXLevelIndicator" || scalar(element, "AXSubrole") === "AXMeter")) {
-      ["AXValue", "AXMinValue", "AXMaxValue", "AXValueDescription"].forEach(function(name) {
+      ["AXValue", "AXMinValue", "AXMaxValue", "AXValueDescription"].forEach(function (name) {
         var number = scalar(element, name);
         if (number !== null && number !== "") parts.push(name.slice(2) + "=" + JSON.stringify(String(number).slice(0, 40)));
       });
@@ -68,7 +71,9 @@ function run(argv) {
     lines.push(new Array(depth + 1).join("  ") + parts.join(" "));
     // Do not enter text containers. They hold prompts and responses.
     if (role === "AXStaticText" || role === "AXTextArea" || role === "AXTextField") return;
-    children(element).forEach(function(child) { visit(child, depth + 1); });
+    children(element).forEach(function (child) {
+      visit(child, depth + 1);
+    });
   }
   var root = $.AXUIElementCreateApplication(Number(argv[0]));
   var value = attribute(root, "AXWindows");

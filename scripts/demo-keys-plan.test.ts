@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { sessionSchema, sessionStates } from "../src/shared/session.js";
 import { cardIdentities } from "../src/shared/card-design.js";
 import { sessionType } from "../streamdeck/src/cards.js";
-import { allDemoSessionIdentifiers, demoBrightnessKeyCount, demoBrightnessSessions, demoFlashIntensityLevels, demoKeyCount, demoSessions, demoStateSequence } from "./demo-keys-plan.js";
+import {
+  allDemoSessionIdentifiers,
+  demoBrightnessKeyCount,
+  demoBrightnessSessions,
+  demoFlashIntensityLevels,
+  demoKeyCount,
+  demoSessions,
+  demoStateSequence,
+} from "./demo-keys-plan.js";
 
 function toSession(input: ReturnType<typeof demoSessions>[number]) {
   const now = new Date().toISOString();
@@ -24,7 +32,9 @@ describe("demo key plan", () => {
   });
 
   it("shows each key identity in the order of the design", () => {
-    const identities = demoSessions(0).slice(0, cardIdentities.length).map((session) => sessionType(toSession(session)));
+    const identities = demoSessions(0)
+      .slice(0, cardIdentities.length)
+      .map((session) => sessionType(toSession(session)));
 
     expect(identities).toEqual(cardIdentities.map((identity) => identity.id));
   });

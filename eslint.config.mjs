@@ -7,7 +7,19 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   {
     // Generated files and third-party code. AGENTS.md section 5 lists the generated files.
-    ignores: ["dist/", "web/", "streamdeck/com.local.ai-ai-captain.sdPlugin/", "intellij-bridge/", "node_modules/", "Claude outputs/", "**/*.js", "**/*.mjs", "**/*.cjs"],
+    ignores: [
+      "dist/",
+      "web/",
+      "streamdeck/com.local.ai-ai-captain.sdPlugin/",
+      "intellij-bridge/",
+      "node_modules/",
+      "Claude outputs/",
+      // Made by scripts/render-design-proposals.mjs.
+      "src/shared/card-assets.ts",
+      "**/*.js",
+      "**/*.mjs",
+      "**/*.cjs",
+    ],
   },
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
@@ -32,6 +44,9 @@ export default tseslint.config(
       "max-depth": ["error", 3],
       // AGENTS.md 3.1: use const when the value does not change.
       "prefer-const": "error",
+      // Numbers in template strings are safe and common (ports, counts, pixels).
+      // Other types stay forbidden. Thus `undefined`, objects, and arrays do not go into text by mistake.
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       // AGENTS.md 3.2: use the node: prefix for Node.js built-in modules.
       "no-restricted-imports": [
         "error",
@@ -52,6 +67,8 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
       "@typescript-eslint/unbound-method": "off",
+      // Mocks of functions that return a promise use `async` without `await`. Example: `vi.fn(async () => "")`.
+      "@typescript-eslint/require-await": "off",
     },
   },
   // Keep this last. It turns off the style rules that Prettier controls.

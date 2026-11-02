@@ -6,15 +6,15 @@ On macOS, Linux, and Windows the hub automatically follows the existing local ev
 
 The reader uses `~/.copilot/session-state` by default; set `AI_AI_CAPTAIN_COPILOT_HOME` to the directory containing `session-state` for another location. It parses existing event records locally and discards message content, tool arguments/results, and other transcript data. Only session ID, project, model, event timestamps, state, and process/host metadata enter the hub store and API. Initial state is replayed once, then only appended bytes are read. Unsupported or unavailable telemetry produces `unknown`, and ended sessions disappear after ten seconds.
 
-| Copilot event                                                                    | Session state                   | Key                           |
-| -------------------------------------------------------------------------------- | ------------------------------- | ----------------------------- |
-| `session.start`, `session.resume`                                                | starting                        | Purple hourglass `STARTING`   |
-| User message, assistant turn start, tool activity                                | working                         | Green `WORKING`               |
-| Assistant turn end, session idle/task completion                                 | done; conversation remains open | Blue `DONE`                   |
-| Permission request or `ask_user` / `exit_plan_mode` until complete               | waiting                         | Amber `WAITING`               |
-| `session.error`                                                                  | failed                          | Red `FAILED`                  |
-| `session.shutdown` or live ownership released                                    | done                            | Blue check mark `DONE`        |
-| Event file or process telemetry unavailable                                      | unknown                         | Gray `UNK`                    |
+| Copilot event                                                      | Session state                   | Key                         |
+| ------------------------------------------------------------------ | ------------------------------- | --------------------------- |
+| `session.start`, `session.resume`                                  | starting                        | Purple hourglass `STARTING` |
+| User message, assistant turn start, tool activity                  | working                         | Green `WORKING`             |
+| Assistant turn end, session idle/task completion                   | done; conversation remains open | Blue `DONE`                 |
+| Permission request or `ask_user` / `exit_plan_mode` until complete | waiting                         | Amber `WAITING`             |
+| `session.error`                                                    | failed                          | Red `FAILED`                |
+| `session.shutdown` or live ownership released                      | done                            | Blue check mark `DONE`      |
+| Event file or process telemetry unavailable                        | unknown                         | Gray `UNK`                  |
 
 This adapter follows Copilot's installed local event/lock format, which may change between versions. It supports runtimes that write those files; Copilot ACP agents without these files still need lifecycle reporting. IntelliJ session keys use the absolute project path and the owning application bundle's command-line launcher to select the matching project window, rather than only activating the application. A closed project may be reopened. Other hosts retain application-level activation; selecting a specific conversation tab is not implemented.
 
@@ -24,15 +24,15 @@ On macOS, Linux, and Windows the hub follows individual Codex CLI sessions and C
 
 The root is `AI_AI_CAPTAIN_CODEX_HOME`, then `CODEX_HOME`, then `~/.codex`. Rollouts are replayed once and then read incrementally, sharing the same bounded JSONL reader as Copilot. The hub retains only session ID, project, model, state, timestamps, and host metadata. It discards instructions, prompts, responses, questions/answers, tool arguments/results, and error messages rather than storing or serving them.
 
-| Codex rollout record | Session state | Key |
-| --- | --- | --- |
-| `session_meta` | starting | Purple `STARTING` |
-| `event_msg.task_started` / `turn_started` | working | Green `WORKING` |
-| Blocking `request_user_input` tool call, until its result arrives | waiting | Amber `WAITING` |
-| `event_msg.task_complete`, turn completion, or `turn_aborted` | done; conversation remains open | Blue `DONE` |
-| `event_msg.error` / `turn_failed` | failed | Red `FAILED` |
-| Live writer/rollout ownership released | done, removed after ten seconds | Blue `DONE` |
-| Missing rollout or unavailable telemetry | unknown | Gray `UNK` |
+| Codex rollout record                                              | Session state                   | Key               |
+| ----------------------------------------------------------------- | ------------------------------- | ----------------- |
+| `session_meta`                                                    | starting                        | Purple `STARTING` |
+| `event_msg.task_started` / `turn_started`                         | working                         | Green `WORKING`   |
+| Blocking `request_user_input` tool call, until its result arrives | waiting                         | Amber `WAITING`   |
+| `event_msg.task_complete`, turn completion, or `turn_aborted`     | done; conversation remains open | Blue `DONE`       |
+| `event_msg.error` / `turn_failed`                                 | failed                          | Red `FAILED`      |
+| Live writer/rollout ownership released                            | done, removed after ten seconds | Blue `DONE`       |
+| Missing rollout or unavailable telemetry                          | unknown                         | Gray `UNK`        |
 
 `turn_context` and `thread_settings_applied` update the project/model without inventing activity. Individual tool failures do not imply session failure. This adapter follows the installed local rollout/lock format, not an attached app-server connection; formats may change. Codex configurations that do not write rollout history, and approval/input pauses not recorded there, cannot expose full lifecycle state through this adapter. They need lifecycle reporting or a future host integration. The official [Codex App Server documentation](https://developers.openai.com/codex/app-server/) describes the live protocol for clients that own that connection; AI AI Captain does not intercept or take over JetBrains' existing connection.
 
@@ -102,4 +102,3 @@ Hook names and payload shapes vary by harness and version. Generic reporters nee
 ```
 
 The script needs no dependencies. It waits at most 1.5 seconds for the hub and never fails the status line. Refer to `INT-12` in [intagration.md](../intagration.md).
-

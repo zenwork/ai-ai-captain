@@ -2,7 +2,7 @@ import { defaultPaletteId, designPalettes } from "./card-assets.js";
 
 export { defaultPaletteId };
 export const palettes = designPalettes;
-export type Palette = typeof palettes[number];
+export type Palette = (typeof palettes)[number];
 export type PaletteId = Palette["id"];
 export const paletteIds = palettes.map((palette) => palette.id);
 

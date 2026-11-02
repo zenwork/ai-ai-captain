@@ -47,17 +47,12 @@ describe.skipIf(process.platform === "win32")("Stream Deck CLI helper", () => {
     const pathDirectory = join(temporaryDirectoryPath, "path");
     const callsFilePath = join(temporaryDirectoryPath, "calls.txt");
     await mkdir(pathDirectory);
-    await writeExecutableFile(
-      join(pathDirectory, "streamdeck"),
-      '#!/bin/sh\nprintf "%s\\n" "$*" >> "$STREAMDECK_CALLS_FILE"\n',
-    );
+    await writeExecutableFile(join(pathDirectory, "streamdeck"), '#!/bin/sh\nprintf "%s\\n" "$*" >> "$STREAMDECK_CALLS_FILE"\n');
 
     const result = runStreamDeckCliHelper(pathDirectory, { STREAMDECK_CALLS_FILE: callsFilePath });
 
     expect(result.status).toBe(0);
-    expect(await readFile(callsFilePath, "utf8")).toBe(
-      `dev\nlink ${streamDeckPluginPath}\nrestart com.local.ai-ai-captain\n`,
-    );
+    expect(await readFile(callsFilePath, "utf8")).toBe(`dev\nlink ${streamDeckPluginPath}\nrestart com.local.ai-ai-captain\n`);
   });
 
   it("restarts the plugin when the CLI reports that it is already linked", async () => {
@@ -73,9 +68,7 @@ describe.skipIf(process.platform === "win32")("Stream Deck CLI helper", () => {
     const result = runStreamDeckCliHelper(pathDirectory, { STREAMDECK_CALLS_FILE: callsFilePath });
 
     expect(result.status).toBe(0);
-    expect(await readFile(callsFilePath, "utf8")).toBe(
-      `dev\nlink ${streamDeckPluginPath}\nrestart com.local.ai-ai-captain\n`,
-    );
+    expect(await readFile(callsFilePath, "utf8")).toBe(`dev\nlink ${streamDeckPluginPath}\nrestart com.local.ai-ai-captain\n`);
     expect(result.stderr).toContain("Plugin already linked");
   });
 
@@ -87,14 +80,8 @@ describe.skipIf(process.platform === "win32")("Stream Deck CLI helper", () => {
     const callsFilePath = join(temporaryDirectoryPath, "calls.txt");
     await mkdir(pathDirectory);
     await mkdir(globalBinDirectory, { recursive: true });
-    await writeExecutableFile(
-      join(pathDirectory, "npm"),
-      '#!/bin/sh\nprintf "%s\\n" "$STREAMDECK_GLOBAL_PREFIX"\n',
-    );
-    await writeExecutableFile(
-      join(globalBinDirectory, "streamdeck"),
-      '#!/bin/sh\nprintf "%s\\n" "$*" >> "$STREAMDECK_CALLS_FILE"\n',
-    );
+    await writeExecutableFile(join(pathDirectory, "npm"), '#!/bin/sh\nprintf "%s\\n" "$STREAMDECK_GLOBAL_PREFIX"\n');
+    await writeExecutableFile(join(globalBinDirectory, "streamdeck"), '#!/bin/sh\nprintf "%s\\n" "$*" >> "$STREAMDECK_CALLS_FILE"\n');
 
     const result = runStreamDeckCliHelper(pathDirectory, {
       STREAMDECK_CALLS_FILE: callsFilePath,
@@ -102,8 +89,6 @@ describe.skipIf(process.platform === "win32")("Stream Deck CLI helper", () => {
     });
 
     expect(result.status).toBe(0);
-    expect(await readFile(callsFilePath, "utf8")).toBe(
-      `dev\nlink ${streamDeckPluginPath}\nrestart com.local.ai-ai-captain\n`,
-    );
+    expect(await readFile(callsFilePath, "utf8")).toBe(`dev\nlink ${streamDeckPluginPath}\nrestart com.local.ai-ai-captain\n`);
   });
 });

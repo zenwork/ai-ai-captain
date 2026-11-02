@@ -4,13 +4,25 @@ import type { Session } from "./session.js";
 
 const completedAt = Date.parse("2026-10-25T12:00:00.000Z");
 const session: Session = {
-  id: "completed", source: "test", label: "Task", state: "done", ended: false,
-  createdAt: new Date(completedAt - 60_000).toISOString(), updatedAt: new Date(completedAt).toISOString(), lastActivityAt: new Date(completedAt).toISOString(), stateChangedAt: new Date(completedAt).toISOString(),
+  id: "completed",
+  source: "test",
+  label: "Task",
+  state: "done",
+  ended: false,
+  createdAt: new Date(completedAt - 60_000).toISOString(),
+  updatedAt: new Date(completedAt).toISOString(),
+  lastActivityAt: new Date(completedAt).toISOString(),
+  stateChangedAt: new Date(completedAt).toISOString(),
 };
 
 describe("completion attention", () => {
   it.each([
-    [0, 500], [10_000, 1000], [30_000, 2000], [60_000, 5000], [120_000, 10_000], [300_000, 30_000],
+    [0, 500],
+    [10_000, 1000],
+    [30_000, 2000],
+    [60_000, 5000],
+    [120_000, 10_000],
+    [300_000, 30_000],
   ])("flashes briefly with a %i-ms stage offset and a %i-ms period", (stageStart, period) => {
     expect(doneAttention(session, completedAt + stageStart)).toEqual({ phase: "bright", nextChangeAt: completedAt + stageStart + 250 });
     expect(doneAttention(session, completedAt + stageStart + 250)).toEqual({ phase: "dim", nextChangeAt: completedAt + stageStart + period });
@@ -36,7 +48,8 @@ describe("completion attention", () => {
   });
 
   it("does not animate non-done states or invent fresh alerts for invalid timestamps", () => {
-    for (const state of ["working", "waiting", "starting", "failed", "unknown"] as const) expect(doneAttention({ ...session, state }, completedAt)).toBeUndefined();
+    for (const state of ["working", "waiting", "starting", "failed", "unknown"] as const)
+      expect(doneAttention({ ...session, state }, completedAt)).toBeUndefined();
     expect(doneAttention({ ...session, stateChangedAt: "invalid" }, completedAt)).toEqual({ phase: "aged" });
     expect(doneAttention(session, completedAt - 1000)).toEqual({ phase: "aged" });
   });

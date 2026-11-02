@@ -9,9 +9,7 @@ const minimumColumns = 2;
 const minimumSingleRowColumns = 3;
 const minimumRows = 1;
 
-export type DeckItem =
-  | { kind: "session"; keyNumber: number; session: Session }
-  | { kind: "app"; keyNumber: number; client: Client };
+export type DeckItem = { kind: "session"; keyNumber: number; session: Session } | { kind: "app"; keyNumber: number; client: Client };
 
 export interface DeckPage {
   items: DeckItem[];

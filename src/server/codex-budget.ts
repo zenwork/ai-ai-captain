@@ -9,7 +9,7 @@ const fiveHourMinutes = 300;
 const weekMinutes = 10_080;
 
 function fields(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
 function finite(value: unknown): number | undefined {
@@ -38,7 +38,10 @@ async function newestRollouts(sessions: string): Promise<string[]> {
       }
     }
   }
-  return files.sort((left, right) => right.time - left.time).slice(0, newestFiles).map((file) => file.path);
+  return files
+    .sort((left, right) => right.time - left.time)
+    .slice(0, newestFiles)
+    .map((file) => file.path);
 }
 
 async function tail(path: string): Promise<string> {
@@ -82,9 +85,11 @@ export function codexBudgetFromEvent(value: unknown): { budget: BudgetInput; obs
   if (!windows.length) return undefined;
   const credits = fields(limits.credits);
   const balance = finite(credits.balance);
-  const limited = windows.some((window) => (window.usedPercent ?? 0) >= 100) || (typeof limits.rate_limit_reached_type === "string" && limits.rate_limit_reached_type !== "");
+  const limited =
+    windows.some((window) => (window.usedPercent ?? 0) >= 100) || (typeof limits.rate_limit_reached_type === "string" && limits.rate_limit_reached_type !== "");
   const plan = typeof limits.plan_type === "string" && /^[\w-]{1,24}$/.test(limits.plan_type) ? limits.plan_type : undefined;
-  const timestamp = typeof event.timestamp === "string" && Number.isFinite(Date.parse(event.timestamp)) ? new Date(event.timestamp).toISOString() : new Date(0).toISOString();
+  const timestamp =
+    typeof event.timestamp === "string" && Number.isFinite(Date.parse(event.timestamp)) ? new Date(event.timestamp).toISOString() : new Date(0).toISOString();
   return {
     observedAt: timestamp,
     budget: {
@@ -93,7 +98,8 @@ export function codexBudgetFromEvent(value: unknown): { budget: BudgetInput; obs
       ...(plan ? { plan } : {}),
       windows,
       ...(credits.has_credits === true && balance !== undefined && balance > 0 && credits.unlimited !== true
-        ? { extra: { kind: "topup" as const, active: limited, balance, currency: "credits" as const } } : {}),
+        ? { extra: { kind: "topup" as const, active: limited, balance, currency: "credits" as const } }
+        : {}),
     },
   };
 }
@@ -102,7 +108,10 @@ export function codexBudgetFromEvent(value: unknown): { budget: BudgetInput; obs
 export class CodexBudgetReader {
   #lastObservedAt?: string;
 
-  constructor(private readonly store: BudgetStore, private readonly codexHome: string) {}
+  constructor(
+    private readonly store: BudgetStore,
+    private readonly codexHome: string,
+  ) {}
 
   /** Read the newest snapshot. With force, report it again even when it did not change since the last scan. */
   async scan(force = false): Promise<void> {
@@ -112,9 +121,13 @@ export class CodexBudgetReader {
       const text = await tail(path).catch(() => "");
       const lines = text.split("\n");
       for (let index = lines.length - 1; index >= 0; index--) {
-        if (!lines[index].includes("\"rate_limits\"")) continue;
+        if (!lines[index].includes('"rate_limits"')) continue;
         let parsed: ReturnType<typeof codexBudgetFromEvent>;
-        try { parsed = codexBudgetFromEvent(JSON.parse(lines[index])); } catch { continue; }
+        try {
+          parsed = codexBudgetFromEvent(JSON.parse(lines[index]));
+        } catch {
+          continue;
+        }
         if (parsed) {
           if (!newest || parsed.observedAt > newest.observedAt) newest = parsed;
           break;

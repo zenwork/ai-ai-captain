@@ -1,8 +1,8 @@
 import "@awesome.me/webawesome/dist/components/badge/badge.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import "@awesome.me/webawesome/dist/components/icon/icon.js";
-import type { Client, Session } from "../src/shared/session.js";
-import { defaultFlashIntensity, defaultShowInfoKeys, settingsSchema, type HubSettings } from "../src/shared/settings.js";
+import { hubEventSchema, type Client, type Session } from "../src/shared/session.js";
+import { defaultFlashIntensity, defaultShowInfoKeys, settingsSchema } from "../src/shared/settings.js";
 import { isFlashIntensity, parseFlashIntensity } from "../src/shared/flash-intensity.js";
 import { defaultPaletteId, isPaletteId, palettes, type PaletteId } from "../src/shared/palette.js";
 import { doneAttention } from "../src/shared/attention.js";
@@ -22,7 +22,9 @@ class SessionPanel extends HTMLElement {
   #savingPalette = false;
   #events?: EventSource;
   #motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  #onMotionChange = () => this.#renderAttention();
+  #onMotionChange = () => {
+    this.#renderAttention();
+  };
   #expandedDetails = new Map<string, boolean>();
 
   connectedCallback(): void {
@@ -54,21 +56,27 @@ class SessionPanel extends HTMLElement {
       this.#updateConnection();
     };
     events.onmessage = (message) => {
-      const event = JSON.parse(message.data) as { type: string; sessions?: Session[]; session?: Session; id?: string; clients?: Client[]; settings?: HubSettings };
+      const parsed = hubEventSchema.safeParse(JSON.parse(String(message.data)));
+      // Ignore an event that does not agree with the contract. The next snapshot corrects the state.
+      if (!parsed.success) return;
+      const event = parsed.data;
       if (event.type === "snapshot") {
-        this.#sessions = event.sessions ?? [];
+        this.#sessions = event.sessions;
         this.#clients = event.clients ?? [];
       }
-      if ((event.type === "snapshot" || event.type === "settings") && event.settings && isPaletteId(event.settings.palette)) {
-        this.#palette = event.settings.palette;
-        const nextFlashIntensity = event.settings.flashIntensity;
-        this.#flashIntensity = isFlashIntensity(nextFlashIntensity) ? nextFlashIntensity : defaultFlashIntensity;
-        this.#showInfoKeys = event.settings.showInfoKeys ?? defaultShowInfoKeys;
+      const settings = event.type === "snapshot" || event.type === "settings" ? event.settings : undefined;
+      if (settings && isPaletteId(settings.palette)) {
+        this.#palette = settings.palette;
+        this.#flashIntensity = isFlashIntensity(settings.flashIntensity) ? settings.flashIntensity : defaultFlashIntensity;
+        this.#showInfoKeys = settings.showInfoKeys;
         this.#settingsReady = true;
         this.#syncPaletteControl();
       }
-      if (event.type === "clients") this.#clients = event.clients ?? [];
-      if (event.type === "upsert" && event.session) this.#sessions = [event.session, ...this.#sessions.filter((session) => session.id !== event.session!.id)];
+      if (event.type === "clients") this.#clients = event.clients;
+      if (event.type === "upsert") {
+        const updated = event.session;
+        this.#sessions = [updated, ...this.#sessions.filter((session) => session.id !== updated.id)];
+      }
       if (event.type === "remove" && event.id) {
         this.#sessions = this.#sessions.filter((session) => session.id !== event.id);
         this.#expandedDetails.delete(event.id);
@@ -96,7 +104,8 @@ class SessionPanel extends HTMLElement {
     intensitySelect.value = String(this.#flashIntensity);
     paletteSelect.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
     intensitySelect.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
-    if (this.#settingsReady && !this.#savingPalette) this.querySelector<HTMLElement>("#palette-status")!.textContent = "Saved on this Mac · applies to all Stream Decks and previews.";
+    if (this.#settingsReady && !this.#savingPalette)
+      this.querySelector<HTMLElement>("#palette-status")!.textContent = "Saved on this Mac · applies to all Stream Decks and previews.";
   }
 
   async #savePalette(): Promise<void> {
@@ -113,7 +122,12 @@ class SessionPanel extends HTMLElement {
     status.textContent = "Saving appearance…";
     let failure: string | undefined;
     try {
-      const response = await fetch("/api/settings", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(createSettingsPayload(palette, flashIntensity, showInfoKeys)), signal: AbortSignal.timeout(8000) });
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(createSettingsPayload(palette, flashIntensity, showInfoKeys)),
+        signal: AbortSignal.timeout(8000),
+      });
       if (!response.ok) throw new Error("Settings could not be saved");
       const body: unknown = await response.json();
       if (typeof body !== "object" || body === null || !("settings" in body)) throw new Error("Invalid settings response");
@@ -141,16 +155,23 @@ class SessionPanel extends HTMLElement {
     const preview = this.querySelector<HTMLElement>("#deck-preview");
     if (preview) {
       const keyOptions = { palette: this.#palette, flashIntensity: this.#flashIntensity, reducedMotion: this.#motion.matches };
-      const sessionKey = (session: Session, index: number): string => `<button class="deck-key" data-focus="${escapeHtml(session.id)}" title="${escapeHtml(`${index + 1}: ${session.label} · ${sessionTypeLabels[sessionType(session)]} · ${session.model ?? "model unknown"}`)}" aria-label="${escapeHtml(`Key ${index + 1}: ${session.label}, ${session.state}`)}">${sessionImage(session, index + 1, keyOptions)}</button>`;
-      const infoKey = (session: Session): string => `<div class="deck-key deck-info-key" role="img" aria-label="${escapeHtml(`Info for ${session.label}`)}">${infoImage(session, this.#palette)}</div>`;
+      const sessionKey = (session: Session, index: number): string =>
+        `<button class="deck-key" data-focus="${escapeHtml(session.id)}" title="${escapeHtml(`${index + 1}: ${session.label} · ${sessionTypeLabels[sessionType(session)]} · ${session.model ?? "model unknown"}`)}" aria-label="${escapeHtml(`Key ${index + 1}: ${session.label}, ${session.state}`)}">${sessionImage(session, index + 1, keyOptions)}</button>`;
+      const infoKey = (session: Session): string =>
+        `<div class="deck-key deck-info-key" role="img" aria-label="${escapeHtml(`Info for ${session.label}`)}">${infoImage(session, this.#palette)}</div>`;
       preview.innerHTML = this.#showInfoKeys
         ? slotOrder.map((session, index) => `<div class="deck-key-pair">${sessionKey(session, index)}${infoKey(session)}</div>`).join("")
         : slotOrder.map((session, index) => sessionKey(session, index)).join("");
-      preview.querySelectorAll<HTMLElement>("[data-focus]").forEach((button) => button.addEventListener("click", () => void this.#focus(button.dataset.focus!)));
+      preview.querySelectorAll<HTMLElement>("[data-focus]").forEach((button) => {
+        button.addEventListener("click", () => void this.#focus(button.dataset.focus!));
+      });
     }
     const clients = this.querySelector<HTMLElement>("#clients");
-    if (clients) clients.innerHTML = this.#clients.length ? `<h2>Other detected apps</h2><p>Individual sessions are not currently available for these apps.</p><div>${this.#clients.map((client) => `<span class="client-chip">${escapeHtml(client.name)} · ${escapeHtml(client.trackingDetails ?? "app presence only")}</span>`).join("")}</div>` : "";
-    const attention = (state: Session["state"]) => state === "unknown" || state === "waiting" || state === "failed" ? 0 : 1;
+    if (clients)
+      clients.innerHTML = this.#clients.length
+        ? `<h2>Other detected apps</h2><p>Individual sessions are not currently available for these apps.</p><div>${this.#clients.map((client) => `<span class="client-chip">${escapeHtml(client.name)} · ${escapeHtml(client.trackingDetails ?? "app presence only")}</span>`).join("")}</div>`
+        : "";
+    const attention = (state: Session["state"]) => (state === "unknown" || state === "waiting" || state === "failed" ? 0 : 1);
     const sessions = [...this.#sessions].sort((left, right) => attention(left.state) - attention(right.state) || right.updatedAt.localeCompare(left.updatedAt));
     count.textContent = String(sessions.length);
     if (!sessions.length) {
@@ -163,11 +184,20 @@ class SessionPanel extends HTMLElement {
       const host = session.metadata?.host ?? session.focusTarget?.appName ?? "Other sessions";
       groups.set(host, [...(groups.get(host) ?? []), session]);
     }
-    list.innerHTML = [...groups].map(([host, entries]) => `<section class="host-group"><h2 class="host-heading">${escapeHtml(host)} <span>${entries.length} session${entries.length === 1 ? "" : "s"}</span></h2>${entries.map((session) => `<article class="session-card" data-session-id="${escapeHtml(session.id)}"><span class="key-number">${keyNumbers.get(session.id)}</span><div class="state-dot state-${session.state}"></div><div class="session-main"><div class="session-heading"><h2>${escapeHtml(session.label)}</h2><wa-badge variant="${badgeVariant(session.state)}" pill>${escapeHtml(session.state === "unknown" ? "UNK" : session.state.toUpperCase())}</wa-badge></div><div class="session-meta">${escapeHtml(sessionTypeLabels[sessionType(session)])}${session.model ? ` · ${escapeHtml(session.model)}` : ""}${session.project ? ` · ${escapeHtml(session.project)}` : ""}</div>${sessionDetails(session, this.#expandedDetails.get(session.id))}</div><wa-button size="small" appearance="outlined" data-focus="${escapeHtml(session.id)}">${focusLabel(session)}</wa-button></article>`).join("")}</section>`).join("");
-    list.querySelectorAll<HTMLElement>("[data-focus]").forEach((button) => button.addEventListener("click", () => void this.#focus(button.dataset.focus!)));
-    list.querySelectorAll<HTMLDetailsElement>("details[data-details-id]").forEach((details) => details.addEventListener("toggle", () => {
-      if (details.isConnected) this.#expandedDetails.set(details.dataset.detailsId!, details.open);
-    }));
+    list.innerHTML = [...groups]
+      .map(
+        ([host, entries]) =>
+          `<section class="host-group"><h2 class="host-heading">${escapeHtml(host)} <span>${entries.length} session${entries.length === 1 ? "" : "s"}</span></h2>${entries.map((session) => `<article class="session-card" data-session-id="${escapeHtml(session.id)}"><span class="key-number">${keyNumbers.get(session.id)}</span><div class="state-dot state-${session.state}"></div><div class="session-main"><div class="session-heading"><h2>${escapeHtml(session.label)}</h2><wa-badge variant="${badgeVariant(session.state)}" pill>${escapeHtml(session.state === "unknown" ? "UNK" : session.state.toUpperCase())}</wa-badge></div><div class="session-meta">${escapeHtml(sessionTypeLabels[sessionType(session)])}${session.model ? ` · ${escapeHtml(session.model)}` : ""}${session.project ? ` · ${escapeHtml(session.project)}` : ""}</div>${sessionDetails(session, this.#expandedDetails.get(session.id))}</div><wa-button size="small" appearance="outlined" data-focus="${escapeHtml(session.id)}">${focusLabel(session)}</wa-button></article>`).join("")}</section>`,
+      )
+      .join("");
+    list.querySelectorAll<HTMLElement>("[data-focus]").forEach((button) => {
+      button.addEventListener("click", () => void this.#focus(button.dataset.focus!));
+    });
+    list.querySelectorAll<HTMLDetailsElement>("details[data-details-id]").forEach((details) => {
+      details.addEventListener("toggle", () => {
+        if (details.isConnected) this.#expandedDetails.set(details.dataset.detailsId!, details.open);
+      });
+    });
     this.#renderAttention();
   }
 
@@ -175,11 +205,18 @@ class SessionPanel extends HTMLElement {
     if (this.#attentionTimer !== undefined) window.clearTimeout(this.#attentionTimer);
     this.#attentionTimer = undefined;
     const now = Date.now();
-    const options = { palette: this.#palette, flashIntensity: this.#flashIntensity, now, reducedMotion: this.#motion.matches, waitingDimmed: Math.floor(now / waitingPulseIntervalMs) % 2 === 1 };
+    const options = {
+      palette: this.#palette,
+      flashIntensity: this.#flashIntensity,
+      now,
+      reducedMotion: this.#motion.matches,
+      waitingDimmed: Math.floor(now / waitingPulseIntervalMs) % 2 === 1,
+    };
     const ordered = [...this.#sessions].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
     const sessions = new Map(ordered.map((session, index) => [session.id, { session, keyNumber: index + 1 }]));
     let nextChangeAt: number | undefined;
-    if (!options.reducedMotion && this.#sessions.some((session) => session.state === "waiting")) nextChangeAt = now - now % waitingPulseIntervalMs + waitingPulseIntervalMs;
+    if (!options.reducedMotion && this.#sessions.some((session) => session.state === "waiting"))
+      nextChangeAt = now - (now % waitingPulseIntervalMs) + waitingPulseIntervalMs;
     for (const session of this.#sessions) {
       const completion = doneAttention(session, options.now, options.reducedMotion);
       if (completion?.nextChangeAt !== undefined) nextChangeAt = Math.min(nextChangeAt ?? Infinity, completion.nextChangeAt);
@@ -204,14 +241,19 @@ class SessionPanel extends HTMLElement {
       card.classList.toggle("done-aged", completion?.phase === "aged" || completion?.phase === "assessed");
     }
     if (nextChangeAt !== undefined) {
-      this.#attentionTimer = window.setTimeout(() => this.#renderAttention(), Math.max(1, nextChangeAt - Date.now()));
+      this.#attentionTimer = window.setTimeout(
+        () => {
+          this.#renderAttention();
+        },
+        Math.max(1, nextChangeAt - Date.now()),
+      );
     }
   }
 
   async #focus(id: string): Promise<void> {
     const response = await fetch(`/api/sessions/${encodeURIComponent(id)}/focus`, { method: "POST" });
     if (!response.ok) window.alert("Could not focus that session.");
-    const result = await response.json() as { focused?: boolean; reason?: string };
+    const result = (await response.json()) as { focused?: boolean; reason?: string };
     if (!result.focused && result.reason) window.alert(result.reason);
   }
 }

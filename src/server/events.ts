@@ -35,7 +35,11 @@ export class EventCursor<State extends { apply(value: unknown): void }> {
         while (end >= 0) {
           if (!this.#skipping && end - start <= 8 * 1024 * 1024) {
             let event: unknown;
-            try { event = JSON.parse(chunk.subarray(start, end).toString("utf8")); } catch { event = undefined; }
+            try {
+              event = JSON.parse(chunk.subarray(start, end).toString("utf8"));
+            } catch {
+              event = undefined;
+            }
             this.state.apply(event);
           }
           this.#skipping = false;

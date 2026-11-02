@@ -144,9 +144,9 @@ Correct table:
 Incorrect table:
 
 ```markdown
-|State|Label|
-|---|---|
-|working|WORKING|
+| State   | Label   |
+| ------- | ------- |
+| working | WORKING |
 ```
 
 When you edit a file that has incorrect tables, correct the tables that you change.

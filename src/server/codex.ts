@@ -3,11 +3,11 @@ import { basename, join, relative, sep } from "node:path";
 import type { FocusTarget, SessionApproval, SessionFreedom, SessionInput, SessionState } from "../shared/session.js";
 import { EventCursor } from "./events.js";
 import { hostApplication, listOpenFiles, type ProcessInfo } from "./processes.js";
-import { SessionStore } from "./store.js";
+import type { SessionStore } from "./store.js";
 import { SessionLifetimeGate, type LifetimeInspector } from "./lifetimes.js";
 
 function fields(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
 function stringField(value: unknown, maximum = 240): string | undefined {
@@ -130,10 +130,10 @@ export function codexOwners(output: string, root: string, processes: ProcessInfo
     if (!line.startsWith("n") || !processes.some((process) => process.pid === pid)) continue;
     const path = line.slice(1);
     const local = relative(root, path).split(sep).join("/");
-    const lock = local.match(lockPattern);
+    const lock = lockPattern.exec(local);
     if (lock) owners.set(lock[1], { sessionId: lock[1], pid, focusTarget: hostApplication(pid, processes) });
     if (!local.startsWith("sessions/")) continue;
-    const rollout = basename(path).match(rolloutPattern);
+    const rollout = rolloutPattern.exec(basename(path));
     if (rollout) rollouts.set(rollout[1], { sessionId: rollout[1], rolloutPath: path, pid, focusTarget: hostApplication(pid, processes) });
   }
   for (const [sessionId, rollout] of rollouts) {
@@ -151,7 +151,10 @@ export class CodexTracker {
   #nextIndexAt = 0;
   #indexError?: string;
 
-  constructor(private readonly store: SessionStore, private readonly root: string) {}
+  constructor(
+    private readonly store: SessionStore,
+    private readonly root: string,
+  ) {}
 
   async scan(processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<void> {
     const candidates = processes.filter((process) => /(?:^|\/)codex$/.test(process.name));
@@ -169,7 +172,7 @@ export class CodexTracker {
         return [];
       });
       for (const entry of entries) {
-        const match = entry.isFile() && entry.name.match(rolloutPattern);
+        const match = entry.isFile() && rolloutPattern.exec(entry.name);
         if (match) this.#rollouts.set(match[1], join(entry.parentPath, entry.name));
       }
     }
@@ -182,13 +185,16 @@ export class CodexTracker {
       let available = false;
       let errorCode = path ? undefined : this.#indexError;
       if (path) {
-        try { await cursor.read(path); available = true; } catch (error) {
+        try {
+          await cursor.read(path);
+          available = true;
+        } catch (error) {
           const code = (error as NodeJS.ErrnoException).code;
           errorCode = typeof code === "string" ? code.slice(0, 40) : "READ_FAILED";
         }
       }
       const observed = cursor.state;
-      const lifetime = await lifetimes?.(owner, observed.project) ?? { status: "unverified", evidence: "Runtime ownership only" };
+      const lifetime = (await lifetimes?.(owner, observed.project)) ?? { status: "unverified", evidence: "Runtime ownership only" };
       if (!this.#lifetimes.visible(id, lifetime, observed.lastTriggeredAt)) {
         this.store.remove(id);
         this.#tracked.delete(id);
@@ -222,7 +228,14 @@ export class CodexTracker {
           ...(lifetime.openedAt ? { projectOpenedAt: new Date(lifetime.openedAt).toISOString() } : {}),
           ...(observed.lastTriggeredAt ? { lastTriggeredAt: observed.lastTriggeredAt } : {}),
           stateEvent: available ? observed.stateEvent : "events.unavailable",
-          telemetryStatus: errorCode === "ENOENT" || !path && !errorCode ? "missing" : !available ? "unreadable" : observed.state === "unknown" ? "unrecognized" : "available",
+          telemetryStatus:
+            errorCode === "ENOENT" || (!path && !errorCode)
+              ? "missing"
+              : !available
+                ? "unreadable"
+                : observed.state === "unknown"
+                  ? "unrecognized"
+                  : "available",
           telemetryLocation: (path ?? join(this.root, "sessions")).slice(0, 240),
           ...(errorCode ? { telemetryError: errorCode } : {}),
           ...(observed.lastActivityAt ? { lastTelemetryAt: observed.lastActivityAt } : {}),
@@ -253,7 +266,11 @@ export class CodexTracker {
     for (const id of this.#tracked) {
       const session = this.store.get(id);
       if (session && session.state !== "unknown") {
-        this.store.upsert({ ...session, state: "unknown", metadata: { ...session.metadata, stateEvent: "discovery.unavailable", telemetryStatus: "discovery-unavailable" } }, session.lastActivityAt, new Date().toISOString());
+        this.store.upsert(
+          { ...session, state: "unknown", metadata: { ...session.metadata, stateEvent: "discovery.unavailable", telemetryStatus: "discovery-unavailable" } },
+          session.lastActivityAt,
+          new Date().toISOString(),
+        );
       }
       const cursor = this.#cursors.get(id);
       if (cursor) cursor.signature = "";

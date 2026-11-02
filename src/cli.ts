@@ -10,10 +10,14 @@ function option(args: string[], name: string): string | undefined {
 }
 
 function usage(): never {
-  console.error("Usage: npm run report -- upsert --source codex --state working --label 'Code review' [--id ID --model MODEL --tokens-used N --context-percent N --freedom limited|full --approval asks|never --project PATH --app APP --bundle-id ID --pid PID]");
+  console.error(
+    "Usage: npm run report -- upsert --source codex --state working --label 'Code review' [--id ID --model MODEL --tokens-used N --context-percent N --freedom limited|full --approval asks|never --project PATH --app APP --bundle-id ID --pid PID]",
+  );
   console.error("       npm run report -- end --id ID [--state done|failed]");
   console.error("       npm run report -- hook claude-code|codex-cli|copilot-cli EVENT");
-  console.error("       npm run report -- budget claude|openai|copilot|jetbrains [--plan NAME] [--five-hour-percent N --five-hour-reset TIME] [--weekly-percent N --weekly-reset TIME] [--monthly-percent N --monthly-reset TIME] [--credits-used N --credits-total N] [--extra-used N --extra-limit N --extra-usd] [--top-up N] [--extra-active] [--source NAME]");
+  console.error(
+    "       npm run report -- budget claude|openai|copilot|jetbrains [--plan NAME] [--five-hour-percent N --five-hour-reset TIME] [--weekly-percent N --weekly-reset TIME] [--monthly-percent N --monthly-reset TIME] [--credits-used N --credits-total N] [--extra-used N --extra-limit N --extra-usd] [--top-up N] [--extra-active] [--source NAME]",
+  );
   console.error("       npm run report -- budget PROVIDER --remove");
   process.exit(2);
 }
@@ -37,11 +41,15 @@ async function main(): Promise<void> {
       state: state as SessionState,
       ended: false,
       project: option(args, "--project"),
-      ...((option(args, "--app") || option(args, "--bundle-id") || option(args, "--pid")) ? { focusTarget: {
-        ...(option(args, "--app") ? { appName: option(args, "--app") } : {}),
-        ...(option(args, "--bundle-id") ? { bundleId: option(args, "--bundle-id") } : {}),
-        ...(option(args, "--pid") ? { pid: Number(option(args, "--pid")) } : {}),
-      } } : {}),
+      ...(option(args, "--app") || option(args, "--bundle-id") || option(args, "--pid")
+        ? {
+            focusTarget: {
+              ...(option(args, "--app") ? { appName: option(args, "--app") } : {}),
+              ...(option(args, "--bundle-id") ? { bundleId: option(args, "--bundle-id") } : {}),
+              ...(option(args, "--pid") ? { pid: Number(option(args, "--pid")) } : {}),
+            },
+          }
+        : {}),
     });
     await request(`${baseUrl}/api/sessions/${encodeURIComponent(id)}`, "PUT", input);
     console.info(id);
@@ -83,10 +91,14 @@ async function main(): Promise<void> {
       ended: hookEndsSession(eventName),
       ...(event.cwd || event.workspace ? { project: String(event.cwd ?? event.workspace) } : {}),
       ...(event.model ? { model: String(event.model) } : {}),
-      ...((option(args, "--app") || option(args, "--bundle-id")) ? { focusTarget: {
-        ...(option(args, "--app") ? { appName: option(args, "--app") } : {}),
-        ...(option(args, "--bundle-id") ? { bundleId: option(args, "--bundle-id") } : {}),
-      } } : {}),
+      ...(option(args, "--app") || option(args, "--bundle-id")
+        ? {
+            focusTarget: {
+              ...(option(args, "--app") ? { appName: option(args, "--app") } : {}),
+              ...(option(args, "--bundle-id") ? { bundleId: option(args, "--bundle-id") } : {}),
+            },
+          }
+        : {}),
     });
     await request(`${baseUrl}/api/sessions/${encodeURIComponent(requestBody.id)}`, "PUT", requestBody);
     return;
@@ -100,7 +112,7 @@ async function readInput(): Promise<Record<string, unknown>> {
   if (!data.trim()) return {};
   try {
     const value: unknown = JSON.parse(data);
-    return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+    return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
   } catch {
     return {};
   }

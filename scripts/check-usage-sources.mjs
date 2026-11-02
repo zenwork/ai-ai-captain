@@ -9,7 +9,11 @@ function newest(directory, pattern, depth = 4) {
   let best;
   const walk = (path, level) => {
     let entries = [];
-    try { entries = readdirSync(path, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = readdirSync(path, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const entry of entries) {
       const child = join(path, entry.name);
       if (entry.isDirectory() && level < depth) walk(child, level + 1);
@@ -48,7 +52,11 @@ if (process.argv.includes("--recent")) {
   const files = [];
   const collect = (path, level) => {
     let entries = [];
-    try { entries = readdirSync(path, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = readdirSync(path, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const entry of entries) {
       const child = join(path, entry.name);
       if (entry.isDirectory() && level < 5) collect(child, level + 1);
@@ -69,24 +77,34 @@ if (process.argv.includes("--recent")) {
         const record = JSON.parse(line);
         const limits = record.payload?.rate_limits;
         if (limits === null || limits === undefined) counts.rate_limits_null++;
-        else { counts.rate_limits++; newest = { at: record.timestamp, primary: limits.primary?.used_percent, secondary: limits.secondary?.used_percent, limit: limits.limit_id }; }
-      } catch { /* not JSON */ }
+        else {
+          counts.rate_limits++;
+          newest = { at: record.timestamp, primary: limits.primary?.used_percent, secondary: limits.secondary?.used_percent, limit: limits.limit_id };
+        }
+      } catch {
+        /* not JSON */
+      }
     }
     const relative = file.path.replace(codexHome, "").split("/").slice(0, -1).join("/") || "/";
-    console.log(`${new Date(file.time).toISOString()} ${relative}/<rollout> ${Math.round(file.size / 1024)} KiB · token_count ${counts.token_count} · rate_limits ${counts.rate_limits} · empty ${counts.rate_limits_null}${newest ? ` · newest ${newest.at} limit=${newest.limit} 5h=${newest.primary}% wk=${newest.secondary}%` : ""}`);
+    console.log(
+      `${new Date(file.time).toISOString()} ${relative}/<rollout> ${Math.round(file.size / 1024)} KiB · token_count ${counts.token_count} · rate_limits ${counts.rate_limits} · empty ${counts.rate_limits_null}${newest ? ` · newest ${newest.at} limit=${newest.limit} 5h=${newest.primary}% wk=${newest.secondary}%` : ""}`,
+    );
   }
   process.exit(0);
 }
 const rollout = newest(join(codexHome, "sessions"), /^rollout-.*\.jsonl$/);
 console.log(`Codex newest rollout: ${rollout ? "found" : "not found"}`);
 if (rollout) {
-  const lines = readFileSync(rollout, "utf8").split("\n").filter((line) => line.includes("rate_limit"));
+  const lines = readFileSync(rollout, "utf8")
+    .split("\n")
+    .filter((line) => line.includes("rate_limit"));
   console.log(`Lines with rate_limit: ${lines.length}`);
   const last = lines.at(-1);
   if (last) {
     const record = JSON.parse(last);
     console.log(`Record type: ${record.type} / ${record.payload?.type}`);
-    for (const match of [...findKey(record, "rate_limits"), ...findKey(record, "rate_limit")]) console.log(`${match.path}:\n${JSON.stringify(shape(match.value), null, 2)}`);
+    for (const match of [...findKey(record, "rate_limits"), ...findKey(record, "rate_limit")])
+      console.log(`${match.path}:\n${JSON.stringify(shape(match.value), null, 2)}`);
     console.log(`Record timestamp: ${record.timestamp}`);
   }
 }
@@ -95,10 +113,17 @@ const claudeHome = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
 console.log(`\nClaude files that mention rate limits (names only, transcripts skipped):`);
 const walk = (path, level) => {
   let entries = [];
-  try { entries = readdirSync(path, { withFileTypes: true }); } catch { return; }
+  try {
+    entries = readdirSync(path, { withFileTypes: true });
+  } catch {
+    return;
+  }
   for (const entry of entries) {
     const child = join(path, entry.name);
-    if (entry.isDirectory()) { if (level < 3 && !["projects", "todos", "shell-snapshots", "file-history"].includes(entry.name)) walk(child, level + 1); continue; }
+    if (entry.isDirectory()) {
+      if (level < 3 && !["projects", "todos", "shell-snapshots", "file-history"].includes(entry.name)) walk(child, level + 1);
+      continue;
+    }
     if (!/\.(json|jsonl)$/.test(entry.name) || statSync(child).size > 5_000_000) continue;
     const text = readFileSync(child, "utf8");
     if (/rate_limit|five_hour|seven_day|resets_at/i.test(text)) console.log(`  ${child.replace(homedir(), "~")}`);
@@ -114,10 +139,13 @@ for (const name of [".claude.json"]) {
       if (!value || typeof value !== "object") return;
       for (const [key, entry] of Object.entries(value)) {
         const next = path ? `${path}.${key}` : key;
-        if (/rate.?limit|five.?hour|seven.?day|resets.?at|usage.?limit|overage|extra.?usage|subscription|plan/i.test(key)) console.log(`    ${next}: ${JSON.stringify(shape(entry)).slice(0, 400)}`);
+        if (/rate.?limit|five.?hour|seven.?day|resets.?at|usage.?limit|overage|extra.?usage|subscription|plan/i.test(key))
+          console.log(`    ${next}: ${JSON.stringify(shape(entry)).slice(0, 400)}`);
         else if (next.split(".").length < 4 && !/project|history|mcp/i.test(key)) visit(entry, next);
       }
     };
     visit(JSON.parse(text), "");
-  } catch { /* missing */ }
+  } catch {
+    /* missing */
+  }
 }

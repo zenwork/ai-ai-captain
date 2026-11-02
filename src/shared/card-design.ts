@@ -40,7 +40,7 @@ export const cardStates = [
   { id: "unknown", label: "UNK", detail: "Not verified", icon: "circle-help" },
 ] as const;
 
-export type CardPhase = typeof cardStates[number]["id"];
+export type CardPhase = (typeof cardStates)[number]["id"];
 
 export const cardIdentities = [
   { id: "copilot-cli", title: "GITHUB COPILOT", detail: "CLI", icon: "githubcopilot", host: "terminal" },
@@ -69,7 +69,8 @@ function icon(name: string, horizontal: number, vertical: number, width: number,
   const artwork = icons[name];
   if (!artwork) throw new Error(`Missing bundled icon: ${name}`);
   const [minimumHorizontal, minimumVertical, sourceWidth, sourceHeight] = artwork.viewBox.trim().split(/\s+/).map(Number);
-  if (![minimumHorizontal, minimumVertical, sourceWidth, sourceHeight].every(Number.isFinite) || sourceWidth <= 0 || sourceHeight <= 0) throw new Error(`Invalid icon viewBox: ${name}`);
+  if (![minimumHorizontal, minimumVertical, sourceWidth, sourceHeight].every(Number.isFinite) || sourceWidth <= 0 || sourceHeight <= 0)
+    throw new Error(`Invalid icon viewBox: ${name}`);
   const scale = Math.min(width / sourceWidth, height / sourceHeight);
   const offsetHorizontal = horizontal + (width - sourceWidth * scale) / 2 - minimumHorizontal * scale;
   const offsetVertical = vertical + (height - sourceHeight * scale) / 2 - minimumVertical * scale;
@@ -88,22 +89,34 @@ export function renderHostBadge(host: string | undefined, palette: CardPalette, 
   if (!host) return "";
   // The glyph and the outline use the host color. The badge background stays dark, so the color never looks like a state band.
   const color = palette.hosts[host as keyof CardPalette["hosts"]] ?? palette.badge.foreground;
-  const content = host === "ide"
-    ? text("IJ", horizontal + 10, vertical + 10.8, color, 11, 'text-anchor="middle" font-weight="700"')
-    : icon(host, horizontal + 3, vertical + 1, 14, 12, icons, color);
-  return `<g color="${color}"><rect x="${horizontal + .5}" y="${vertical + .5}" width="19" height="13" rx="2.6" fill="${palette.badge.background}" stroke="${color}" stroke-width="1"/>${content}</g>`;
+  const content =
+    host === "ide"
+      ? text("IJ", horizontal + 10, vertical + 10.8, color, 11, 'text-anchor="middle" font-weight="700"')
+      : icon(host, horizontal + 3, vertical + 1, 14, 12, icons, color);
+  return `<g color="${color}"><rect x="${horizontal + 0.5}" y="${vertical + 0.5}" width="19" height="13" rx="2.6" fill="${palette.badge.background}" stroke="${color}" stroke-width="1"/>${content}</g>`;
 }
 
-export function renderCard(identity: typeof cardIdentities[number], state: typeof cardStates[number], palette: CardPalette, number: number | undefined, icons: CardIcons): string {
+export function renderCard(
+  identity: (typeof cardIdentities)[number],
+  state: (typeof cardStates)[number],
+  palette: CardPalette,
+  number: number | undefined,
+  icons: CardIcons,
+): string {
   const colors = palette.states[state.id];
   const scale = state.label.length >= 8 ? ".78" : state.label.length === 7 ? ".8" : ".94";
-  const label = state.label.length > 5
-    ? text(state.label, 0, 64.1, colors.ink, 11, `transform="translate(45.5 0) scale(${scale} 1)" text-anchor="middle" font-weight="800" letter-spacing=".1"`)
-    : text(state.label, 44, 64.1, colors.ink, 12, 'text-anchor="middle" font-weight="800" letter-spacing=".1"');
-  const mark = identity.icon === "jetbrains"
-    ? `<rect x="21" y="19" width="28" height="28" rx="3" fill="${colors.foreground}"/>${text("IJ", 35, 39, colors.background, 20, 'text-anchor="middle" font-weight="800"')}${icon("sparkles", 45, 17, 13, 13, icons, colors.foreground)}`
-    : icon(identity.icon, 17, 19, 38, 29, icons, colors.foreground);
-  const reference = number === undefined ? "" : `<rect x="4" y="4" width="16" height="14" rx="4" fill="${palette.badge.background}"/>${text(number, 12, 14.6, palette.badge.foreground, 9.5, 'text-anchor="middle" font-weight="700"')}`;
+  const label =
+    state.label.length > 5
+      ? text(state.label, 0, 64.1, colors.ink, 11, `transform="translate(45.5 0) scale(${scale} 1)" text-anchor="middle" font-weight="800" letter-spacing=".1"`)
+      : text(state.label, 44, 64.1, colors.ink, 12, 'text-anchor="middle" font-weight="800" letter-spacing=".1"');
+  const mark =
+    identity.icon === "jetbrains"
+      ? `<rect x="21" y="19" width="28" height="28" rx="3" fill="${colors.foreground}"/>${text("IJ", 35, 39, colors.background, 20, 'text-anchor="middle" font-weight="800"')}${icon("sparkles", 45, 17, 13, 13, icons, colors.foreground)}`
+      : icon(identity.icon, 17, 19, 38, 29, icons, colors.foreground);
+  const reference =
+    number === undefined
+      ? ""
+      : `<rect x="4" y="4" width="16" height="14" rx="4" fill="${palette.badge.background}"/>${text(number, 12, 14.6, palette.badge.foreground, 9.5, 'text-anchor="middle" font-weight="700"')}`;
   return `<g aria-label="${escapeXml(`${identity.title}, ${identity.detail}: ${state.label}, ${state.detail}, ${palette.name}`)}">
 <rect width="72" height="72" rx="8" fill="${colors.background}"/>
 ${keyBorder(colors.accent)}
@@ -175,9 +188,10 @@ function infoPadlock(freedom: InfoCardData["freedom"], palette: CardPalette): st
   const dashed = freedom === undefined ? ' stroke-dasharray="2 2"' : "";
   const color = freedom === "full" ? palette.states.working.accent : freedom === "limited" ? palette.states["waiting-bright"].accent : palette.muted;
   const shackle = freedom === "full" ? "M2,6 V4 a4,4 0 0 1 8,0" : "M2,6 V4 a4,4 0 0 1 8,0 V6";
-  const body = freedom === undefined
-    ? `<rect x="0" y="6" width="12" height="9" rx="2" fill="none" stroke="${color}" stroke-width="1.5"${dashed}/>`
-    : `<rect x="0" y="6" width="12" height="9" rx="2" fill="${color}" stroke="${color}" stroke-width="1.5"/>`;
+  const body =
+    freedom === undefined
+      ? `<rect x="0" y="6" width="12" height="9" rx="2" fill="none" stroke="${color}" stroke-width="1.5"${dashed}/>`
+      : `<rect x="0" y="6" width="12" height="9" rx="2" fill="${color}" stroke="${color}" stroke-width="1.5"/>`;
   return `<g transform="translate(44 44) scale(1.4)"><path d="${shackle}" fill="none" stroke="${color}" stroke-width="1.8"${dashed}/>${body}</g>`;
 }
 
@@ -223,7 +237,7 @@ export const budgetProviders = [
   { id: "copilot", title: "GITHUB COPILOT", icon: "githubcopilot", usageUrl: "https://github.com/settings/billing" },
   { id: "jetbrains", title: "JETBRAINS AI", icon: "jetbrains", usageUrl: "https://account.jetbrains.com/licenses" },
 ] as const;
-export type BudgetProviderId = typeof budgetProviders[number]["id"];
+export type BudgetProviderId = (typeof budgetProviders)[number]["id"];
 
 export interface BudgetWindowCard {
   /** 5H, WK, or MO. */
@@ -271,7 +285,7 @@ export const budgetStyles = ["stripe", "tint", "tab", "edge", "tab-tint"] as con
 export type BudgetStyle = (typeof budgetStyles)[number];
 const budgetTintOpacity = ".16";
 
-function budgetMark(provider: typeof budgetProviders[number], palette: CardPalette, icons: CardIcons, style: BudgetStyle): string {
+function budgetMark(provider: (typeof budgetProviders)[number], palette: CardPalette, icons: CardIcons, style: BudgetStyle): string {
   const brand = palette.brands[provider.id];
   const tab = style === "tab" || style === "tab-tint";
   // On the tab, the mark uses the canvas color on the brand color. Both meet the contrast target of the palette.
@@ -293,7 +307,9 @@ function budgetBar(window: BudgetWindowCard, vertical: number, palette: CardPale
   // A small use stays visible: any use above 0% fills at least 2 pixels.
   const percent = window.percent === undefined ? 0 : Math.min(Math.max(window.percent, 0), 100);
   const fillWidth = percent > 0 ? Math.max(2, Math.round((width - 3) * percent) / 100) : 0;
-  const fill = fillWidth ? `<rect x="${left + 1.5}" y="${vertical + 1.5}" width="${fillWidth}" height="7" rx="${Math.min(2, fillWidth / 2)}" fill="${color}"/>` : "";
+  const fill = fillWidth
+    ? `<rect x="${left + 1.5}" y="${vertical + 1.5}" width="${fillWidth}" height="7" rx="${Math.min(2, fillWidth / 2)}" fill="${color}"/>`
+    : "";
   const mark = left + (width * contextWarningPercent) / 100 - 1.5;
   return `${text(window.label, 6, vertical + 8.4, palette.muted, 8.5, 'font-weight="700"')}
 <rect x="${left}" y="${vertical}" width="${width}" height="10" rx="3" fill="none" stroke="${palette.badge.border}" stroke-width="1.2"${window.percent === undefined ? ' stroke-dasharray="2.5 2.5"' : ""}/>${fill}
@@ -302,9 +318,17 @@ function budgetBar(window: BudgetWindowCard, vertical: number, palette: CardPale
 
 // A state band like the band of a session key: symbol on the left, label in the middle.
 function budgetBand(label: string, colors: CardColors, symbol: string, icons: CardIcons): string {
-  const content = label.length > 5
-    ? text(label, 0, 64.1, colors.ink, 11, `transform="translate(45.5 0) scale(${label.length >= 7 ? ".78" : ".86"} 1)" text-anchor="middle" font-weight="800" letter-spacing=".1"`)
-    : text(label, 44, 64.1, colors.ink, 12, 'text-anchor="middle" font-weight="800" letter-spacing=".1"');
+  const content =
+    label.length > 5
+      ? text(
+          label,
+          0,
+          64.1,
+          colors.ink,
+          11,
+          `transform="translate(45.5 0) scale(${label.length >= 7 ? ".78" : ".86"} 1)" text-anchor="middle" font-weight="800" letter-spacing=".1"`,
+        )
+      : text(label, 44, 64.1, colors.ink, 12, 'text-anchor="middle" font-weight="800" letter-spacing=".1"');
   return `<rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
 <g color="${colors.ink}">${icon(symbol, 7, 53.5, 14, 14, icons, colors.ink)}</g>
 ${content}`;
@@ -318,7 +342,10 @@ function budgetTopValue(value: string, color: string, icons: CardIcons, symbol?:
 
 export function describeBudgetCard(data: BudgetCardData): string {
   const provider = budgetProviders.find((entry) => entry.id === data.provider)!;
-  const windows = data.windows.map((window) => `${window.label} ${window.percent === undefined ? "not reported" : `${Math.round(window.percent)} percent used`}${window.reset ? `, resets in ${window.reset}` : ""}`);
+  const windows = data.windows.map(
+    (window) =>
+      `${window.label} ${window.percent === undefined ? "not reported" : `${Math.round(window.percent)} percent used`}${window.reset ? `, resets in ${window.reset}` : ""}`,
+  );
   const extra = data.extra ? `; ${data.extra.kind === "topup" ? "top-up credits in use" : "extra budget in use"}, ${data.extra.amount}` : "";
   return `${provider.title} ${data.plan ?? "plan not reported"} budget: ${windows.join("; ")}${extra}`;
 }
@@ -341,7 +368,7 @@ export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, ico
     `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>`,
     tinted ? `<rect width="72" height="72" rx="8" fill="${brand}" opacity="${budgetTintOpacity}"/>` : "",
     budgetMark(provider, palette, icons, style),
-    `${keyBorder(border, level === "unknown" ? ' stroke-dasharray="3 3"' : "")}`,
+    keyBorder(border, level === "unknown" ? ' stroke-dasharray="3 3"' : ""),
   ];
   // Top right: the plan. When the budget is out, the reset time takes its place. Paid extras show their amount.
   // On the tab, the top row uses the canvas color on the brand color.
@@ -361,7 +388,10 @@ export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, ico
   else if (out) parts.push(budgetBand("LIMIT", palette.states.failed, "triangle-alert", icons));
   else if (level === "unknown") parts.push(text("—", 6, 64, palette.muted, 11), text("?", 66, 64, palette.muted, 12, 'text-anchor="end" font-weight="800"'));
   else {
-    parts.push(`<g color="${palette.muted}">${icon("rotate-ccw", 6, 55.5, 9, 9, icons, palette.muted)}</g>`, text(binding?.reset ?? "?", 17.5, 63.5, palette.foreground, 9.5));
+    parts.push(
+      `<g color="${palette.muted}">${icon("rotate-ccw", 6, 55.5, 9, 9, icons, palette.muted)}</g>`,
+      text(binding?.reset ?? "?", 17.5, 63.5, palette.foreground, 9.5),
+    );
     parts.push(text(`${Math.round(worst!)}%`, 66, 64, level === "low" ? warning.accent : palette.foreground, 11.5, 'text-anchor="end" font-weight="800"'));
   }
   return `<g aria-label="${escapeXml(describeBudgetCard(data))}">${parts.join("\n")}</g>`;
@@ -450,7 +480,7 @@ function settingSwitch(on: boolean, x: number, y: number, width: number, height:
   const knob = on ? x + width - radius : x + radius;
   return on
     ? `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" fill="${accent}"/><circle cx="${knob}" cy="${y + radius}" r="${radius - 2.5}" fill="${background}"/>`
-    : `<rect x="${x + .75}" y="${y + .75}" width="${width - 1.5}" height="${height - 1.5}" rx="${radius - .75}" fill="none" stroke="${muted}" stroke-width="1.5"/><circle cx="${knob}" cy="${y + radius}" r="${radius - 3.5}" fill="${muted}"/>`;
+    : `<rect x="${x + 0.75}" y="${y + 0.75}" width="${width - 1.5}" height="${height - 1.5}" rx="${radius - 0.75}" fill="none" stroke="${muted}" stroke-width="1.5"/><circle cx="${knob}" cy="${y + radius}" r="${radius - 3.5}" fill="${muted}"/>`;
 }
 
 // Swatches of the selected palette: the WORKING, WAITING, DONE, and FAILED colors.
@@ -458,7 +488,9 @@ function settingSwatches(palette: CardPalette, centerX: number, y: number, radiu
   const colors = ["working", "waiting-bright", "done-bright", "failed"].map((state) => palette.states[state].accent);
   const gap = radius * 2 + 3;
   const start = centerX - (gap * (colors.length - 1)) / 2;
-  return colors.map((color, index) => `<circle cx="${start + index * gap}" cy="${y}" r="${radius}" fill="${color}" stroke="${outline}" stroke-width="1"/>`).join("");
+  return colors
+    .map((color, index) => `<circle cx="${start + index * gap}" cy="${y}" r="${radius}" fill="${color}" stroke="${outline}" stroke-width="1"/>`)
+    .join("");
 }
 
 // A meter of rising bars, one bar for each level above 0. Level 0 fills no bar.
@@ -472,7 +504,7 @@ function settingMeter(level: number, maximum: number, x: number, bottom: number,
     const top = bottom - barHeight;
     return index < level
       ? `<rect x="${left}" y="${top}" width="${barWidth}" height="${barHeight}" rx="1.5" fill="${accent}"/>`
-      : `<rect x="${left + .6}" y="${top + .6}" width="${barWidth - 1.2}" height="${barHeight - 1.2}" rx="1.2" fill="none" stroke="${muted}" stroke-width="1.2"/>`;
+      : `<rect x="${left + 0.6}" y="${top + 0.6}" width="${barWidth - 1.2}" height="${barHeight - 1.2}" rx="1.2" fill="none" stroke="${muted}" stroke-width="1.2"/>`;
   }).join("");
 }
 
@@ -500,7 +532,7 @@ export function renderSettingCard(data: SettingCardData, palette: CardPalette, i
   const name = data.kind === "info-keys" ? "INFO KEYS" : data.kind === "theme" ? "THEME" : "FLASH";
   const value = data.kind === "info-keys" ? (data.on ? "ON" : "OFF") : data.kind === "theme" ? (data.paletteName ?? "?") : `${level}/${maximum}`;
   const label = (content: string, y: number, color: string, size: number) => {
-    const scaled = content.length > 7 ? ` transform="translate(36 0) scale(${Math.max(.62, 7 / content.length).toFixed(2)} 1)"` : "";
+    const scaled = content.length > 7 ? ` transform="translate(36 0) scale(${Math.max(0.62, 7 / content.length).toFixed(2)} 1)"` : "";
     return text(content, scaled ? 0 : 36, y, color, size, `text-anchor="middle" font-weight="800"${scaled}`);
   };
   let content: string;
@@ -510,27 +542,36 @@ export function renderSettingCard(data: SettingCardData, palette: CardPalette, i
     const caption = data.kind === "info-keys" ? "INFO" : data.kind === "theme" ? (data.paletteName ?? "") : `BRIGHT ${level}/${maximum}`;
     content = renderControl(symbol, band, palette, icons, caption);
   } else if (style === "minimal") {
-    const symbol = data.kind === "info-keys"
-      ? settingSwitch(data.on === true, 20, 20, 32, 17, colors.foreground, colors.background, colors.foreground)
-      : data.kind === "theme" ? settingSwatches(palette, 36, 28.5, 6, colors.background) : settingSun(36, 28, 7, colors.foreground);
+    const symbol =
+      data.kind === "info-keys"
+        ? settingSwitch(data.on === true, 20, 20, 32, 17, colors.foreground, colors.background, colors.foreground)
+        : data.kind === "theme"
+          ? settingSwatches(palette, 36, 28.5, 6, colors.background)
+          : settingSun(36, 28, 7, colors.foreground);
     content = `<rect width="72" height="72" rx="8" fill="${colors.background}"/>${keyBorder(colors.accent)}
 ${text(name, 36, 11, colors.foreground, 7.5, 'text-anchor="middle" font-weight="700" letter-spacing=".5"')}
 ${symbol}
 <rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
 ${label(value, 64, colors.ink, 12)}`;
   } else if (style === "panel") {
-    const visual = data.kind === "info-keys"
-      ? settingSwitch(data.on === true, 16, 13, 40, 21, colors.accent, colors.background, colors.foreground)
-      : data.kind === "theme" ? settingSwatches(palette, 36, 22, 6.5, colors.background) : settingMeter(level, maximum, 17, 33, 38, 22, colors.accent, colors.foreground);
+    const visual =
+      data.kind === "info-keys"
+        ? settingSwitch(data.on === true, 16, 13, 40, 21, colors.accent, colors.background, colors.foreground)
+        : data.kind === "theme"
+          ? settingSwatches(palette, 36, 22, 6.5, colors.background)
+          : settingMeter(level, maximum, 17, 33, 38, 22, colors.accent, colors.foreground);
     content = `<rect width="72" height="72" rx="8" fill="${colors.background}"/>${keyBorder(colors.accent)}
 ${visual}
 ${label(value, 48, colors.foreground, 12)}
 <rect x="3" y="56" width="66" height="13" rx="3.5" fill="${colors.accent}"/>
 ${text(name, 36, 65.6, colors.ink, 8, 'text-anchor="middle" font-weight="800" letter-spacing=".5"')}`;
   } else {
-    const visual = data.kind === "info-keys"
-      ? settingSwitch(data.on === true, 14, 22, 44, 23, colors.accent, palette.canvas, palette.muted)
-      : data.kind === "theme" ? settingSwatches(palette, 36, 33, 6.5, palette.canvas) : settingMeter(level, maximum, 15, 44, 42, 26, colors.accent, palette.muted);
+    const visual =
+      data.kind === "info-keys"
+        ? settingSwitch(data.on === true, 14, 22, 44, 23, colors.accent, palette.canvas, palette.muted)
+        : data.kind === "theme"
+          ? settingSwatches(palette, 36, 33, 6.5, palette.canvas)
+          : settingMeter(level, maximum, 15, 44, 42, 26, colors.accent, palette.muted);
     content = `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
 ${keyBorder(colors.accent)}
 ${text(name, 36, 13, palette.muted, 8, 'text-anchor="middle" font-weight="700" letter-spacing=".8"')}

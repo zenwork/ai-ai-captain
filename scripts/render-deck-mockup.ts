@@ -15,7 +15,18 @@ import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
 import type { Session } from "../src/shared/session.js";
 import { getPalette } from "../src/shared/palette.js";
-import { dashboardImage, emptyImage, infoImage, infoSignature, sessionImage, sessionSignature, settingControlImage, waitingPulseIntervalMs, type SettingControlKind, type SettingControlState } from "../streamdeck/src/cards.js";
+import {
+  dashboardImage,
+  emptyImage,
+  infoImage,
+  infoSignature,
+  sessionImage,
+  sessionSignature,
+  settingControlImage,
+  waitingPulseIntervalMs,
+  type SettingControlKind,
+  type SettingControlState,
+} from "../streamdeck/src/cards.js";
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const loopOutputPath = join(repositoryRoot, "docs", "images", "stream-deck-xl-mockup.gif");
@@ -240,9 +251,9 @@ function removePngFilters(filtered: Buffer, width: number, height: number, bytes
     const target = row * rowLength;
     for (let column = 0; column < rowLength; column++) {
       const raw = filtered[source + column] ?? 0;
-      const left = column >= bytesPerPixel ? pixels[target + column - bytesPerPixel] ?? 0 : 0;
-      const above = row > 0 ? pixels[target + column - rowLength] ?? 0 : 0;
-      const upperLeft = row > 0 && column >= bytesPerPixel ? pixels[target + column - rowLength - bytesPerPixel] ?? 0 : 0;
+      const left = column >= bytesPerPixel ? (pixels[target + column - bytesPerPixel] ?? 0) : 0;
+      const above = row > 0 ? (pixels[target + column - rowLength] ?? 0) : 0;
+      const upperLeft = row > 0 && column >= bytesPerPixel ? (pixels[target + column - rowLength - bytesPerPixel] ?? 0) : 0;
       const predictions = [0, left, above, Math.floor((left + above) / 2), paethPredictor(left, above, upperLeft)];
       pixels[target + column] = (raw + (predictions[filterType] ?? 0)) & 0xff;
     }
@@ -327,7 +338,10 @@ function weightedMiddle(box: WeightedColor[]): number {
 
 function averageColor(box: WeightedColor[]): Color {
   const total = box.reduce((sum, entry) => sum + entry.count, 0);
-  const sums = box.reduce<Color>((sum, entry) => [sum[0] + entry.color[0] * entry.count, sum[1] + entry.color[1] * entry.count, sum[2] + entry.color[2] * entry.count], [0, 0, 0]);
+  const sums = box.reduce<Color>(
+    (sum, entry) => [sum[0] + entry.color[0] * entry.count, sum[1] + entry.color[1] * entry.count, sum[2] + entry.color[2] * entry.count],
+    [0, 0, 0],
+  );
   return [Math.round(sums[0] / total), Math.round(sums[1] / total), Math.round(sums[2] / total)];
 }
 
@@ -545,10 +559,7 @@ function loopTimeline(): TimelineStep[] {
 // Workflow scenario. Sessions start, change state, and end. The clock is real, so the DONE flash slows down.
 // ---------------------------------------------------------------------------------------------------------------
 
-type ScenarioAction =
-  | { kind: "start"; mock: MockSession }
-  | { kind: "change"; state: SessionStateName }
-  | { kind: "end" };
+type ScenarioAction = { kind: "start"; mock: MockSession } | { kind: "change"; state: SessionStateName } | { kind: "end" };
 
 interface ScenarioEvent {
   atMilliseconds: number;
@@ -624,7 +635,11 @@ function applyEvent(sessions: Session[], event: ScenarioEvent): Session[] {
   if (action.kind === "end") return sessions.filter((session) => session.id !== sessionIdentifier);
 
   const timestamp = new Date(eventTime).toISOString();
-  return sessions.map((session) => (session.id === sessionIdentifier ? { ...session, state: action.state, stateChangedAt: timestamp, updatedAt: timestamp, lastActivityAt: timestamp } : session));
+  return sessions.map((session) =>
+    session.id === sessionIdentifier
+      ? { ...session, state: action.state, stateChangedAt: timestamp, updatedAt: timestamp, lastActivityAt: timestamp }
+      : session,
+  );
 }
 
 function workflowStateAt(timeMilliseconds: number): TimelineState {
@@ -666,7 +681,9 @@ function writeAnimation(steps: TimelineStep[], outputPath: string): void {
       delayCentiseconds: Math.round(step.durationMilliseconds / 10),
     }));
     writeFileSync(outputPath, encodeGif(frames, colorTable));
-    console.info(`Wrote ${outputPath}: ${String(frames.length)} frames, ${String(imageWidth)} x ${String(imageHeight)} pixels, ${String(colorCounts.size)} source colors.`);
+    console.info(
+      `Wrote ${outputPath}: ${String(frames.length)} frames, ${String(imageWidth)} x ${String(imageHeight)} pixels, ${String(colorCounts.size)} source colors.`,
+    );
   } finally {
     rmSync(workDirectory, { recursive: true, force: true });
   }

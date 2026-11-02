@@ -4,7 +4,15 @@ import { deckPage, fitDeckGrid } from "./deck-layout.js";
 
 function makeSession(index: number) {
   const timestamp = new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString();
-  return sessionSchema.parse({ id: `s${String(index).padStart(3, "0")}`, source: "test", label: `Session ${index}`, state: "working", createdAt: timestamp, updatedAt: timestamp, lastActivityAt: timestamp });
+  return sessionSchema.parse({
+    id: `s${String(index).padStart(3, "0")}`,
+    source: "test",
+    label: `Session ${index}`,
+    state: "working",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    lastActivityAt: timestamp,
+  });
 }
 
 function makeClient(name: string): Client {
@@ -49,7 +57,13 @@ describe("deck layout", () => {
   });
 
   it("pages a single row and keeps room for the page keys", () => {
-    const page = deckPage(Array.from({ length: 10 }, (_value, index) => makeSession(index)), [], 0, 5, 1);
+    const page = deckPage(
+      Array.from({ length: 10 }, (_value, index) => makeSession(index)),
+      [],
+      0,
+      5,
+      1,
+    );
 
     expect(page).toMatchObject({ columns: 5, rows: 1, hasPager: true });
     expect(page.items).toHaveLength(3);
@@ -57,7 +71,13 @@ describe("deck layout", () => {
 
   it("shows no page keys when everything fits and uses the limits when it does not", () => {
     const fits = deckPage([makeSession(1), makeSession(2), makeSession(3)], [], 0, 8, 4);
-    const tight = deckPage(Array.from({ length: 10 }, (_value, index) => makeSession(index)), [], 0, 3, 2);
+    const tight = deckPage(
+      Array.from({ length: 10 }, (_value, index) => makeSession(index)),
+      [],
+      0,
+      3,
+      2,
+    );
 
     expect(fits.hasPager).toBe(false);
     expect(fits.columns * fits.rows).toBeLessThanOrEqual(4);

@@ -1,11 +1,26 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "./app.js";
-import type { FocusTarget } from "../shared/session.js";
+import { z } from "zod";
+import { clientSchema, sessionSchema, type FocusTarget } from "../shared/session.js";
+import { budgetSchema } from "../shared/budget.js";
 import { SessionStore } from "./store.js";
 import { ClientRegistry } from "./clients.js";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+// Response bodies of the hub API. The tests validate each body against the shared contracts.
+const responseSchemas = {
+  session: z.object({ session: sessionSchema }),
+  sessions: z.object({ sessions: z.array(sessionSchema) }),
+  budget: z.object({ budget: budgetSchema }),
+  budgets: z.object({ budgets: z.array(budgetSchema) }),
+  clients: z.object({ clients: z.array(clientSchema) }),
+};
+
+function body<Schema extends z.ZodType>(response: { json: () => unknown }, schema: Schema): z.infer<Schema> {
+  return schema.parse(response.json());
+}
 
 describe("session API", () => {
   const apps: ReturnType<typeof createApp>[] = [];
@@ -20,9 +35,9 @@ describe("session API", () => {
     const payload = { id: "codex:123", source: "codex", label: "Refactor", state: "working" };
     const created = await app.inject({ method: "PUT", url: "/api/sessions/codex%3A123", payload });
     expect(created.statusCode).toBe(200);
-    expect(created.json().session.id).toBe("codex:123");
+    expect(body(created, responseSchemas.session).session.id).toBe("codex:123");
     const listed = await app.inject({ method: "GET", url: "/api/sessions" });
-    expect(listed.json().sessions).toHaveLength(1);
+    expect(body(listed, responseSchemas.sessions).sessions).toHaveLength(1);
     const mismatch = await app.inject({ method: "PUT", url: "/api/sessions/other", payload });
     expect(mismatch.statusCode).toBe(400);
   });
@@ -33,13 +48,15 @@ describe("session API", () => {
     const payload = { provider: "claude", source: "cli", plan: "max", windows: [{ kind: "five-hour", usedPercent: 34, resetsAt: "2026-11-01T12:00:00Z" }] };
     const saved = await app.inject({ method: "PUT", url: "/api/budgets/claude", payload });
     expect(saved.statusCode).toBe(200);
-    expect(saved.json().budget).toMatchObject({ provider: "claude", plan: "max" });
-    expect((await app.inject({ method: "GET", url: "/api/sessions" })).json().budgets).toHaveLength(1);
+    expect(body(saved, responseSchemas.budget).budget).toMatchObject({ provider: "claude", plan: "max" });
+    expect(body(await app.inject({ method: "GET", url: "/api/sessions" }), responseSchemas.budgets).budgets).toHaveLength(1);
     expect((await app.inject({ method: "PUT", url: "/api/budgets/openai", payload })).statusCode).toBe(400);
-    expect((await app.inject({ method: "PUT", url: "/api/budgets/claude", payload: { ...payload, windows: [{ kind: "weekly", usedPercent: 140 }] } })).statusCode).toBe(400);
+    expect(
+      (await app.inject({ method: "PUT", url: "/api/budgets/claude", payload: { ...payload, windows: [{ kind: "weekly", usedPercent: 140 }] } })).statusCode,
+    ).toBe(400);
     expect((await app.inject({ method: "DELETE", url: "/api/budgets/claude" })).json()).toEqual({ removed: true });
     expect((await app.inject({ method: "DELETE", url: "/api/budgets/claude" })).statusCode).toBe(404);
-    expect((await app.inject({ method: "GET", url: "/api/budgets" })).json().budgets).toEqual([]);
+    expect(body(await app.inject({ method: "GET", url: "/api/budgets" }), responseSchemas.budgets).budgets).toEqual([]);
   });
 
   it("dismisses a DONE, FAILED, or UNKNOWN session until its state changes", async () => {
@@ -52,13 +69,13 @@ describe("session API", () => {
     // An active session cannot be dismissed.
     expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/dismiss" })).statusCode).toBe(409);
     store.upsert({ ...working, state: "unknown" });
-    expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/dismiss" })).json().session.dismissedAt).toBeDefined();
+    expect(body(await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/dismiss" }), responseSchemas.session).session.dismissedAt).toBeDefined();
     store.upsert({ ...working, state: "failed" });
     expect(store.get("codex:1")?.dismissedAt).toBeUndefined();
     expect(store.dismiss("codex:1")?.dismissedAt).toBeDefined();
     store.upsert({ ...working, state: "done" }, "2026-11-01T10:00:00Z", "2026-11-01T10:00:00Z");
     const dismissed = await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/dismiss" });
-    expect(dismissed.json().session.dismissedAt).toBeDefined();
+    expect(body(dismissed, responseSchemas.session).session.dismissedAt).toBeDefined();
     // A new report with the same state and completion keeps it hidden.
     expect(store.upsert({ ...working, state: "done" }, "2026-11-01T10:05:00Z", "2026-11-01T10:00:00Z").dismissedAt).toBeDefined();
     expect(store.upsert({ ...working, state: "done", metadata: { completionAttention: "none" } }).dismissedAt).toBeDefined();
@@ -82,7 +99,7 @@ describe("session API", () => {
     store.upsert({ ...working, state: "failed" });
     expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/attend" })).statusCode).toBe(409);
     store.upsert({ ...working, state: "done" }, "2026-11-01T10:00:00Z", "2026-11-01T10:00:00Z");
-    expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/attend" })).json().session.attendedAt).toBeDefined();
+    expect(body(await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/attend" }), responseSchemas.session).session.attendedAt).toBeDefined();
     // A new report of the same completion keeps it.
     expect(store.upsert({ ...working, state: "done" }, "2026-11-01T10:05:00Z", "2026-11-01T10:00:00Z").attendedAt).toBeDefined();
     // Any state change clears it.
@@ -100,20 +117,30 @@ describe("session API", () => {
     await app.inject({ method: "PUT", url: "/api/sessions/stale", payload });
     const removed = await app.inject({ method: "DELETE", url: "/api/sessions/stale" });
     expect(removed.json()).toEqual({ removed: true });
-    expect((await app.inject({ method: "GET", url: "/api/sessions" })).json().sessions).toEqual([]);
+    expect(body(await app.inject({ method: "GET", url: "/api/sessions" }), responseSchemas.sessions).sessions).toEqual([]);
     expect((await app.inject({ method: "DELETE", url: "/api/sessions/stale" })).statusCode).toBe(404);
   });
 
   it("focuses the matching session target and reports missing sessions", async () => {
     const focused: FocusTarget[] = [];
-    const projects: Array<string | undefined> = [];
-    const app = createApp({ webRoot: "/no-static-assets", focus: async (target, project) => {
-      if (target) focused.push(target);
-      projects.push(project);
-      return { focused: true };
-    } });
+    const projects: (string | undefined)[] = [];
+    const app = createApp({
+      webRoot: "/no-static-assets",
+      focus: async (target, project) => {
+        if (target) focused.push(target);
+        projects.push(project);
+        return { focused: true };
+      },
+    });
     apps.push(app);
-    const payload = { id: "session", source: "cli", label: "Task", state: "waiting", project: "/projects/expected-project", focusTarget: { appName: "IntelliJ IDEA" } };
+    const payload = {
+      id: "session",
+      source: "cli",
+      label: "Task",
+      state: "waiting",
+      project: "/projects/expected-project",
+      focusTarget: { appName: "IntelliJ IDEA" },
+    };
     await app.inject({ method: "PUT", url: "/api/sessions/session", payload });
     expect((await app.inject({ method: "POST", url: "/api/sessions/session/focus" })).json()).toEqual({ focused: true });
     expect(focused).toEqual([{ appName: "IntelliJ IDEA" }]);
@@ -122,13 +149,17 @@ describe("session API", () => {
   });
 
   it("focuses a detected app and reports missing apps", async () => {
-    const focused: Array<FocusTarget | undefined> = [];
+    const focused: (FocusTarget | undefined)[] = [];
     const clients = new ClientRegistry();
     clients.replace([{ id: "desktop:chatgpt", name: "ChatGPT", focusTarget: { appName: "ChatGPT" }, sessionTracking: "unavailable" }]);
-    const app = createApp({ clients, webRoot: "/no-static-assets", focus: async (target) => {
-      focused.push(target);
-      return { focused: true };
-    } });
+    const app = createApp({
+      clients,
+      webRoot: "/no-static-assets",
+      focus: async (target) => {
+        focused.push(target);
+        return { focused: true };
+      },
+    });
     apps.push(app);
     expect((await app.inject({ method: "POST", url: "/api/clients/desktop:chatgpt/focus" })).json()).toEqual({ focused: true });
     expect(focused).toEqual([{ appName: "ChatGPT" }]);
@@ -162,7 +193,15 @@ describe("session API", () => {
 
   it("preserves optional session metadata on sparse updates", () => {
     const store = new SessionStore();
-    store.upsert({ id: "session", source: "test", label: "Task", state: "working", model: "gpt-5", project: "/repo", focusTarget: { appName: "IntelliJ IDEA" } });
+    store.upsert({
+      id: "session",
+      source: "test",
+      label: "Task",
+      state: "working",
+      model: "gpt-5",
+      project: "/repo",
+      focusTarget: { appName: "IntelliJ IDEA" },
+    });
     store.upsert({ id: "session", source: "test", label: "Task", state: "waiting", model: undefined, project: undefined, focusTarget: undefined });
     expect(store.get("session")).toMatchObject({ model: "gpt-5", project: "/repo", focusTarget: { appName: "IntelliJ IDEA" }, state: "waiting" });
     store.close();
@@ -213,7 +252,17 @@ describe("session API", () => {
     const directory = await mkdtemp(join(tmpdir(), "ai-ai-captain-completed-"));
     const path = join(directory, "sessions.json");
     const timestamp = "2026-10-25T12:00:00.000Z";
-    const prior = { id: "codex:conversation", source: "codex-local", label: "Task", state: "done" as const, ended: false, createdAt: timestamp, updatedAt: timestamp, lastActivityAt: timestamp, stateChangedAt: timestamp };
+    const prior = {
+      id: "codex:conversation",
+      source: "codex-local",
+      label: "Task",
+      state: "done" as const,
+      ended: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      lastActivityAt: timestamp,
+      stateChangedAt: timestamp,
+    };
     const store = new SessionStore(path);
     try {
       await writeFile(path, JSON.stringify([prior]));
@@ -235,15 +284,27 @@ describe("session API", () => {
     store.upsert({ id: "copilot:conversation", source: "copilot-local", label: "One conversation", state: "working" });
     const app = createApp({ store, clients, webRoot: "/no-static-assets" });
     apps.push(app);
-    expect((await app.inject({ method: "GET", url: "/api/sessions" })).json().sessions.map((session: { id: string }) => session.id)).toEqual(["copilot:conversation"]);
-    expect((await app.inject({ method: "GET", url: "/api/clients" })).json().clients.map((client: { id: string }) => client.id)).toEqual(["desktop:chatgpt"]);
+    expect(body(await app.inject({ method: "GET", url: "/api/sessions" }), responseSchemas.sessions).sessions.map((session) => session.id)).toEqual([
+      "copilot:conversation",
+    ]);
+    expect(body(await app.inject({ method: "GET", url: "/api/clients" }), responseSchemas.clients).clients.map((client) => client.id)).toEqual([
+      "desktop:chatgpt",
+    ]);
   });
 
   it("waits for live confirmation before restoring persisted running sessions", async () => {
     const directory = await mkdtemp(join(tmpdir(), "ai-ai-captain-restore-"));
     const path = join(directory, "sessions.json");
     const timestamp = "2026-10-25T12:00:00.000Z";
-    const prior = { id: "copilot:conversation", source: "copilot-local", label: "One conversation", state: "working" as const, createdAt: timestamp, updatedAt: timestamp, lastActivityAt: timestamp };
+    const prior = {
+      id: "copilot:conversation",
+      source: "copilot-local",
+      label: "One conversation",
+      state: "working" as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      lastActivityAt: timestamp,
+    };
     try {
       await writeFile(path, JSON.stringify([prior, { ...prior, id: "desktop:copilot", source: "desktop-app" }]));
       const store = new SessionStore(path);

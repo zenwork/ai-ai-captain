@@ -9,10 +9,18 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const directory = join(root, "docs", "design");
 const tokens = JSON.parse(await readFile(join(directory, "palettes", "tokens.json"), "utf8"));
 const artwork = await readFile(join(directory, "assets", "icons.svg"), "utf8");
-const icons = Object.fromEntries([...artwork.matchAll(/<symbol id="icon-([^"]+)" viewBox="([^"]+)">([\s\S]*?)<\/symbol>/g)]
-  .map((match) => [match[1], { viewBox: match[2], content: match[3] }]));
+const icons = Object.fromEntries(
+  [...artwork.matchAll(/<symbol id="icon-([^"]+)" viewBox="([^"]+)">([\s\S]*?)<\/symbol>/g)].map((match) => [
+    match[1],
+    { viewBox: match[2], content: match[3] },
+  ]),
+);
 // Lucide 0.468.0 "rotate-ccw", the same library as the other interface symbols.
-icons["rotate-ccw"] ??= { viewBox: "0 0 24 24", content: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' };
+icons["rotate-ccw"] ??= {
+  viewBox: "0 0 24 24",
+  content:
+    '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+};
 
 const paletteId = process.argv[2] ?? "fjord";
 const byId = Object.fromEntries(tokens.palettes.map((palette) => [palette.id, palette]));
@@ -65,7 +73,9 @@ function bar(label, percent, y, colors) {
   const reported = percent !== undefined;
   const level = severity(percent);
   const fillColor = level === "out" ? colors.out : level === "low" ? colors.low : colors.ok;
-  const fill = reported ? `<rect x="${left + 1.5}" y="${y + 1.5}" width="${((width - 3) * Math.min(percent, 100)) / 100}" height="${7}" rx="2" fill="${fillColor}"/>` : "";
+  const fill = reported
+    ? `<rect x="${left + 1.5}" y="${y + 1.5}" width="${((width - 3) * Math.min(percent, 100)) / 100}" height="${7}" rx="2" fill="${fillColor}"/>`
+    : "";
   const markX = left + (width * warningPercent) / 100 - 1.5;
   return `${text(label, 6, y + 8.4, palette.muted, 8.5, 'font-weight="700"')}
 <rect x="${left}" y="${y}" width="${width}" height="10" rx="3" fill="none" stroke="${palette.badge.border}" stroke-width="1.2"${reported ? "" : ' stroke-dasharray="2.5 2.5"'}/>${fill}
@@ -76,7 +86,14 @@ function bar(label, percent, y, colors) {
 function band(label, colors, symbol) {
   const scaled = label.length > 5;
   const label_ = scaled
-    ? text(label, 0, 64.1, colors.ink, 11, `transform="translate(45.5 0) scale(${label.length >= 7 ? ".78" : ".86"} 1)" text-anchor="middle" font-weight="800" letter-spacing=".1"`)
+    ? text(
+        label,
+        0,
+        64.1,
+        colors.ink,
+        11,
+        `transform="translate(45.5 0) scale(${label.length >= 7 ? ".78" : ".86"} 1)" text-anchor="middle" font-weight="800" letter-spacing=".1"`,
+      )
     : text(label, 44, 64.1, colors.ink, 12, 'text-anchor="middle" font-weight="800" letter-spacing=".1"');
   return `<rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>
 ${icon(symbol, 7, 53.5, 14, 14, colors.ink)}
@@ -103,9 +120,11 @@ function budgetKey(data) {
   const level = severity(worst);
   const extra = data.extra;
   const border = level === "out" && !extra ? colors.out : level === "low" || extra ? colors.low : palette.badge.border;
-  const parts = [`<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>`,
+  const parts = [
+    `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>`,
     `<rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${border}" stroke-width="1.5"${level === "unknown" ? ' stroke-dasharray="3 3"' : ""}/>`,
-    `<g>${mark(provider, palette.foreground, palette.canvas)}</g>`];
+    `<g>${mark(provider, palette.foreground, palette.canvas)}</g>`,
+  ];
   const out = level === "out" && !extra;
   // Top right: the plan. When the budget is out, the reset time takes its place.
   if (out) {
@@ -142,39 +161,100 @@ function budgetKey(data) {
 // The session key, drawn as in the shared renderer, to show the budget key in its family.
 function sessionCard(title, iconName, stateId, label, symbol) {
   const colors = palette.states[stateId];
-  const markArt = iconName === "jetbrains"
-    ? `<rect x="21" y="19" width="28" height="28" rx="3" fill="${colors.foreground}"/>${text("IJ", 35, 39, colors.background, 20, 'text-anchor="middle" font-weight="800"')}${icon("sparkles", 45, 17, 13, 13, colors.foreground)}`
-    : icon(iconName, 17, 19, 38, 29, colors.foreground);
+  const markArt =
+    iconName === "jetbrains"
+      ? `<rect x="21" y="19" width="28" height="28" rx="3" fill="${colors.foreground}"/>${text("IJ", 35, 39, colors.background, 20, 'text-anchor="middle" font-weight="800"')}${icon("sparkles", 45, 17, 13, 13, colors.foreground)}`
+      : icon(iconName, 17, 19, 38, 29, colors.foreground);
   return `<g aria-label="${escapeXml(`${title}: ${label}`)}"><rect width="72" height="72" rx="8" fill="${colors.background}"/><rect x="1" y="1" width="70" height="70" rx="7" fill="none" stroke="${colors.accent}" stroke-width="1.5"/>${markArt}
 ${band(label, colors, symbol).replace(/^<rect[^>]*\/>/, `<rect x="3" y="51" width="66" height="18" rx="4" fill="${colors.accent}"/>`)}</g>`;
 }
 
 const examples = {
   claude: [
-    { caption: "Normal", windows: [{ label: "5H", percent: 34, reset: "2h05" }, { label: "WK", percent: 21, reset: "4d" }] },
-    { caption: "Session window low", windows: [{ label: "5H", percent: 86, reset: "1h12" }, { label: "WK", percent: 40, reset: "4d" }] },
-    { caption: "Weekly window low", windows: [{ label: "5H", percent: 12, reset: "4h30" }, { label: "WK", percent: 91, reset: "2d" }] },
-    { caption: "Limit reached", windows: [{ label: "5H", percent: 100, reset: "0h52" }, { label: "WK", percent: 58, reset: "4d" }] },
+    {
+      caption: "Normal",
+      windows: [
+        { label: "5H", percent: 34, reset: "2h05" },
+        { label: "WK", percent: 21, reset: "4d" },
+      ],
+    },
+    {
+      caption: "Session window low",
+      windows: [
+        { label: "5H", percent: 86, reset: "1h12" },
+        { label: "WK", percent: 40, reset: "4d" },
+      ],
+    },
+    {
+      caption: "Weekly window low",
+      windows: [
+        { label: "5H", percent: 12, reset: "4h30" },
+        { label: "WK", percent: 91, reset: "2d" },
+      ],
+    },
+    {
+      caption: "Limit reached",
+      windows: [
+        { label: "5H", percent: 100, reset: "0h52" },
+        { label: "WK", percent: 58, reset: "4d" },
+      ],
+    },
     { caption: "Not reported", plan: "?", windows: [{ label: "5H" }, { label: "WK" }] },
   ],
   openai: [
-    { caption: "Normal", windows: [{ label: "5H", percent: 18, reset: "3h40" }, { label: "WK", percent: 47, reset: "5d" }] },
-    { caption: "Session window low", windows: [{ label: "5H", percent: 82, reset: "0h35" }, { label: "WK", percent: 60, reset: "5d" }] },
-    { caption: "Weekly window low", windows: [{ label: "5H", percent: 30, reset: "2h10" }, { label: "WK", percent: 88, reset: "1d" }] },
-    { caption: "Limit reached", windows: [{ label: "5H", percent: 64, reset: "1h05" }, { label: "WK", percent: 100, reset: "1d" }] },
+    {
+      caption: "Normal",
+      windows: [
+        { label: "5H", percent: 18, reset: "3h40" },
+        { label: "WK", percent: 47, reset: "5d" },
+      ],
+    },
+    {
+      caption: "Session window low",
+      windows: [
+        { label: "5H", percent: 82, reset: "0h35" },
+        { label: "WK", percent: 60, reset: "5d" },
+      ],
+    },
+    {
+      caption: "Weekly window low",
+      windows: [
+        { label: "5H", percent: 30, reset: "2h10" },
+        { label: "WK", percent: 88, reset: "1d" },
+      ],
+    },
+    {
+      caption: "Limit reached",
+      windows: [
+        { label: "5H", percent: 64, reset: "1h05" },
+        { label: "WK", percent: 100, reset: "1d" },
+      ],
+    },
     { caption: "Not reported", plan: "?", windows: [{ label: "5H" }, { label: "WK" }] },
   ],
   copilot: [
     { caption: "Normal", used: "420", total: "1.5K", windows: [{ label: "MO", percent: 28, reset: "19d" }] },
     { caption: "Credits low", used: "1.3K", total: "1.5K", windows: [{ label: "MO", percent: 87, reset: "6d" }] },
-    { caption: "Extra budget in use", used: "1.5K", total: "1.5K", windows: [{ label: "MO", percent: 100, reset: "6d" }], extra: { kind: "extra", amount: "$12/20" } },
+    {
+      caption: "Extra budget in use",
+      used: "1.5K",
+      total: "1.5K",
+      windows: [{ label: "MO", percent: 100, reset: "6d" }],
+      extra: { kind: "extra", amount: "$12/20" },
+    },
     { caption: "Limit reached, no extra budget", used: "1.5K", total: "1.5K", windows: [{ label: "MO", percent: 100, reset: "6d" }] },
     { caption: "Not reported", plan: "?", windows: [{ label: "MO" }] },
   ],
   jetbrains: [
     { caption: "Normal", used: "6.1", total: "20", windows: [{ label: "MO", percent: 31, reset: "22d" }] },
     { caption: "Credits low", used: "17.4", total: "20", windows: [{ label: "MO", percent: 87, reset: "4d" }] },
-    { caption: "Top-up credits in use", used: "20", total: "20", windows: [{ label: "MO", percent: 100, reset: "4d" }], extra: { kind: "topup", amount: "+4.2" } },
+    {
+      caption: "Top-up credits in use",
+      used: "20",
+      total: "20",
+      windows: [{ label: "MO", percent: 100, reset: "4d" }],
+      extra: { kind: "topup", amount: "+4.2" },
+    },
     { caption: "Limit reached, no top-up", used: "20", total: "20", windows: [{ label: "MO", percent: 100, reset: "4d" }] },
     { caption: "Not reported", plan: "?", windows: [{ label: "MO" }] },
   ],
@@ -194,8 +274,24 @@ const columnX = (index) => 330 + index * 196;
 const parts = [];
 parts.push(text(`AI AI CAPTAIN / DESIGN PROPOSAL / ${palette.name.toUpperCase()}`, 36, 30, palette.muted, 11, 'font-weight="700" letter-spacing="2"'));
 parts.push(text("Subscription budget key", 36, 68, palette.foreground, 30, 'font-weight="700"'));
-parts.push(text("Proposed, not implemented. One key for each subscription. It shows how much of the plan is used and when it resets. Drawn at 1.5× scale.", 36, 94, palette.muted, 13));
-parts.push(text("Same family as the info key: canvas background, 80% mark, warning color from 80%. The border and a state band show LOW, LIMIT, and paid extras. Dashed + ?: not reported.", 36, 116, palette.foreground, 13));
+parts.push(
+  text(
+    "Proposed, not implemented. One key for each subscription. It shows how much of the plan is used and when it resets. Drawn at 1.5× scale.",
+    36,
+    94,
+    palette.muted,
+    13,
+  ),
+);
+parts.push(
+  text(
+    "Same family as the info key: canvas background, 80% mark, warning color from 80%. The border and a state band show LOW, LIMIT, and paid extras. Dashed + ?: not reported.",
+    36,
+    116,
+    palette.foreground,
+    13,
+  ),
+);
 
 const headerY = 160;
 ["NORMAL", "LOW", "LOW OR PAID EXTRA", "LIMIT", "NOT REPORTED"].forEach((label, index) => {
@@ -218,7 +314,14 @@ y += 6;
 parts.push(`<line x1="36" y1="${y}" x2="${width - 36}" y2="${y}" stroke="${palette.badge.border}" stroke-width="1"/>`);
 y += 32;
 parts.push(text("Key anatomy", 36, y, palette.foreground, 17, 'font-weight="700"'));
-const anatomy = { provider: "claude", plan: "MAX 5×", windows: [{ label: "5H", percent: 86, reset: "1h12" }, { label: "WK", percent: 40, reset: "4d" }] };
+const anatomy = {
+  provider: "claude",
+  plan: "MAX 5×",
+  windows: [
+    { label: "5H", percent: 86, reset: "1h12" },
+    { label: "WK", percent: 40, reset: "4d" },
+  ],
+};
 parts.push(`<g transform="translate(36 ${y + 16}) scale(2.2)">${budgetKey(anatomy)}</g>`);
 const notes = [
   ["Top row", "Product mark of the subscription owner, not of the harness. Plan name on the right."],
@@ -240,13 +343,34 @@ y += 34 + notes.length * 22 + 26;
 parts.push(text("Next to session keys at 72 px", 36, y, palette.foreground, 17, 'font-weight="700"'));
 const strip = [
   sessionCard("CLAUDE", "claude", "working", "WORKING", "loader-circle"),
-  budgetKey({ provider: "claude", plan: "MAX 5×", windows: [{ label: "5H", percent: 34, reset: "2h05" }, { label: "WK", percent: 21, reset: "4d" }] }),
+  budgetKey({
+    provider: "claude",
+    plan: "MAX 5×",
+    windows: [
+      { label: "5H", percent: 34, reset: "2h05" },
+      { label: "WK", percent: 21, reset: "4d" },
+    ],
+  }),
   sessionCard("CODEX", "square-code", "waiting-bright", "WAITING", "hand"),
-  budgetKey({ provider: "openai", plan: "PLUS", windows: [{ label: "5H", percent: 82, reset: "0h35" }, { label: "WK", percent: 60, reset: "5d" }] }),
+  budgetKey({
+    provider: "openai",
+    plan: "PLUS",
+    windows: [
+      { label: "5H", percent: 82, reset: "0h35" },
+      { label: "WK", percent: 60, reset: "5d" },
+    ],
+  }),
   sessionCard("GITHUB COPILOT", "githubcopilot", "done-bright", "DONE", "check"),
   budgetKey({ provider: "copilot", plan: "PRO", used: "1.5K", total: "1.5K", windows: [{ label: "MO", percent: 100, reset: "6d" }] }),
   sessionCard("JETBRAINS AI", "jetbrains", "working", "WORKING", "loader-circle"),
-  budgetKey({ provider: "jetbrains", plan: "AI PRO", used: "20", total: "20", windows: [{ label: "MO", percent: 100, reset: "4d" }], extra: { kind: "topup", amount: "+4.2" } }),
+  budgetKey({
+    provider: "jetbrains",
+    plan: "AI PRO",
+    used: "20",
+    total: "20",
+    windows: [{ label: "MO", percent: 100, reset: "4d" }],
+    extra: { kind: "topup", amount: "+4.2" },
+  }),
 ];
 strip.forEach((art, index) => parts.push(`<g transform="translate(${36 + index * 84} ${y + 16})">${art}</g>`));
 
@@ -256,8 +380,17 @@ parts.push(text("Every palette", paletteX, y, palette.foreground, 17, 'font-weig
 const original = palette;
 tokens.palettes.forEach((other, index) => {
   palette = other;
-  const art = budgetKey({ provider: "claude", plan: "MAX 5×", windows: [{ label: "5H", percent: 86, reset: "1h12" }, { label: "WK", percent: 40, reset: "4d" }] });
-  parts.push(`<g transform="translate(${paletteX + index * 84} ${y + 16})"><rect x="-6" y="-6" width="84" height="84" rx="10" fill="${other.canvas}"/>${art}</g>`);
+  const art = budgetKey({
+    provider: "claude",
+    plan: "MAX 5×",
+    windows: [
+      { label: "5H", percent: 86, reset: "1h12" },
+      { label: "WK", percent: 40, reset: "4d" },
+    ],
+  });
+  parts.push(
+    `<g transform="translate(${paletteX + index * 84} ${y + 16})"><rect x="-6" y="-6" width="84" height="84" rx="10" fill="${other.canvas}"/>${art}</g>`,
+  );
   parts.push(text(other.name, paletteX + index * 84 + 36, y + 106, original.muted, 10, 'text-anchor="middle"'));
   palette = original;
 });
@@ -268,8 +401,16 @@ parts.push(`<line x1="36" y1="${y}" x2="${width - 36}" y2="${y}" stroke="${palet
 y += 32;
 parts.push(text("Possible data sources (none verified on this computer)", 36, y, palette.foreground, 17, 'font-weight="700"'));
 const sources = [
-  ["Claude", "5-hour and weekly percent used, reset times", "Shown by /usage in Claude Code. No documented local file. Status line or account endpoint to verify."],
-  ["OpenAI", "Primary (5-hour) and secondary (weekly) percent used, resets", "Codex rate-limit snapshots; possibly in the rollout token_count events that the hub reads now."],
+  [
+    "Claude",
+    "5-hour and weekly percent used, reset times",
+    "Shown by /usage in Claude Code. No documented local file. Status line or account endpoint to verify.",
+  ],
+  [
+    "OpenAI",
+    "Primary (5-hour) and secondary (weekly) percent used, resets",
+    "Codex rate-limit snapshots; possibly in the rollout token_count events that the hub reads now.",
+  ],
   ["GitHub Copilot", "AI Credits used of the monthly allowance, extra spend", "GitHub account usage data. Needs a GitHub token. Not in local session files."],
   ["JetBrains AI", "Credits left, reset date, top-up balance", "Shown in the JetBrains AI widget and JetBrains Account. Local source not known."],
 ];
@@ -280,9 +421,19 @@ sources.forEach(([name, values, where], index) => {
   parts.push(text(where, 560, rowY, palette.muted, 12.5));
 });
 y += 30 + sources.length * 24 + 18;
-parts.push(text("The hub keeps only numbers, plan names, and reset times (ARCH-08). It never stores tokens for accounts in settings files.", 36, y, palette.muted, 11.5));
+parts.push(
+  text("The hub keeps only numbers, plan names, and reset times (ARCH-08). It never stores tokens for accounts in settings files.", 36, y, palette.muted, 11.5),
+);
 y += 22;
-parts.push(text("Brand marks: Lobe Icons 1.100.0. Interface symbols: Lucide 0.468.0. DESIGN PROPOSAL · Not implemented · Illustrated plans do not imply that usage data is available.", 36, y, palette.muted, 10.5));
+parts.push(
+  text(
+    "Brand marks: Lobe Icons 1.100.0. Interface symbols: Lucide 0.468.0. DESIGN PROPOSAL · Not implemented · Illustrated plans do not imply that usage data is available.",
+    36,
+    y,
+    palette.muted,
+    10.5,
+  ),
+);
 const height = y + 30;
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="t d">
