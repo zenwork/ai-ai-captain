@@ -524,7 +524,7 @@ describe("dashboard keys", () => {
     const second = key("second", 1);
     await sdk.actions[0].onWillAppear({ action: first });
     await sdk.actions[0].onWillAppear({ action: second });
-    const urls = () => fetchSessions.mock.calls.map(([url]) => String(url));
+    const urls = () => fetchSessions.mock.calls.map(([url]) => url);
     // A WORKING session gets focus at once.
     await sdk.actions[0].onKeyDown({ action: second });
     expect(urls()).toContain("http://127.0.0.1:43681/api/sessions/active/focus");
