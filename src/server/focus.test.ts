@@ -22,7 +22,7 @@ async function projects(): Promise<string[]> {
 }
 
 function successfulRunner() {
-  return vi.fn(async (_command: string, _args: string[]): Promise<FocusResult> => ({ focused: true }));
+  return vi.fn<(command: string, args: string[]) => Promise<FocusResult>>(async () => ({ focused: true }));
 }
 
 describe("project-aware focus", () => {
@@ -96,7 +96,7 @@ describe("project-aware focus", () => {
 
   it.skipIf(process.platform === "win32")("returns a project failure without falling back to activating every IDEA window", async () => {
     const [project] = await projects();
-    const run = vi.fn(async (_command: string, _args: string[]): Promise<FocusResult> => ({ focused: false, reason: "Command failed" }));
+    const run = vi.fn<(command: string, args: string[]) => Promise<FocusResult>>(async () => ({ focused: false, reason: "Command failed" }));
     const focus = createFocusHandler({ platform: "darwin", run });
     expect((await focus(target, project)).focused).toBe(false);
     expect(run).toHaveBeenCalledTimes(1);

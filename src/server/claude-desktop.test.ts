@@ -104,7 +104,7 @@ interface InspectOptions {
 
 function runInspector(controls: NativeElement[], options: InspectOptions) {
   const inspected = vi.fn();
-  const pressed = vi.fn((_entry: NativeElement, _action: string) => 0);
+  const pressed = vi.fn<(entry: NativeElement, action: string) => number>(() => 0);
   const activated = vi.fn<(pid: number) => void>();
   const posted = vi.fn();
   const warped = vi.fn();

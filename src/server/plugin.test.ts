@@ -21,7 +21,7 @@ interface TestAction {
   onKeyDown(event: { action: TestKey }): Promise<void>;
 }
 
-const sdk = { actions: [] as TestAction[], info: vi.fn(), warn: vi.fn(), openUrl: vi.fn(async (_url: string) => {}) };
+const sdk = { actions: [] as TestAction[], info: vi.fn(), warn: vi.fn(), openUrl: vi.fn<(url: string) => Promise<void>>(async () => {}) };
 let pluginCode: string;
 
 beforeAll(() => {

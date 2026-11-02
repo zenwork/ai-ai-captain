@@ -71,7 +71,6 @@ const imageHeight = deviceHeight + pagePadding * 2;
 // The loop must contain full WAITING cycles and full DONE flash periods. 12 seconds is the least common multiple.
 const loopMilliseconds = 12_000;
 const doneFlashPeriodMilliseconds = 500;
-const doneFlashMilliseconds = 250;
 const frameStepMilliseconds = 50;
 
 const palette = getPalette("fjord");
