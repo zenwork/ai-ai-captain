@@ -1,0 +1,12 @@
+# Generated files. AGENTS.md section 5 lists them.
+dist/
+web/
+streamdeck/com.local.ai-ai-captain.sdPlugin/
+node_modules/
+package-lock.json
+CHANGELOG.md
+
+# Other projects and local output.
+intellij-bridge/
+Claude outputs/
+.idea/

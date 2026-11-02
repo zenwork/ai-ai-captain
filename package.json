@@ -22,7 +22,11 @@
     "start": "node dist/server/main.js",
     "report": "tsx src/cli.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p streamdeck/tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p streamdeck/tsconfig.json",
+    "lint": "eslint --max-warnings=0 .",
+    "lint:fix": "eslint --fix .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@awesome.me/webawesome": "^3.14.0",
@@ -32,10 +36,15 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@types/node": "^26.0.0",
     "esbuild": "^0.28.2",
+    "eslint": "10.13.0",
+    "eslint-config-prettier": "10.1.8",
+    "prettier": "3.9.10",
     "tsx": "^4.23.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "8.71.2",
     "vitest": "^5.0.5"
   },
   "overrides": {

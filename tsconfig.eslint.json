@@ -1,0 +1,16 @@
+// Type information for ESLint only. The build uses tsconfig.json and streamdeck/tsconfig.json.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "web-src/**/*.ts", "streamdeck/src/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"]
+}

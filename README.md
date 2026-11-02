@@ -161,6 +161,7 @@ The hub binds to `127.0.0.1` by default. Do not put prompts or transcripts in `l
 ```sh
 npm test
 npm run typecheck
+npm run lint
 npm run build
 ```
 
