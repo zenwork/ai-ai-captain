@@ -47,6 +47,9 @@ export default tseslint.config(
       // Numbers in template strings are safe and common (ports, counts, pixels).
       // Other types stay forbidden. Thus `undefined`, objects, and arrays do not go into text by mistake.
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      // The project does not use noUncheckedIndexedAccess. Thus TypeScript thinks that record, array, and regex
+      // match values are always present. At run time they can be undefined, and the `??` fallbacks are necessary.
+      "@typescript-eslint/no-unnecessary-condition": "off",
       // AGENTS.md 3.2: use the node: prefix for Node.js built-in modules.
       "no-restricted-imports": [
         "error",
@@ -69,6 +72,8 @@ export default tseslint.config(
       "@typescript-eslint/unbound-method": "off",
       // Mocks of functions that return a promise use `async` without `await`. Example: `vi.fn(async () => "")`.
       "@typescript-eslint/require-await": "off",
+      // Some tests run generated script text (macOS automation scripts, the plugin bundle) with fake globals.
+      "@typescript-eslint/no-implied-eval": "off",
     },
   },
   // Keep this last. It turns off the style rules that Prettier controls.
