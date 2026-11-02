@@ -79,7 +79,9 @@ function scriptHarness(
               bridge,
               () => scripting,
               () => [],
-              () => {},
+              () => {
+                // The delay function of the script. The test does not wait.
+              },
               [JSON.stringify(browser), url],
             ),
           ),

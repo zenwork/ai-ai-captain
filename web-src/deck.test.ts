@@ -41,8 +41,13 @@ class TestElement extends EventTarget {
     this.attributes.set(name, value);
   }
 
-  connectedCallback(): void {}
-  disconnectedCallback(): void {}
+  connectedCallback(): void {
+    // The test element has no work to do when it is added to the page.
+  }
+
+  disconnectedCallback(): void {
+    // The test element has no work to do when it is removed from the page.
+  }
 }
 
 class TestWindow extends EventTarget {

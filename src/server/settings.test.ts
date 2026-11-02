@@ -169,6 +169,8 @@ describe("palette settings", () => {
     await app.inject({ method: "PUT", url: "/api/settings", payload: { palette: "signal", flashIntensity: 3 } });
     expect(decode((await reader.read()).value)).toEqual({ type: "settings", settings: { palette: "signal", flashIntensity: 3, showInfoKeys: true } });
     controller.abort();
-    await reader.cancel().catch(() => {});
+    await reader.cancel().catch(() => {
+      // The abort can close the stream before the cancel. Then the cancel fails, and the test can ignore it.
+    });
   });
 });

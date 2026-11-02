@@ -21,7 +21,7 @@ interface TestAction {
   onKeyDown(event: { action: TestKey }): Promise<void>;
 }
 
-const sdk = { actions: [] as TestAction[], info: vi.fn(), warn: vi.fn(), openUrl: vi.fn<(url: string) => Promise<void>>(async () => {}) };
+const sdk = { actions: [] as TestAction[], info: vi.fn(), warn: vi.fn(), openUrl: vi.fn<(url: string) => Promise<void>>(() => Promise.resolve()) };
 let pluginCode: string;
 
 beforeAll(() => {
@@ -49,7 +49,7 @@ function loadPlugin(): void {
         actions: { registerAction: (action: TestAction) => sdk.actions.push(action) },
         logger: { info: sdk.info, warn: sdk.warn },
         system: { openUrl: sdk.openUrl },
-        connect: async () => {},
+        connect: () => Promise.resolve(),
       },
     };
   };
@@ -76,9 +76,9 @@ function key(id: string, column: number): TestKey {
     device: { id: "stream-deck-xl" },
     coordinates: { row: 0, column },
     isKey: () => true,
-    setImage: vi.fn(async () => {}),
-    setTitle: vi.fn(async () => {}),
-    showAlert: vi.fn(async () => {}),
+    setImage: vi.fn(() => Promise.resolve()),
+    setTitle: vi.fn(() => Promise.resolve()),
+    showAlert: vi.fn(() => Promise.resolve()),
   };
 }
 
