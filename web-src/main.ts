@@ -28,9 +28,9 @@ class SessionPanel extends HTMLElement {
   #expandedDetails = new Map<string, boolean>();
 
   /** Returns an element of the dashboard. connectedCallback makes all of them, so a missing element is a defect. */
-  #element<Type extends HTMLElement>(selector: string): Type {
-    const element = this.querySelector<Type>(selector);
-    if (!element) throw new Error(`The dashboard has no element ${selector}`);
+  #element<Type extends HTMLElement>(selector: string, type: new () => Type): Type {
+    const element = this.querySelector(selector);
+    if (!(element instanceof type)) throw new Error(`The dashboard has no ${type.name} ${selector}`);
     return element;
   }
 
@@ -43,11 +43,11 @@ class SessionPanel extends HTMLElement {
 
   connectedCallback(): void {
     this.innerHTML = `<header class="topbar"><div><p class="eyebrow">LOCAL SESSION MONITOR</p><h1>AI AI Captain</h1></div><nav class="topbar-links"><a class="deck-link" href="/deck.html" target="_blank" rel="noopener">Open deck only</a></nav><span id="connection" class="connection">Connecting…</span></header><main><section class="summary"><div><strong id="count">0</strong><span>tracked sessions</span></div><p>Session monitoring stays on this Mac.</p></section><section class="appearance" aria-label="Appearance settings"><div><label for="palette">Icon palette</label><select id="palette" aria-describedby="palette-status" disabled>${palettes.map((palette) => `<option value="${palette.id}">${escapeHtml(palette.name)}${palette.id === defaultPaletteId ? " (default)" : ""}${palette.contrast === "high" ? ` · high-contrast ${palette.mode}` : ""}</option>`).join("")}</select></div><div><label for="flash-intensity">Flash intensity</label><select id="flash-intensity" aria-describedby="palette-status" disabled>${flashIntensityChoices.map((choice) => `<option value="${choice.value}">${choice.value} · ${choice.label}</option>`).join("")}</select></div><div><label for="show-info-keys"><input type="checkbox" id="show-info-keys" aria-describedby="palette-status" disabled> Show info keys</label></div><p id="palette-status" role="status">Waiting for hub settings…</p></section><section id="deck-preview" class="deck-preview" aria-label="Session key preview"></section><p class="deck-guide">WORKING: work in progress · raised hand / WAITING: action required · check / DONE: finished, no action needed · IJ: IntelliJ · &gt;_: CLI · window: app. Key numbers match the session details below.</p><section id="sessions" class="sessions" aria-live="polite"></section><section id="clients" class="clients"></section><footer>Listening on this machine · <code>127.0.0.1:43681</code> · <a href="/THIRD_PARTY_NOTICES.txt">Artwork notices</a></footer></main>`;
-    this.#element<HTMLSelectElement>("#palette").value = this.#palette;
-    this.#element<HTMLSelectElement>("#palette").addEventListener("change", () => void this.#savePalette());
-    this.#element<HTMLInputElement>("#show-info-keys").addEventListener("change", () => void this.#savePalette());
-    this.#element<HTMLSelectElement>("#flash-intensity").value = String(this.#flashIntensity);
-    this.#element<HTMLSelectElement>("#flash-intensity").addEventListener("change", () => void this.#savePalette());
+    this.#element("#palette", HTMLSelectElement).value = this.#palette;
+    this.#element("#palette", HTMLSelectElement).addEventListener("change", () => void this.#savePalette());
+    this.#element("#show-info-keys", HTMLInputElement).addEventListener("change", () => void this.#savePalette());
+    this.#element("#flash-intensity", HTMLSelectElement).value = String(this.#flashIntensity);
+    this.#element("#flash-intensity", HTMLSelectElement).addEventListener("change", () => void this.#savePalette());
     this.#motion.addEventListener("change", this.#onMotionChange);
     this.#connect();
   }
@@ -119,14 +119,14 @@ class SessionPanel extends HTMLElement {
     paletteSelect.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
     intensitySelect.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
     if (this.#settingsReady && !this.#savingPalette)
-      this.#element<HTMLElement>("#palette-status").textContent = "Saved on this Mac · applies to all Stream Decks and previews.";
+      this.#element("#palette-status", HTMLElement).textContent = "Saved on this Mac · applies to all Stream Decks and previews.";
   }
 
   async #savePalette(): Promise<void> {
-    const paletteSelect = this.#element<HTMLSelectElement>("#palette");
-    const intensitySelect = this.#element<HTMLSelectElement>("#flash-intensity");
-    const status = this.#element<HTMLElement>("#palette-status");
-    const showInfoKeys = this.#element<HTMLInputElement>("#show-info-keys").checked;
+    const paletteSelect = this.#element("#palette", HTMLSelectElement);
+    const intensitySelect = this.#element("#flash-intensity", HTMLSelectElement);
+    const status = this.#element("#palette-status", HTMLElement);
+    const showInfoKeys = this.#element("#show-info-keys", HTMLInputElement).checked;
     const flashIntensity = parseFlashIntensity(intensitySelect.value);
     if (!isPaletteId(paletteSelect.value) || flashIntensity === undefined) return;
     const palette = paletteSelect.value;
