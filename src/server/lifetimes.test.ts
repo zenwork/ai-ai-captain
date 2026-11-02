@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { connectedTerminals, HostLifetimes, revokedTerminals, SessionLifetimeGate } from "./lifetimes.js";
 import { listOpenFiles } from "./processes.js";
+import type * as processesModule from "./processes.js";
 
 vi.mock("./processes.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./processes.js")>()),
+  ...(await importOriginal<typeof processesModule>()),
   listOpenFiles: vi.fn(async () => ""),
 }));
 
