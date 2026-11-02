@@ -158,14 +158,15 @@ export class SessionStore {
   }
 
   #persist(): void {
-    if (!this.persistencePath) return;
+    const persistencePath = this.persistencePath;
+    if (!persistencePath) return;
     const output = JSON.stringify([...this.#sessions.values()], null, 2);
     this.#persistQueue = this.#persistQueue
       .then(async () => {
-        await mkdir(dirname(this.persistencePath!), { recursive: true });
-        const temporaryPath = `${this.persistencePath}.tmp`;
+        await mkdir(dirname(persistencePath), { recursive: true });
+        const temporaryPath = `${persistencePath}.tmp`;
         await writeFile(temporaryPath, output, { mode: 0o600 });
-        await rename(temporaryPath, this.persistencePath!);
+        await rename(temporaryPath, persistencePath);
       })
       .catch((error: unknown) => {
         console.error("Unable to persist session metadata", error);

@@ -3,6 +3,7 @@ import { doneAttention } from "../../src/shared/attention.js";
 import {
   cardIdentities,
   cardStates,
+  findById,
   describeBudgetCard,
   describeInfoCard,
   describeSettingCard,
@@ -74,7 +75,8 @@ export const sessionTypeLabels: Record<SessionType, string> = {
 
 export function sessionPhase(session: Session, options: CardOptions = {}): CardPhase {
   if (session.state === "waiting") return options.waitingDimmed && !options.reducedMotion ? "waiting-dim" : "waiting-bright";
-  if (session.state === "done") return `done-${doneAttention(session, options.now, options.reducedMotion)!.phase}`;
+  // doneAttention gives a phase for each DONE session. The fallback only satisfies the type.
+  if (session.state === "done") return `done-${doneAttention(session, options.now, options.reducedMotion)?.phase ?? "aged"}`;
   return session.state;
 }
 
@@ -91,9 +93,9 @@ function svg(content: string, title: string): string {
 
 export function sessionImage(session: Session, keyNumber?: number, options: CardOptions = {}): string {
   const type = sessionType(session);
-  const identity = cardIdentities.find((entry) => entry.id === type)!;
+  const identity = findById(cardIdentities, type, "card identity");
   const phase = sessionPhase(session, options);
-  const state = cardStates.find((entry) => entry.id === phase)!;
+  const state = findById(cardStates, phase, "card state");
   const number = keyNumber !== undefined && Number.isFinite(keyNumber) ? Math.trunc(keyNumber) : undefined;
   const palette = paletteForSession(session, options);
   return svg(renderCard(identity, state, palette, number, cardIcons), `${sessionTypeLabels[type]}: ${state.label}`);

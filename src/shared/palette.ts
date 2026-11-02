@@ -1,4 +1,5 @@
 import { defaultPaletteId, designPalettes } from "./card-assets.js";
+import { findById } from "./card-design.js";
 
 export { defaultPaletteId };
 export const palettes = designPalettes;
@@ -11,5 +12,5 @@ export function isPaletteId(value: unknown): value is PaletteId {
 }
 
 export function getPalette(id: unknown = defaultPaletteId): Palette {
-  return palettes.find((palette) => palette.id === id) ?? palettes.find((palette) => palette.id === defaultPaletteId)!;
+  return palettes.find((palette) => palette.id === id) ?? findById(palettes, defaultPaletteId, "palette");
 }

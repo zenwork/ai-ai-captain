@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { z } from "zod";
 import { dismissableStates, type Client, type Session } from "../../src/shared/session.js";
 import type { Budget } from "../../src/shared/budget.js";
-import { budgetProviders, type BudgetProviderId } from "../../src/shared/card-design.js";
+import { budgetProviders, findById, type BudgetProviderId } from "../../src/shared/card-design.js";
 import { doneAttention } from "../../src/shared/attention.js";
 import { defaultPaletteId, getPalette, paletteIds, type PaletteId } from "../../src/shared/palette.js";
 import { defaultFlashIntensity, defaultShowInfoKeys, flashIntensityMax, flashIntensityMin, type HubSettings } from "../../src/shared/settings.js";
@@ -82,10 +82,13 @@ function keyItemCount(): number {
   return visibleSessions().length + clients.length;
 }
 
+/** A session key that has a position on the device. */
+type PlacedKey = KeyAction<SessionSettings> & { coordinates: NonNullable<KeyAction<SessionSettings>["coordinates"]> };
+
 function sessionKeys(deviceId: string): KeyAction<SessionSettings>[] {
   return [...visibleKeys.values()]
-    .filter((key) => key.device.id === deviceId && key.coordinates)
-    .sort((left, right) => left.coordinates!.row - right.coordinates!.row || left.coordinates!.column - right.coordinates!.column);
+    .filter((key): key is PlacedKey => key.device.id === deviceId && key.coordinates !== undefined)
+    .sort((left, right) => left.coordinates.row - right.coordinates.row || left.coordinates.column - right.coordinates.column);
 }
 
 function pageSize(deviceId: string): number {
@@ -313,7 +316,7 @@ class BudgetAction extends SingletonAction<SessionSettings> {
 
   async onKeyDown(event: KeyDownEvent<SessionSettings>): Promise<void> {
     if (!event.action.isKey()) return;
-    const provider = budgetProviders.find((entry) => entry.id === this.provider)!;
+    const provider = findById(budgetProviders, this.provider, "budget provider");
     try {
       await streamDeck.system.openUrl(provider.usageUrl);
     } catch {

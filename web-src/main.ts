@@ -27,13 +27,27 @@ class SessionPanel extends HTMLElement {
   };
   #expandedDetails = new Map<string, boolean>();
 
+  /** Returns an element of the dashboard. connectedCallback makes all of them, so a missing element is a defect. */
+  #element<Type extends HTMLElement>(selector: string): Type {
+    const element = this.querySelector<Type>(selector);
+    if (!element) throw new Error(`The dashboard has no element ${selector}`);
+    return element;
+  }
+
+  /** Focuses the session or the client of a button with a data-focus attribute when the user clicks it. */
+  #addFocusListener(button: HTMLElement): void {
+    const focusId = button.dataset.focus;
+    if (focusId === undefined) return;
+    button.addEventListener("click", () => void this.#focus(focusId));
+  }
+
   connectedCallback(): void {
     this.innerHTML = `<header class="topbar"><div><p class="eyebrow">LOCAL SESSION MONITOR</p><h1>AI AI Captain</h1></div><nav class="topbar-links"><a class="deck-link" href="/deck.html" target="_blank" rel="noopener">Open deck only</a></nav><span id="connection" class="connection">Connecting…</span></header><main><section class="summary"><div><strong id="count">0</strong><span>tracked sessions</span></div><p>Session monitoring stays on this Mac.</p></section><section class="appearance" aria-label="Appearance settings"><div><label for="palette">Icon palette</label><select id="palette" aria-describedby="palette-status" disabled>${palettes.map((palette) => `<option value="${palette.id}">${escapeHtml(palette.name)}${palette.id === defaultPaletteId ? " (default)" : ""}${palette.contrast === "high" ? ` · high-contrast ${palette.mode}` : ""}</option>`).join("")}</select></div><div><label for="flash-intensity">Flash intensity</label><select id="flash-intensity" aria-describedby="palette-status" disabled>${flashIntensityChoices.map((choice) => `<option value="${choice.value}">${choice.value} · ${choice.label}</option>`).join("")}</select></div><div><label for="show-info-keys"><input type="checkbox" id="show-info-keys" aria-describedby="palette-status" disabled> Show info keys</label></div><p id="palette-status" role="status">Waiting for hub settings…</p></section><section id="deck-preview" class="deck-preview" aria-label="Session key preview"></section><p class="deck-guide">WORKING: work in progress · raised hand / WAITING: action required · check / DONE: finished, no action needed · IJ: IntelliJ · &gt;_: CLI · window: app. Key numbers match the session details below.</p><section id="sessions" class="sessions" aria-live="polite"></section><section id="clients" class="clients"></section><footer>Listening on this machine · <code>127.0.0.1:43681</code> · <a href="/THIRD_PARTY_NOTICES.txt">Artwork notices</a></footer></main>`;
-    this.querySelector<HTMLSelectElement>("#palette")!.value = this.#palette;
-    this.querySelector<HTMLSelectElement>("#palette")!.addEventListener("change", () => void this.#savePalette());
-    this.querySelector<HTMLInputElement>("#show-info-keys")!.addEventListener("change", () => void this.#savePalette());
-    this.querySelector<HTMLSelectElement>("#flash-intensity")!.value = String(this.#flashIntensity);
-    this.querySelector<HTMLSelectElement>("#flash-intensity")!.addEventListener("change", () => void this.#savePalette());
+    this.#element<HTMLSelectElement>("#palette").value = this.#palette;
+    this.#element<HTMLSelectElement>("#palette").addEventListener("change", () => void this.#savePalette());
+    this.#element<HTMLInputElement>("#show-info-keys").addEventListener("change", () => void this.#savePalette());
+    this.#element<HTMLSelectElement>("#flash-intensity").value = String(this.#flashIntensity);
+    this.#element<HTMLSelectElement>("#flash-intensity").addEventListener("change", () => void this.#savePalette());
     this.#motion.addEventListener("change", this.#onMotionChange);
     this.#connect();
   }
@@ -105,14 +119,14 @@ class SessionPanel extends HTMLElement {
     paletteSelect.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
     intensitySelect.disabled = !this.#connected || !this.#settingsReady || this.#savingPalette;
     if (this.#settingsReady && !this.#savingPalette)
-      this.querySelector<HTMLElement>("#palette-status")!.textContent = "Saved on this Mac · applies to all Stream Decks and previews.";
+      this.#element<HTMLElement>("#palette-status").textContent = "Saved on this Mac · applies to all Stream Decks and previews.";
   }
 
   async #savePalette(): Promise<void> {
-    const paletteSelect = this.querySelector<HTMLSelectElement>("#palette")!;
-    const intensitySelect = this.querySelector<HTMLSelectElement>("#flash-intensity")!;
-    const status = this.querySelector<HTMLElement>("#palette-status")!;
-    const showInfoKeys = this.querySelector<HTMLInputElement>("#show-info-keys")!.checked;
+    const paletteSelect = this.#element<HTMLSelectElement>("#palette");
+    const intensitySelect = this.#element<HTMLSelectElement>("#flash-intensity");
+    const status = this.#element<HTMLElement>("#palette-status");
+    const showInfoKeys = this.#element<HTMLInputElement>("#show-info-keys").checked;
     const flashIntensity = parseFlashIntensity(intensitySelect.value);
     if (!isPaletteId(paletteSelect.value) || flashIntensity === undefined) return;
     const palette = paletteSelect.value;
@@ -163,7 +177,7 @@ class SessionPanel extends HTMLElement {
         ? slotOrder.map((session, index) => `<div class="deck-key-pair">${sessionKey(session, index)}${infoKey(session)}</div>`).join("")
         : slotOrder.map((session, index) => sessionKey(session, index)).join("");
       preview.querySelectorAll<HTMLElement>("[data-focus]").forEach((button) => {
-        button.addEventListener("click", () => void this.#focus(button.dataset.focus!));
+        this.#addFocusListener(button);
       });
     }
     const clients = this.querySelector<HTMLElement>("#clients");
@@ -191,11 +205,12 @@ class SessionPanel extends HTMLElement {
       )
       .join("");
     list.querySelectorAll<HTMLElement>("[data-focus]").forEach((button) => {
-      button.addEventListener("click", () => void this.#focus(button.dataset.focus!));
+      this.#addFocusListener(button);
     });
     list.querySelectorAll<HTMLDetailsElement>("details[data-details-id]").forEach((details) => {
       details.addEventListener("toggle", () => {
-        if (details.isConnected) this.#expandedDetails.set(details.dataset.detailsId!, details.open);
+        const detailsId = details.dataset.detailsId;
+        if (detailsId !== undefined && details.isConnected) this.#expandedDetails.set(detailsId, details.open);
       });
     });
     this.#renderAttention();
@@ -222,7 +237,8 @@ class SessionPanel extends HTMLElement {
       if (completion?.nextChangeAt !== undefined) nextChangeAt = Math.min(nextChangeAt ?? Infinity, completion.nextChangeAt);
     }
     for (const button of Array.from(this.querySelectorAll<HTMLElement>(".deck-key[data-focus]"))) {
-      const entry = sessions.get(button.dataset.focus!);
+      const focusId = button.dataset.focus;
+      const entry = focusId === undefined ? undefined : sessions.get(focusId);
       if (!entry) continue;
       const signature = sessionSignature(entry.session, entry.keyNumber, options);
       if (button.dataset.signature !== signature) {
@@ -231,7 +247,8 @@ class SessionPanel extends HTMLElement {
       }
     }
     for (const card of Array.from(this.querySelectorAll<HTMLElement>(".session-card[data-session-id]"))) {
-      const entry = sessions.get(card.dataset.sessionId!);
+      const sessionId = card.dataset.sessionId;
+      const entry = sessionId === undefined ? undefined : sessions.get(sessionId);
       if (!entry) continue;
       const colors = sessionColors(entry.session, options);
       card.style.setProperty("--state-accent", colors.accent);

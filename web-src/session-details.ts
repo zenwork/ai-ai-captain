@@ -1,8 +1,10 @@
 import type { Session } from "../src/shared/session.js";
 import { explainSessionState } from "../src/shared/diagnostics.js";
 
+const htmlEntities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+
 export function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!);
+  return value.replace(/[&<>"']/g, (character) => htmlEntities[character] ?? character);
 }
 
 function timestamp(value?: string): string {

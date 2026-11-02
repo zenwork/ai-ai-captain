@@ -1,3 +1,16 @@
+// Do not import other modules here. The design scripts in scripts/ load this file directly with the Node.js
+// type stripping. That mode cannot find a "./module.js" import of a TypeScript file.
+
+/**
+ * Returns the entry with the identifier from a fixed list, such as the card states or the budget providers.
+ * Each identifier of these lists has an entry. Thus a missing entry is a defect, and the function throws.
+ */
+export function findById<Entry extends { readonly id: string }>(entries: readonly Entry[], id: string, listName: string): Entry {
+  const entry = entries.find((candidate) => candidate.id === id);
+  if (!entry) throw new Error(`The ${listName} list has no entry "${id}"`);
+  return entry;
+}
+
 export interface CardColors {
   background: string;
   accent: string;
@@ -57,8 +70,10 @@ export const cardIdentities = [
   { id: "generic", title: "OTHER AGENT", detail: "Unclassified harness", icon: "bot", host: undefined },
 ] as const;
 
+const xmlEntities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" };
+
 export function escapeXml(value: string | number): string {
-  return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character]!);
+  return String(value).replace(/[&<>"']/g, (character) => xmlEntities[character] ?? character);
 }
 
 function text(content: string | number, horizontal: number, vertical: number, color: string, size = 12, attributes = ""): string {
@@ -341,7 +356,7 @@ function budgetTopValue(value: string, color: string, icons: CardIcons, symbol?:
 }
 
 export function describeBudgetCard(data: BudgetCardData): string {
-  const provider = budgetProviders.find((entry) => entry.id === data.provider)!;
+  const provider = findById(budgetProviders, data.provider, "budget provider");
   const windows = data.windows.map(
     (window) =>
       `${window.label} ${window.percent === undefined ? "not reported" : `${Math.round(window.percent)} percent used`}${window.reset ? `, resets in ${window.reset}` : ""}`,
@@ -352,7 +367,7 @@ export function describeBudgetCard(data: BudgetCardData): string {
 
 /** The subscription budget key. It uses the canvas background like the info key. The border shows the worst level. */
 export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, icons: CardIcons, style: BudgetStyle = "tab"): string {
-  const provider = budgetProviders.find((entry) => entry.id === data.provider)!;
+  const provider = findById(budgetProviders, data.provider, "budget provider");
   const percents = data.windows.map((window) => window.percent).filter((value): value is number => value !== undefined);
   const worst = percents.length ? Math.max(...percents) : undefined;
   const binding = data.windows.find((window) => window.percent === worst);
@@ -386,13 +401,14 @@ export function renderBudgetCard(data: BudgetCardData, palette: CardPalette, ico
   }
   if (extra) parts.push(budgetBand(extra.kind === "topup" ? "TOP-UP" : "EXTRA", warning, extra.kind === "topup" ? "sparkles" : "triangle-alert", icons));
   else if (out) parts.push(budgetBand("LIMIT", palette.states.failed, "triangle-alert", icons));
-  else if (level === "unknown") parts.push(text("—", 6, 64, palette.muted, 11), text("?", 66, 64, palette.muted, 12, 'text-anchor="end" font-weight="800"'));
+  else if (level === "unknown" || worst === undefined)
+    parts.push(text("—", 6, 64, palette.muted, 11), text("?", 66, 64, palette.muted, 12, 'text-anchor="end" font-weight="800"'));
   else {
     parts.push(
       `<g color="${palette.muted}">${icon("rotate-ccw", 6, 55.5, 9, 9, icons, palette.muted)}</g>`,
       text(binding?.reset ?? "?", 17.5, 63.5, palette.foreground, 9.5),
     );
-    parts.push(text(`${Math.round(worst!)}%`, 66, 64, level === "low" ? warning.accent : palette.foreground, 11.5, 'text-anchor="end" font-weight="800"'));
+    parts.push(text(`${Math.round(worst)}%`, 66, 64, level === "low" ? warning.accent : palette.foreground, 11.5, 'text-anchor="end" font-weight="800"'));
   }
   return `<g aria-label="${escapeXml(describeBudgetCard(data))}">${parts.join("\n")}</g>`;
 }
