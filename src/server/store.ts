@@ -110,7 +110,7 @@ export class SessionStore {
   /** Mark a DONE session as attended until its state changes. Returns undefined when the session is missing or not DONE. */
   attend(id: string): Session | undefined {
     const existing = this.#sessions.get(id);
-    if (!existing || existing.state !== "done") return undefined;
+    if (existing?.state !== "done") return undefined;
     if (existing.attendedAt) return existing;
     const session: Session = { ...existing, attendedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     this.#sessions.set(id, session);
