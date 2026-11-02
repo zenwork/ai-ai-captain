@@ -44,7 +44,10 @@ function loadPlugin(): void {
     if (name !== "@elgato/streamdeck") throw new Error(`Unexpected plugin dependency: ${name}`);
     return {
       action: () => (constructor: unknown) => constructor,
-      SingletonAction: class {},
+      // A small copy of the SDK class. The plugin action classes extend it. The plugin does not read the visible actions.
+      SingletonAction: class SingletonAction {
+        readonly actions: unknown[] = [];
+      },
       streamDeck: {
         actions: { registerAction: (action: TestAction) => sdk.actions.push(action) },
         logger: { info: sdk.info, warn: sdk.warn },
