@@ -65,6 +65,9 @@ export const sessionSchema = sessionInputSchema.extend({
   lastActivityAt: z.iso.datetime(),
 });
 
+// The body of POST /api/sessions/:id/end.
+export const sessionEndSchema = z.object({ state: z.enum(["done", "failed"]) });
+
 export type SessionInput = z.infer<typeof sessionInputSchema>;
 export type Session = z.infer<typeof sessionSchema>;
 

@@ -42,6 +42,19 @@ describe("session API", () => {
     expect(mismatch.statusCode).toBe(400);
   });
 
+  it("ends a session with DONE or FAILED and rejects other end states", async () => {
+    const app = createApp({ webRoot: "/no-static-assets" });
+    apps.push(app);
+    await app.inject({ method: "PUT", url: "/api/sessions/codex%3A1", payload: { id: "codex:1", source: "codex", label: "Task", state: "working" } });
+    for (const payload of [{}, { state: "working" }, { state: ["done"] }]) {
+      expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/end", payload })).statusCode).toBe(400);
+    }
+    expect((await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/end" })).statusCode).toBe(400);
+    expect((await app.inject({ method: "POST", url: "/api/sessions/none/end", payload: { state: "done" } })).statusCode).toBe(404);
+    const ended = await app.inject({ method: "POST", url: "/api/sessions/codex%3A1/end", payload: { state: "failed" } });
+    expect(body(ended, responseSchemas.session).session).toMatchObject({ id: "codex:1", state: "failed" });
+  });
+
   it("stores subscription budgets, lists them with the sessions, and removes them", async () => {
     const app = createApp({ webRoot: "/no-static-assets" });
     apps.push(app);

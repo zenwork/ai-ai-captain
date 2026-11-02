@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { sessionInputSchema } from "../shared/session.js";
+import { sessionEndSchema, sessionInputSchema } from "../shared/session.js";
 import type { FocusHandler } from "./focus.js";
 import { focusTarget as defaultFocusHandler } from "./focus.js";
 import { SessionStore } from "./store.js";
@@ -94,11 +94,9 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
   });
   app.post("/api/sessions/:id/end", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body ?? {};
-    if (typeof body !== "object" || body === null || !("state" in body) || !["done", "failed"].includes(String(body.state))) {
-      return reply.code(400).send({ error: "State must be done or failed" });
-    }
-    const session = store.end(id, body.state as "done" | "failed");
+    const parsed = sessionEndSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: "State must be done or failed" });
+    const session = store.end(id, parsed.data.state);
     if (!session) return reply.code(404).send({ error: "Session not found" });
     return { session };
   });
