@@ -124,7 +124,13 @@ function runInspector(controls: NativeElement[], options: InspectOptions) {
     AXUIElementSetMessagingTimeout: vi.fn(),
     AXUIElementPerformAction: pressed,
     NSApplicationActivateIgnoringOtherApps: 2,
-    NSRunningApplication: { runningApplicationWithProcessIdentifier: (pid: number) => ({ activateWithOptions: () => activated(pid) }) },
+    NSRunningApplication: {
+      runningApplicationWithProcessIdentifier: (pid: number) => ({
+        activateWithOptions: () => {
+          activated(pid);
+        },
+      }),
+    },
     CGEventCreate: () => ({}),
     CGEventGetLocation: () => cursor,
     CGEventCreateMouseEvent: (_source: unknown, type: number, point: { x: number; y: number }) => ({ type, point }),
