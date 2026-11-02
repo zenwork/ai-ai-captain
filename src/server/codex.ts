@@ -167,8 +167,9 @@ export class CodexTracker {
     if (owners.some((owner) => !this.#rollouts.has(owner.sessionId)) && Date.now() >= this.#nextIndexAt) {
       this.#nextIndexAt = Date.now() + 30_000;
       this.#indexError = undefined;
-      const entries = await readdir(join(this.root, "sessions"), { recursive: true, withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
-        this.#indexError = typeof error.code === "string" ? error.code.slice(0, 40) : "READ_FAILED";
+      const entries = await readdir(join(this.root, "sessions"), { recursive: true, withFileTypes: true }).catch((error: unknown) => {
+        const code = error instanceof Error && "code" in error ? error.code : undefined;
+        this.#indexError = typeof code === "string" ? code.slice(0, 40) : "READ_FAILED";
         return [];
       });
       for (const entry of entries) {
