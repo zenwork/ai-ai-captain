@@ -253,7 +253,7 @@ class SessionPanel extends HTMLElement {
       const colors = sessionColors(entry.session, options);
       card.style.setProperty("--state-accent", colors.accent);
       card.style.setProperty("--state-ink", colors.ink);
-      const completion = entry && doneAttention(entry.session, options.now, options.reducedMotion);
+      const completion = doneAttention(entry.session, options.now, options.reducedMotion);
       card.classList.toggle("done-dim", completion?.phase === "dim");
       card.classList.toggle("done-aged", completion?.phase === "aged" || completion?.phase === "assessed");
     }

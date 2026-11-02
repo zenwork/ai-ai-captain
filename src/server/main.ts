@@ -31,7 +31,7 @@ async function run(): Promise<void> {
   const refreshBudgets = () => codexBudget.scan(true).catch(() => undefined);
   await refreshBudgets();
   const budgetTimer = setInterval(() => void codexBudget.scan().catch(() => undefined), budgetScanIntervalMilliseconds);
-  budgetTimer.unref?.();
+  budgetTimer.unref();
   const discoveryTimer = startSessionDiscovery(store, clients, dataDirectory, budgets);
   const webRoot = process.env.AI_AI_CAPTAIN_WEB_DIR ?? join(process.cwd(), "web");
   const port = Number(process.env.AI_AI_CAPTAIN_PORT ?? 43681);

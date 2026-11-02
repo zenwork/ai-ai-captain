@@ -149,7 +149,7 @@ export class SessionStore {
       this.#publish({ type: "remove", id: session.id });
       this.#persist();
     }, terminalLifetimeMs);
-    timer.unref?.();
+    timer.unref();
     this.#expiryTimers.set(session.id, timer);
   }
 

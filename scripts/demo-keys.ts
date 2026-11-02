@@ -140,7 +140,7 @@ async function main(): Promise<void> {
       await waitUntilStopped(isStopped);
       return;
     }
-    while (!stopped) {
+    while (!isStopped()) {
       await showStep(step, isStopped);
       step = (step + 1) % demoStateSequence.length;
       if (once) {

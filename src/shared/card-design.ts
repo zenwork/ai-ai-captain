@@ -103,7 +103,9 @@ function keyBorder(color: string, attributes = ""): string {
 export function renderHostBadge(host: string | undefined, palette: CardPalette, icons: CardIcons, horizontal = 48, vertical = 4): string {
   if (!host) return "";
   // The glyph and the outline use the host color. The badge background stays dark, so the color never looks like a state band.
-  const color = palette.hosts[host as keyof CardPalette["hosts"]] ?? palette.badge.foreground;
+  // The palette has colors for the known hosts only.
+  const hostColors: Partial<Record<string, string>> = palette.hosts;
+  const color = hostColors[host] ?? palette.badge.foreground;
   const content =
     host === "ide"
       ? text("IJ", horizontal + 10, vertical + 10.8, color, 11, 'text-anchor="middle" font-weight="700"')

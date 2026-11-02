@@ -116,6 +116,6 @@ export function startSessionDiscovery(
   };
   void scan();
   const timer = setInterval(() => void scan(), 1500);
-  timer.unref?.();
+  timer.unref();
   return timer;
 }
