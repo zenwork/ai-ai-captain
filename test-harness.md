@@ -67,15 +67,15 @@ The process list is global. Real agents on the computer do not show in the test 
 
 Each simulator starts a real operating system process. The process name must agree with the name that the hub looks for. Use one of these methods:
 
-- A symbolic link with the agent name to a program that is not Node.js, for example `<temp>/bin/claude` to `/bin/sleep`.
+- A symbolic link with the agent name to a program that is not Node.js, for example `<temp>/bin/claude` to `/bin/sh`.
 - A way to set the name when the program starts, for names such as `claude bg-spare`. This is **Required**. `process.title` in Node.js is not enough on Linux (refer to the CAUTION below).
 - A fake host process above the agent, for example `<temp>/IntelliJ IDEA.app/Contents/MacOS/idea` or `<temp>/Terminal.app/Contents/MacOS/Terminal`.
 
-The harness writes the files itself. The fake host is a shell (`/bin/sh`) that starts the agent, writes the process identifier of the agent, and waits. The harness stops the agent with a signal. A scenario that must hold a file open (Codex) needs a driver process that is not Node.js, or a process name that Node.js can set. This is **Required**.
+The harness writes the files itself. The fake host is a shell (`/bin/sh`) that starts the agent, writes the process identifier of the agent, and waits. The harness stops the agent with a signal. A scenario that must hold a file open (Codex) can use the shell: `exec 3<>file` keeps the file open.
 
 CAUTION: Do not use a link to the Node.js program for a fake process. On Linux, Node.js renames its main thread, and `ps -o comm` shows `MainThread` for every Node.js process. The hub then never finds `claude`, `codex`, or `xterm`. On macOS the link name shows, so only a test on Linux finds this fault. The first CI run on Linux found it (2026-11-07).
 
-NOTE: The check on macOS passed for symbolic links to `/bin/sleep` and `/bin/sh`. A symbolic link shows the path that started it.
+NOTE: A link to `/bin/sleep` is not safe: a multi-call program can stop at once when its name is unknown. The fake agent and the fake host are links to `/bin/sh`. The CI run on Linux and macOS passed with this method (2026-11-07).
 
 CAUTION: Names such as `claude bg-spare` and `(2.1.317)` need a way to set the process name. Check each way on macOS and on Linux. On Linux, `comm` is only the base name, with a maximum of 15 characters. Thus, names with a path, such as `…/versions/2.1.317`, do not show there. Use `skipIf` for these names on Linux.
 
