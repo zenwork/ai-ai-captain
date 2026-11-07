@@ -13,22 +13,12 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
-import type { Session } from "../src/shared/session.js";
-import { getPalette } from "../src/shared/palette.js";
-import {
-  dashboardImage,
-  emptyImage,
-  infoImage,
-  infoSignature,
-  sessionImage,
-  sessionSignature,
-  settingControlImage,
-  waitingPulseIntervalMs,
-  type SettingControlKind,
-  type SettingControlState,
-} from "../streamdeck/src/cards.js";
+import type { Session } from "../../src/shared/session.js";
+import { getPalette } from "../../src/shared/palette.js";
+import { emptyImage, infoImage, infoSignature, sessionImage, sessionSignature, waitingPulseIntervalMs } from "../../streamdeck/src/cards.js";
+import { controlKeyImage, controlKeys, placeKey, sampleSession, type KeyWell, type SampleSession } from "./deck-scene.js";
 
-const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const repositoryRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const loopOutputPath = join(repositoryRoot, "docs", "images", "stream-deck-xl-mockup.gif");
 const workflowOutputPath = join(repositoryRoot, "docs", "images", "stream-deck-xl-workflow.gif");
 
@@ -40,23 +30,6 @@ const rowCount = 4;
 const sessionColumnCount = 7;
 const sessionKeyCount = 14;
 const controlColumn = 7;
-const controlKeys: readonly { row: number; kind: SettingControlKind | "dashboard" }[] = [
-  { row: 0, kind: "info-keys" },
-  { row: 1, kind: "theme" },
-  { row: 2, kind: "brightness" },
-  { row: 3, kind: "dashboard" },
-];
-const settingState: SettingControlState = { palette: "fjord", flashIntensity: 2, showInfoKeys: true };
-
-// Sample model and usage data for each assistant. The data is not real.
-const sampleInfo: Record<string, Pick<Session, "model" | "tokensUsed" | "contextUsedPercent" | "freedom" | "approval">> = {
-  "copilot-cli": { model: "gpt-5.5", tokensUsed: 42_000, contextUsedPercent: 21, freedom: "limited", approval: "asks" },
-  "copilot-ide": { model: "gpt-5.5", tokensUsed: 96_000, contextUsedPercent: 48, freedom: "limited", approval: "asks" },
-  "claude-ide": { model: "claude-sonnet-5-5", tokensUsed: 120_000, contextUsedPercent: 60 },
-  "claude-cli": { model: "claude-opus-4", tokensUsed: 172_000, contextUsedPercent: 86 },
-  "codex-cli": { model: "gpt-5.5", tokensUsed: 88_000, contextUsedPercent: 44, freedom: "full", approval: "never" },
-  "codex-ide": { model: "gpt-5.5", tokensUsed: 31_000, contextUsedPercent: 15, freedom: "limited", approval: "never" },
-};
 
 // Mockup geometry in pixels.
 const keySize = 96;
@@ -76,15 +49,7 @@ const frameStepMilliseconds = 50;
 const palette = getPalette("fjord");
 const completedAt = Date.parse("2026-10-26T12:00:00.000Z");
 
-type SessionStateName = Session["state"];
-
-interface MockSession {
-  harness: string;
-  state: SessionStateName;
-  label: string;
-}
-
-const mockSessions: MockSession[] = [
+const mockSessions: SampleSession[] = [
   { harness: "copilot-cli", state: "working", label: "Refactor store" },
   { harness: "claude-ide", state: "waiting", label: "Approve migration" },
   { harness: "codex-ide", state: "done", label: "Write tests" },
@@ -93,21 +58,8 @@ const mockSessions: MockSession[] = [
   { harness: "codex-cli", state: "unknown", label: "Update docs" },
 ];
 
-function toSession(mock: MockSession, identifier: string, stateChangedAtMilliseconds: number = completedAt): Session {
-  const timestamp = new Date(stateChangedAtMilliseconds).toISOString();
-  return {
-    id: identifier,
-    source: `${mock.harness.split("-")[0] ?? "generic"}-local`,
-    harness: mock.harness,
-    label: mock.label,
-    state: mock.state,
-    ...sampleInfo[mock.harness],
-    metadata: {},
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    lastActivityAt: timestamp,
-    stateChangedAt: timestamp,
-  };
+function toSession(mock: SampleSession, identifier: string, stateChangedAtMilliseconds: number = completedAt): Session {
+  return sampleSession(mock, identifier, new Date(stateChangedAtMilliseconds).toISOString());
 }
 
 const loopSessions = mockSessions.map((mock, index) => toSession(mock, `mockup-${String(index + 1)}`));
@@ -139,11 +91,6 @@ function infoKeyImage(session: Session | undefined): string {
   return infoImage(session, palette.id);
 }
 
-function controlKeyImage(kind: SettingControlKind | "dashboard"): string {
-  if (kind === "dashboard") return dashboardImage(palette.id);
-  return settingControlImage(kind, settingState);
-}
-
 function cellPosition(row: number, column: number): { x: number; y: number } {
   return {
     x: pagePadding + bezelPadding + column * (keySize + keyGap),
@@ -151,12 +98,11 @@ function cellPosition(row: number, column: number): { x: number; y: number } {
   };
 }
 
-function placeKey(keyImageSvg: string, row: number, column: number): string {
+const keyWell: KeyWell = { size: keySize, inset: 4, radius: 14, strokeWidth: 1.5 };
+
+function placeGridKey(keyImageSvg: string, row: number, column: number): string {
   const { x, y } = cellPosition(row, column);
-  const image = keyImageSvg.replace('width="144" height="144"', `x="${String(x)}" y="${String(y)}" width="${String(keySize)}" height="${String(keySize)}"`);
-  const wellInset = 4;
-  const well = `<rect x="${String(x - wellInset)}" y="${String(y - wellInset)}" width="${String(keySize + wellInset * 2)}" height="${String(keySize + wellInset * 2)}" rx="14" fill="${palette.canvas}" stroke="${palette.badge.border}" stroke-width="1.5"/>`;
-  return well + image;
+  return placeKey(keyImageSvg, x, y, keyWell, palette);
 }
 
 /** Device colors come from the palette tokens. AGENTS.md does not allow new color values outside the tokens. */
@@ -165,9 +111,9 @@ function deckSvg(sessions: Session[], phase: AnimationPhase): string {
     const session = sessions[slot];
     const row = Math.floor(slot / sessionColumnCount) * 2;
     const column = slot % sessionColumnCount;
-    return placeKey(sessionKeyImage(session, slot, phase), row, column) + placeKey(infoKeyImage(session), row + 1, column);
+    return placeGridKey(sessionKeyImage(session, slot, phase), row, column) + placeGridKey(infoKeyImage(session), row + 1, column);
   });
-  const controlCells = controlKeys.map(({ row, kind }) => placeKey(controlKeyImage(kind), row, controlColumn));
+  const controlCells = controlKeys.map(({ row, kind }) => placeGridKey(controlKeyImage(kind, palette), row, controlColumn));
   const keys = [...sessionCells, ...controlCells].join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${String(imageWidth)}" height="${String(imageHeight)}" viewBox="0 0 ${String(imageWidth)} ${String(imageHeight)}">
 <rect width="${String(imageWidth)}" height="${String(imageHeight)}" fill="${palette.canvas}"/>
@@ -558,7 +504,7 @@ function loopTimeline(): TimelineStep[] {
 // Workflow scenario. Sessions start, change state, and end. The clock is real, so the DONE flash slows down.
 // ---------------------------------------------------------------------------------------------------------------
 
-type ScenarioAction = { kind: "start"; mock: MockSession } | { kind: "change"; state: SessionStateName } | { kind: "end" };
+type ScenarioAction = { kind: "start"; mock: SampleSession } | { kind: "change"; state: Session["state"] } | { kind: "end" };
 
 interface ScenarioEvent {
   atMilliseconds: number;
@@ -578,7 +524,7 @@ function startEvent(seconds: number, sessionIdentifier: string, harness: string,
   return { atMilliseconds: scriptTime(seconds), sessionIdentifier, action: { kind: "start", mock: { harness, state: "starting", label } } };
 }
 
-function changeEvent(seconds: number, sessionIdentifier: string, state: SessionStateName): ScenarioEvent {
+function changeEvent(seconds: number, sessionIdentifier: string, state: Session["state"]): ScenarioEvent {
   return { atMilliseconds: scriptTime(seconds), sessionIdentifier, action: { kind: "change", state } };
 }
 

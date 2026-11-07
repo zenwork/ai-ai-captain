@@ -165,19 +165,19 @@ Any adopted visual update must reach both card previews and hardware rendering. 
 
 ## DSN-09 — Design artifacts
 
-| Artifact                                                       | Purpose                                                                                                                                         |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Main SVG contact sheet](docs/design/palettes/default.svg)     | Fjord preview: twelve client/host combinations × ten state/brightness examples, 120 tiles, plus fixed controls and 72-pixel samples             |
-| [Main PNG preview](docs/design/palettes/default.png)           | Raster review of that study                                                                                                                     |
-| [Assessed DONE close-up](docs/design/done-assessment.svg)      | Fresh, aged, and assessed DONE in all five palettes                                                                                             |
-| [Palette gallery](docs/design/README.md#palette-gallery)       | Links to complete palette sheets and PNGs, including dark and light high contrast                                                               |
-| [Palette tokens](docs/design/palettes/tokens.json)             | Complete alternative color values                                                                                                               |
-| [Contrast report](docs/design/palette-contrast.json)           | Measured minimum ratios by palette and visual role                                                                                              |
-| [Local icon library](docs/design/assets/icons.svg)             | Shared, bundled symbol definitions and artwork provenance                                                                                       |
-| [Stream Deck XL mockup](docs/images/stream-deck-xl-mockup.gif) | Animated GIF of a configured XL: six sessions in six states, empty session keys, NEXT, and INFO. It uses the live renderer and attention timing |
-| [Mockup generator](scripts/render-deck-mockup.ts)              | Reproducible mockup via `npm run design:mockup`                                                                                                 |
-| [Preview generator](scripts/render-design-proposals.mjs)       | Reproducible sheets/report via `npm run design:preview`; validation via `npm run design:check`                                                  |
-| [Design notes](docs/design/README.md)                          | Study semantics and assessment details                                                                                                          |
-| [Third-party notices](docs/design/THIRD_PARTY_NOTICES.txt)     | Artwork provenance and licensing                                                                                                                |
+| Artifact                                                        | Purpose                                                                                                                                         |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Main SVG contact sheet](docs/design/palettes/default.svg)      | Fjord preview: twelve client/host combinations × ten state/brightness examples, 120 tiles, plus fixed controls and 72-pixel samples             |
+| [Main PNG preview](docs/design/palettes/default.png)            | Raster review of that study                                                                                                                     |
+| [Assessed DONE close-up](docs/design/done-assessment.svg)       | Fresh, aged, and assessed DONE in all five palettes                                                                                             |
+| [Palette gallery](docs/design/README.md#palette-gallery)        | Links to complete palette sheets and PNGs, including dark and light high contrast                                                               |
+| [Palette tokens](docs/design/palettes/tokens.json)              | Complete alternative color values                                                                                                               |
+| [Contrast report](docs/design/palette-contrast.json)            | Measured minimum ratios by palette and visual role                                                                                              |
+| [Local icon library](docs/design/assets/icons.svg)              | Shared, bundled symbol definitions and artwork provenance                                                                                       |
+| [Stream Deck XL mockup](docs/images/stream-deck-xl-mockup.gif)  | Animated GIF of a configured XL: six sessions in six states, empty session keys, NEXT, and INFO. It uses the live renderer and attention timing |
+| [Mockup generator](scripts/design/render-deck-mockup.ts)        | Reproducible mockup via `npm run design:mockup`                                                                                                 |
+| [Preview generator](scripts/design/render-design-proposals.mjs) | Reproducible sheets/report via `npm run design:preview`; validation via `npm run design:check`                                                  |
+| [Design notes](docs/design/README.md)                           | Study semantics and assessment details                                                                                                          |
+| [Third-party notices](docs/design/THIRD_PARTY_NOTICES.txt)      | Artwork provenance and licensing                                                                                                                |
 
 The icon artwork, full wording, controls, and palette configuration are implemented. Assessed DONE is implemented for a press on a DONE key; automatic visit detection is not. Claude Desktop artwork/classification does not imply automatic conversation tracking.

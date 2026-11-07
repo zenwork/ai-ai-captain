@@ -60,7 +60,7 @@ When a feature is not available on a system, return a result with a reason that 
 
 ## 7. Scripts and packaging
 
-- Scripts in `scripts/` also run on Windows. Example: `package-streamdeck.mjs` uses `tar -a` on Windows because Windows has no `zip` command.
+- Scripts in `scripts/` also run on Windows. Example: `scripts/streamdeck/package-streamdeck.mjs` uses `tar -a` on Windows because Windows has no `zip` command.
 - Use `node:fs` functions instead of `rm`, `cp`, or `mkdir` commands.
 - In `package.json` scripts, do not use POSIX-only syntax unless the script is for macOS or Linux only. `deck:app` is such a script.
 

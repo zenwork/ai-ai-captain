@@ -25,6 +25,6 @@ until curl --disable --noproxy '*' --connect-timeout 1 --max-time 1 \
   sleep 0.2
 done
 
-sh scripts/open-deck-browser.sh "$deck_address" "$window_size"
+sh scripts/dev/open-deck-browser.sh "$deck_address" "$window_size"
 echo "The hub runs at ${deck_address}. Press Ctrl+C to stop it."
 wait "$hub_process_identifier"

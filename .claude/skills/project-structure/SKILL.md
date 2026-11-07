@@ -42,7 +42,11 @@ Ask these questions in sequence. Use the first answer that is yes.
 4. Is it about operating system processes, windows, or focus? Put it in `processes.ts`, `focus.ts`, or `macos-platform.ts`. See the `cross-platform` skill.
 5. Is it Stream Deck key layout, polling, or actions? Put it in `streamdeck/src/`.
 6. Is it dashboard behavior in the browser? Put it in `web-src/`.
-7. Is it a build, package, or design tool? Put it in `scripts/`.
+7. Is it a build, package, design, or diagnostic tool? Put it in the applicable folder of `scripts/`:
+   - `scripts/design/`: design sheets, the deck mockup, marketplace art, and the generation of `src/shared/card-assets.ts`.
+   - `scripts/streamdeck/`: the plugin folder, the release pack, the marketplace metadata, and the Stream Deck CLI.
+   - `scripts/dev/`: tools for local development, such as the virtual deck app and the key demo.
+   - `scripts/diagnostics/`: manual tools that print what a harness or an app exposes. Their output becomes test fixtures.
 
 If no answer is yes, stop. Ask the user. When you add a module, add it to the ARCH-03 table in the same change.
 

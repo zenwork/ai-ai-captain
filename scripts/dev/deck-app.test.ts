@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const executeFile = promisify(execFile);
 const startupScriptPath = fileURLToPath(new URL("./deck-app.sh", import.meta.url));
-const projectDirectoryPath = fileURLToPath(new URL("../", import.meta.url));
+const projectDirectoryPath = fileURLToPath(new URL("../../", import.meta.url));
 const temporaryDirectoryPaths: string[] = [];
 const servers: Server[] = [];
 

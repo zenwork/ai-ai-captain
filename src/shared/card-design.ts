@@ -76,7 +76,7 @@ export function escapeXml(value: string | number): string {
   return String(value).replace(/[&<>"']/g, (character) => xmlEntities[character] ?? character);
 }
 
-function text(content: string | number, horizontal: number, vertical: number, color: string, size = 12, attributes = ""): string {
+export function text(content: string | number, horizontal: number, vertical: number, color: string, size = 12, attributes = ""): string {
   return `<text x="${horizontal}" y="${vertical}" fill="${color}" font-size="${size}" ${attributes}>${escapeXml(content)}</text>`;
 }
 
