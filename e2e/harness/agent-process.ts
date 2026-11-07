@@ -7,19 +7,22 @@ const stopTimeoutMilliseconds = 10_000;
 const pollIntervalMilliseconds = 50;
 const forceStopDelayMilliseconds = 2_000;
 
-// A program that only waits. A scenario stops it earlier. The limit makes sure that a lost process ends by itself.
-const agentLifetimeSeconds = "600";
+const errorOutputCharacters = 2_000;
 
-// The fake agent and the fake host are links to programs that are not Node.js. The operating system takes the
-// process name from the name of the link. Node.js on Linux renames its main thread to "MainThread", so a link to
-// the Node.js program does not give the name that the hub looks for.
-const agentProgram = "/bin/sleep";
-const hostProgram = "/bin/sh";
+// The fake agent and the fake host are links to the shell. The operating system takes the process name from the
+// name of the link. Node.js on Linux renames its main thread to "MainThread", so a link to the Node.js program does
+// not give the name that the hub looks for. A link to a multi-call program such as `sleep` is not safe either:
+// it can stop at once when its name is not one of its own commands. A shell does not depend on its name.
+const shellProgram = "/bin/sh";
+
+// The fake agent waits for a child process. A scenario stops it earlier. The time limit makes sure that a lost
+// process ends by itself. The signal handler ends the child, so that no process stays after the agent stops.
+const agentScript = "trap 'kill \"$child\" 2>/dev/null' TERM; sleep 600 & child=$!; wait";
 
 // The host starts the agent as its child, so that the real terminal or editor that runs the test does not become
 // the host of the agent. It writes the process identifier of the agent. Then it waits for the agent to stop and
 // stays alive, as a terminal does, until the harness closes its input.
-const hostScript = `"$0" ${agentLifetimeSeconds} & echo "$!"; wait; read -r _`;
+const hostScript = '"$0" -c "$1" & echo "$!"; wait; read -r _';
 
 export interface AgentProcess {
   /** The process identifier of the agent. */
@@ -32,6 +35,8 @@ export interface AgentProcess {
   stopAgent(): Promise<void>;
   /** Stops the agent and the fake host. */
   stopAll(): Promise<void>;
+  /** The last error output of the fake processes. It helps to find the reason when a fake process stops by itself. */
+  errorOutput(): string;
 }
 
 export interface AgentProcessOptions {
@@ -86,9 +91,13 @@ export async function startAgentProcess(options: AgentProcessOptions): Promise<A
   if (!isAgentSimulationSupported) throw new Error("The harness cannot make fake agent processes on this operating system");
   const agentPath = join(options.binDirectory, options.processName);
   const hostPath = hostExecutablePath(options.binDirectory);
-  await makeLink(agentProgram, agentPath);
-  await makeLink(hostProgram, hostPath);
-  const host = spawn(hostPath, ["-c", hostScript, agentPath], { stdio: ["pipe", "pipe", "ignore"] });
+  await makeLink(shellProgram, agentPath);
+  await makeLink(shellProgram, hostPath);
+  const host = spawn(hostPath, ["-c", hostScript, agentPath, agentScript], { stdio: ["pipe", "pipe", "pipe"] });
+  let errorText = "";
+  host.stderr.on("data", (chunk: Buffer) => {
+    errorText = (errorText + chunk.toString("utf8")).slice(-errorOutputCharacters);
+  });
   const hostPid = host.pid;
   if (hostPid === undefined) throw new Error("The fake host did not start");
 
@@ -133,5 +142,5 @@ export async function startAgentProcess(options: AgentProcessOptions): Promise<A
     await closed;
     clearTimeout(timer);
   };
-  return { pid, hostPid, startedAt, stopAgent, stopAll };
+  return { pid, hostPid, startedAt, stopAgent, stopAll, errorOutput: () => errorText };
 }

@@ -287,6 +287,7 @@ class ScenarioPlayer {
     return [
       `Fake processes (pid, parent, name): ${JSON.stringify(processLines)}`,
       `Registration files: ${JSON.stringify(registrationFiles)}`,
+      `Error output of the fake processes: ${JSON.stringify([...this.agents.values()].map((runtime) => runtime.process?.errorOutput() ?? ""))}`,
       `Last output of the hub: ${JSON.stringify(this.options.environment.hub.outputTail().slice(-hubOutputCharacters))}`,
     ];
   }
