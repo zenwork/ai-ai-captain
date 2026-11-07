@@ -1,5 +1,5 @@
 # Print the UI Automation tree of the Claude desktop app on Windows, including the task sidebar.
-# Usage (PowerShell): .\scripts\claude-uia-tree.ps1 > logs\claude-uia-tree.txt
+# Usage (PowerShell): .\scripts\diagnostics\claude-uia-tree.ps1 > logs\claude-uia-tree.txt
 # The script prints control types, names, automation IDs, and page URLs.
 # It does not print the values of text boxes. Task titles can appear in names.
 # Remove titles, message text, and personal names before you share the output.

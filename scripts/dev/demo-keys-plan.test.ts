@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { sessionSchema, sessionStates } from "../src/shared/session.js";
-import { cardIdentities } from "../src/shared/card-design.js";
-import { sessionType } from "../streamdeck/src/cards.js";
+import { sessionSchema, sessionStates } from "../../src/shared/session.js";
+import { cardIdentities } from "../../src/shared/card-design.js";
+import { sessionType } from "../../streamdeck/src/cards.js";
 import {
   allDemoSessionIdentifiers,
   demoBrightnessKeyCount,

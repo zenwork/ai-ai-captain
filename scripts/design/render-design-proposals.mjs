@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   cardStates as states,
   cardIdentities as identities,
+  escapeXml,
   renderBudgetCard,
   renderCard,
   renderControl,
@@ -15,9 +16,10 @@ import {
   renderInfoPlaceholder,
   renderSessionPlaceholder,
   renderSettingCard,
-} from "../src/shared/card-design.ts";
+  text,
+} from "../../src/shared/card-design.ts";
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const directory = join(root, "docs", "design");
 const specification = JSON.parse(await readFile(join(directory, "palettes", "tokens.json"), "utf8"));
 const artwork = await readFile(join(directory, "assets", "icons.svg"), "utf8");
@@ -31,14 +33,6 @@ const icons = Object.fromEntries(
   ]),
 );
 assert(Object.keys(icons).length > 0, "Missing local icon artwork");
-
-function escapeXml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character]);
-}
-
-function text(content, horizontal, vertical, color, size = 12, attributes = "") {
-  return `<text x="${horizontal}" y="${vertical}" fill="${color}" font-size="${size}" ${attributes}>${escapeXml(content)}</text>`;
-}
 
 function badge(host, palette, horizontal = 48, vertical = 4) {
   return renderHostBadge(host, palette, icons, horizontal, vertical);
@@ -62,7 +56,7 @@ function frame(title, description, width, height, palette, content, extra = {}) 
   const metadata = {
     purpose: "Design reference; the live palette is configured through the hub",
     artwork: "Local Lobe Icons 1.100.0 and Lucide 0.468.0; see docs/design/THIRD_PARTY_NOTICES.txt",
-    generatedBy: "scripts/render-design-proposals.mjs",
+    generatedBy: "scripts/design/render-design-proposals.mjs",
     previewPalette: palette.id,
     selectedPalette: specification.selectedPalette,
     ...extra,
@@ -764,8 +758,10 @@ const report = {
   scope: "Text and identity contrast checks, not a claim of complete accessibility certification",
   palettes: specification.palettes.map(validatePalette),
 };
+// The preview palette is also one of the palettes. Make each full sheet one time only.
+const paletteSheets = new Map(specification.palettes.map((palette) => [palette.id, fullSheet(palette)]));
 const outputs = new Map([
-  ["palettes/default.svg", fullSheet(preview)],
+  ["palettes/default.svg", paletteSheets.get(preview.id) ?? fullSheet(preview)],
   ["done-assessment.svg", assessment()],
   ["subscription-budget-key.svg", budgetStudy(preview)],
   ["subscription-budget-key-porcelain.svg", budgetStudy(specification.palettes.find((palette) => palette.id === "porcelain"))],
@@ -773,7 +769,7 @@ const outputs = new Map([
   ["budget-key-styles-porcelain.svg", budgetStyleStudy(specification.palettes.find((palette) => palette.id === "porcelain"))],
   ["setting-key-styles.svg", settingStyleStudy(preview)],
   ["setting-key-styles-porcelain.svg", settingStyleStudy(specification.palettes.find((palette) => palette.id === "porcelain"))],
-  ...specification.palettes.map((palette) => [`palettes/${palette.id}.svg`, fullSheet(palette)]),
+  ...[...paletteSheets].map(([id, sheet]) => [`palettes/${id}.svg`, sheet]),
 ]);
 const keyImageState = states.find((state) => state.id === "done-bright");
 for (const identity of identities) {

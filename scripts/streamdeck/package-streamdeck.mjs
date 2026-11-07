@@ -1,9 +1,6 @@
-import { fileURLToPath } from "node:url";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { writeFile } from "node:fs/promises";
 import { deflateSync } from "node:zlib";
-import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -17,12 +14,11 @@ import {
   renderSessionPlaceholder,
   renderSettingCard,
   inKeySafeArea,
-} from "../src/shared/card-design.ts";
-import { cardIcons, designPalettes, defaultPaletteId } from "../src/shared/card-assets.ts";
+} from "../../src/shared/card-design.ts";
+import { cardIcons, designPalettes, defaultPaletteId } from "../../src/shared/card-assets.ts";
+import { pluginDirectory as destination, repositoryRoot as root } from "./plugin-tools.mjs";
 
-const root = fileURLToPath(new URL("../", import.meta.url));
 const source = join(root, "streamdeck");
-const destination = join(source, "com.local.ai-ai-captain.sdPlugin");
 await mkdir(destination, { recursive: true });
 await cp(join(source, "manifest.json"), join(destination, "manifest.json"));
 await cp(join(root, "docs", "design", "THIRD_PARTY_NOTICES.txt"), join(destination, "THIRD_PARTY_NOTICES.txt"));
@@ -33,7 +29,8 @@ await cp(join(root, "web"), join(destination, "web"), { recursive: true });
 await rm(join(destination, "imgs"), { recursive: true, force: true });
 await mkdir(join(destination, "imgs"), { recursive: true });
 
-function iconPng(kind, scale = 1) {
+/** Draws the plugin icon as a PNG file. scale 2 gives the image for high-density screens. */
+function pluginIconPng(scale = 1) {
   const baseSize = 72;
   const width = baseSize * scale;
   const height = baseSize * scale;
@@ -51,61 +48,12 @@ function iconPng(kind, scale = 1) {
   const rectangle = (left, top, right, bottom, color) => {
     for (let y = top; y < bottom; y++) for (let x = left; x < right; x++) set(x, y, color);
   };
-  const line = (x0, y0, x1, y1, color, thickness = 6) => {
-    const dx = Math.abs(x1 - x0);
-    const sx = x0 < x1 ? 1 : -1;
-    const dy = -Math.abs(y1 - y0);
-    const sy = y0 < y1 ? 1 : -1;
-    let error = dx + dy;
-    while (true) {
-      for (let y = y0 - thickness; y <= y0 + thickness; y++)
-        for (let x = x0 - thickness; x <= x0 + thickness; x++) {
-          if ((x - x0) ** 2 + (y - y0) ** 2 <= thickness ** 2) set(x, y, color);
-        }
-      if (x0 === x1 && y0 === y1) break;
-      const doubled = 2 * error;
-      if (doubled >= dy) {
-        error += dy;
-        x0 += sx;
-      }
-      if (doubled <= dx) {
-        error += dx;
-        y0 += sy;
-      }
-    }
-  };
   rectangle(0, 0, baseSize, baseSize, [21, 27, 43, 255]);
-  if (kind === "plugin") {
-    rectangle(12, 12, 32, 32, [139, 157, 255, 255]);
-    rectangle(40, 12, 60, 32, [81, 214, 161, 255]);
-    rectangle(12, 40, 32, 60, [255, 190, 99, 255]);
-    rectangle(40, 40, 60, 60, [86, 98, 116, 255]);
-  } else if (kind === "session") {
-    line(36, 14, 36, 58, [139, 157, 255, 255], 2);
-    line(14, 36, 58, 36, [139, 157, 255, 255], 2);
-    line(21, 21, 51, 51, [139, 157, 255, 255], 2);
-    line(21, 51, 51, 21, [139, 157, 255, 255], 2);
-  } else if (kind === "dashboard") {
-    rectangle(13, 10, 59, 43, [239, 241, 245, 255]);
-    rectangle(16, 13, 56, 40, [30, 16, 54, 255]);
-    rectangle(16, 18, 56, 21, [239, 241, 245, 255]);
-    rectangle(34, 25, 38, 29, [196, 181, 253, 255]);
-    rectangle(34, 32, 38, 38, [196, 181, 253, 255]);
-    rectangle(13, 50, 59, 56, [196, 181, 253, 255]);
-  } else {
-    rectangle(0, 0, width, height, [32, 40, 58, 255]);
-    const points =
-      kind === "previous"
-        ? [
-            [45, 18, 25, 36],
-            [25, 36, 45, 54],
-          ]
-        : [
-            [27, 18, 47, 36],
-            [47, 36, 27, 54],
-          ];
-    for (const [x0, y0, x1, y1] of points) line(x0, y0, x1, y1, [239, 241, 245, 255]);
-  }
+  // Four colored squares on a dark key background.
+  rectangle(12, 12, 32, 32, [139, 157, 255, 255]);
+  rectangle(40, 12, 60, 32, [81, 214, 161, 255]);
+  rectangle(12, 40, 32, 60, [255, 190, 99, 255]);
+  rectangle(40, 40, 60, 60, [86, 98, 116, 255]);
   const rows = Buffer.alloc((width * 4 + 1) * height);
   for (let y = 0; y < height; y++) pixels.copy(rows, y * (width * 4 + 1) + 1, y * width * 4, (y + 1) * width * 4);
   const crc32 = (data) => {
@@ -137,8 +85,8 @@ function iconPng(kind, scale = 1) {
   ]);
 }
 
-await writeFile(join(destination, "imgs", "plugin.png"), iconPng("plugin"));
-await writeFile(join(destination, "imgs", "plugin@2x.png"), iconPng("plugin", 2));
+await writeFile(join(destination, "imgs", "plugin.png"), pluginIconPng());
+await writeFile(join(destination, "imgs", "plugin@2x.png"), pluginIconPng(2));
 
 // The Stream Deck app shows these images in the action list and on a key before the plugin draws it.
 // They use the shared renderer and the default palette, so they look like the live keys.

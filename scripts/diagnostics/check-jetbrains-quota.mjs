@@ -1,5 +1,5 @@
 // Look for the JetBrains AI quota on this computer. Print only file names, setting names, numbers, dates, and short codes.
-// Usage: node scripts/check-jetbrains-quota.mjs > logs/jetbrains-quota.txt
+// Usage: node scripts/diagnostics/check-jetbrains-quota.mjs > logs/jetbrains-quota.txt
 // The script never prints text values. A long or free-text value shows as <text N>, where N is its length.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir, platform } from "node:os";

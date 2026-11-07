@@ -1,5 +1,5 @@
 // Print the Accessibility tree of the Claude desktop app, including the task sidebar.
-// Usage: osascript -l JavaScript scripts/claude-ax-tree.js "$(pgrep -x Claude | head -1)" > /tmp/claude-ax-tree.txt
+// Usage: osascript -l JavaScript scripts/diagnostics/claude-ax-tree.js "$(pgrep -x Claude | head -1)" > /tmp/claude-ax-tree.txt
 // The script prints roles, labels, URLs, and flags. It does not print static text values or composer values.
 // Task titles can appear in labels. Remove them before you share the output if necessary.
 // With --usage as the second argument, the script also prints short static texts that hold a number or a percent sign

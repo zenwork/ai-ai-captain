@@ -63,7 +63,7 @@ function sidebar(rows: NativeElement[]): NativeElement {
 }
 
 /**
- * Read a tree that scripts/claude-ax-tree.js printed. Each line is "<role> <Name>=<JSON string> ...", indented by two spaces for each level.
+ * Read a tree that scripts/diagnostics/claude-ax-tree.js printed. Each line is "<role> <Name>=<JSON string> ...", indented by two spaces for each level.
  * Remove titles, message text, and personal names before you add a new fixture.
  */
 function parseTree(text: string): NativeElement[] {

@@ -1,7 +1,7 @@
-import type { SessionInput, SessionState } from "../src/shared/session.js";
-import { cardIdentities } from "../src/shared/card-design.js";
-import type { FlashIntensity } from "../src/shared/settings.js";
-import type { SessionType } from "../streamdeck/src/cards.js";
+import type { SessionInput, SessionState } from "../../src/shared/session.js";
+import { cardIdentities } from "../../src/shared/card-design.js";
+import type { FlashIntensity } from "../../src/shared/settings.js";
+import type { SessionType } from "../../streamdeck/src/cards.js";
 
 export const demoKeyCount = 24;
 export const demoBrightnessKeyCount = 10;
