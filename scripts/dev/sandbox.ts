@@ -1,14 +1,18 @@
 // Plays scenarios in real time against a hub on the normal port, for the virtual deck and the physical deck.
-// Usage: npm run sandbox -- [--port=<number>] [--loop] <scenario module or recording> [more...]
+// Usage: npm run sandbox -- [--port=<number>] [--loop] [--fast] [--settle=<duration>] <scenario module or recording> [more...]
+// With --fast, the sandbox ignores the times in recordings and the pauses in scenarios. It waits only 1 second (or --settle) after each check.
 // With --loop, the sandbox plays the scenarios again and again until you press Control and C.
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
+import { parseDurationMilliseconds } from "../../e2e/harness/duration.js";
 import { scenario, ScenarioBuilder } from "../../e2e/harness/scenario.js";
 import { startScenarioEnvironment } from "../../e2e/harness/scenario-environment.js";
 
 const defaultSandboxPort = 43681;
 const portArgumentPrefix = "--port=";
 const loopArgument = "--loop";
+const fastArgument = "--fast";
+const settleArgumentPrefix = "--settle=";
 const pauseBetweenRoundsMilliseconds = 3_000;
 const sandboxScanIntervalMilliseconds = 1_000;
 
@@ -44,7 +48,13 @@ async function main(): Promise<void> {
   const portArgument = argumentsList.find((argument) => argument.startsWith(portArgumentPrefix));
   const sandboxPort = portArgument ? Number(portArgument.slice(portArgumentPrefix.length)) : defaultSandboxPort;
   const loop = argumentsList.includes(loopArgument);
-  const files = argumentsList.filter((argument) => !argument.startsWith(portArgumentPrefix) && argument !== loopArgument);
+  const fast = argumentsList.includes(fastArgument);
+  const settleArgument = argumentsList.find((argument) => argument.startsWith(settleArgumentPrefix));
+  const settleMilliseconds = settleArgument ? parseDurationMilliseconds(settleArgument.slice(settleArgumentPrefix.length)) : undefined;
+  const files = argumentsList.filter(
+    (argument) =>
+      !argument.startsWith(portArgumentPrefix) && !argument.startsWith(settleArgumentPrefix) && argument !== loopArgument && argument !== fastArgument,
+  );
   if (files.length === 0) {
     console.error("Give at least one scenario module or recording. Example: npm run sandbox -- e2e/scenarios/claude-code-lifecycle.ts");
     process.exitCode = 1;
@@ -67,7 +77,13 @@ async function main(): Promise<void> {
   process.once("SIGTERM", requestStop);
   try {
     do {
-      for (const item of scenarios) await item.run({ environment, pace: "realtime", report: console.info });
+      for (const item of scenarios)
+        await item.run({
+          environment,
+          pace: fast ? "fast" : "realtime",
+          ...(settleMilliseconds === undefined ? {} : { settleMilliseconds }),
+          report: console.info,
+        });
       console.info(loop ? "All scenarios passed. Starting again. Press Control and C to stop." : "All scenarios passed.");
       if (loop) await delay(pauseBetweenRoundsMilliseconds);
     } while (loop && !stopRequested);

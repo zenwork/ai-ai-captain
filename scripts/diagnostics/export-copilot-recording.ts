@@ -2,6 +2,7 @@ import { CopilotSessionState } from "../../src/server/copilot.js";
 import { copilot, copilotEventsPath } from "../../e2e/harness/copilot.js";
 import type { Recording } from "../../e2e/harness/recording.js";
 import {
+  appendTo,
   assembleRecording,
   IdentifierAliases,
   objectField,
@@ -76,7 +77,7 @@ export function exportCopilotRecording(eventsText: string): Recording {
     agent: "copilot",
     agentVersion: undefined,
     preamble: definition.steps.spawn().slice(0, 2),
-    appendPath: copilotEventsPath,
+    toOperation: appendTo(copilotEventsPath),
     sessionTemplate: definition.sessionIdentifierTemplate,
     events,
     stateAfter: (kept, milliseconds) => {

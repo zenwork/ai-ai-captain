@@ -41,7 +41,7 @@ The specifications and the design documents are the authority for all work. Read
 | [integrations/README.md](integrations/README.md)       | Harness reporters and automatic adapter limits                          |
 | [streamdeck/README.md](streamdeck/README.md)           | Stream Deck plugin, layout, key states, attention timing                |
 | [intellij-bridge/README.md](intellij-bridge/README.md) | Optional manual IntelliJ bridge                                         |
-| [test-harness.md](test-harness.md)                     | End-to-end test harness: plan, scenario API, fixtures, and status       |
+| [test-harness.md](test-harness.md)                     | End-to-end test harness: usage, scenario API, recordings, and design    |
 | [README.md](README.md)                                 | Overview, local run, session API, development commands                  |
 | [USER_GUIDE.md](USER_GUIDE.md)                         | Install, use, and configure instructions for Stream Deck plugin users   |
 | [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)               | Build, run, configure, and package instructions for the GitHub project  |

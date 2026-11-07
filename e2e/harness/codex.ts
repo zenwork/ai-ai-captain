@@ -121,6 +121,14 @@ export class CodexSteps extends AgentSteps {
     return [this.eventMessage("task_complete", { turn_id: overrides.turnId ?? defaultTurnIdentifier })];
   }
 
+  /**
+   * The turn stops with an error. The session state is failed. The payload has no message, because the hub must never read one.
+   * The shape file of Codex 0.162.1 has no `error` event, so no test compares this step with a real rollout file.
+   */
+  failTurn(): Operation[] {
+    return [this.eventMessage("error", {})];
+  }
+
   /** The process closes the lock file. A scenario can examine what the hub does when the lock is gone but the process stays. */
   releaseLock(): Operation[] {
     return [{ operation: "release", agent: this.agentKey, path: codexLockPath }];

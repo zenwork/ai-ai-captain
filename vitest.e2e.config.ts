@@ -10,5 +10,7 @@ export default defineConfig({
     hookTimeout: 120_000,
     // Each test starts a hub and processes. Run one file at a time, so the scans do not slow each other.
     fileParallelism: false,
+    // The verbose reporter shows each test and the lines that tell which recording a test plays.
+    reporters: ["verbose"],
   },
 });

@@ -1,0 +1,166 @@
+{
+  "header": {
+    "formatVersion": 1,
+    "source": "export",
+    "agent": "claude-code",
+    "agentVersion": "2.1.319",
+    "platform": "darwin"
+  },
+  "timeline": [
+    {
+      "operation": "spawn",
+      "agent": "cli",
+      "processName": "claude"
+    },
+    {
+      "operation": "write",
+      "agent": "cli",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": {
+        "pid": "{PID}",
+        "sessionId": "{SESSION}",
+        "cwd": "{PROJECT_1}",
+        "startedAt": "{T}",
+        "status": "idle"
+      }
+    },
+    {
+      "offset": "0s",
+      "operation": "write",
+      "agent": "cli",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": {
+        "pid": "{PID}",
+        "sessionId": "{SESSION}",
+        "cwd": "{PROJECT_1}",
+        "startedAt": "{T}",
+        "status": "idle"
+      }
+    },
+    {
+      "offset": "87317ms",
+      "operation": "write",
+      "agent": "cli",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": {
+        "pid": "{PID}",
+        "sessionId": "{SESSION}",
+        "cwd": "{PROJECT_1}",
+        "startedAt": "{T}",
+        "status": "busy"
+      }
+    },
+    {
+      "offset": "100163ms",
+      "operation": "write",
+      "agent": "cli",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": {
+        "pid": "{PID}",
+        "sessionId": "{SESSION}",
+        "cwd": "{PROJECT_1}",
+        "startedAt": "{T}",
+        "status": "waiting"
+      }
+    },
+    {
+      "offset": "104671ms",
+      "operation": "write",
+      "agent": "cli",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": {
+        "pid": "{PID}",
+        "sessionId": "{SESSION}",
+        "cwd": "{PROJECT_1}",
+        "startedAt": "{T}",
+        "status": "busy"
+      }
+    },
+    {
+      "offset": "116685ms",
+      "operation": "write",
+      "agent": "cli",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": {
+        "pid": "{PID}",
+        "sessionId": "{SESSION}",
+        "cwd": "{PROJECT_1}",
+        "startedAt": "{T}",
+        "status": "waiting"
+      }
+    },
+    {
+      "offset": "134703ms",
+      "operation": "write",
+      "agent": "cli",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": {
+        "pid": "{PID}",
+        "sessionId": "{SESSION}",
+        "cwd": "{PROJECT_1}",
+        "startedAt": "{T}",
+        "status": "busy"
+      }
+    },
+    {
+      "offset": "137096ms",
+      "operation": "write",
+      "agent": "cli",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": {
+        "pid": "{PID}",
+        "sessionId": "{SESSION}",
+        "cwd": "{PROJECT_1}",
+        "startedAt": "{T}",
+        "status": "idle"
+      }
+    },
+    {
+      "offset": "138096ms",
+      "operation": "exit",
+      "agent": "cli"
+    }
+  ],
+  "expected": [
+    {
+      "offset": "0s",
+      "session": "claude:{SESSION}",
+      "state": "done"
+    },
+    {
+      "offset": "87317ms",
+      "session": "claude:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "100163ms",
+      "session": "claude:{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "104671ms",
+      "session": "claude:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "116685ms",
+      "session": "claude:{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "134703ms",
+      "session": "claude:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "137096ms",
+      "session": "claude:{SESSION}",
+      "state": "done"
+    },
+    {
+      "offset": "138096ms",
+      "session": "claude:{SESSION}",
+      "state": null
+    }
+  ]
+}

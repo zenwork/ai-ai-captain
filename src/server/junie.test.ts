@@ -52,6 +52,7 @@ const closedProject: LifetimeInspector = async () => ({ status: "closed", eviden
 describe("Junie tracking", () => {
   it("maps Junie status values to session states", () => {
     expect(junieEventState("IN_PROGRESS")).toBe("working");
+    expect(junieEventState("INPUT_REQUIRED")).toBe("waiting");
     expect(junieEventState("COMPLETED")).toBe("done");
     expect(junieEventState("FAILED")).toBe("failed");
     expect(junieEventState("OTHER")).toBe("unknown");
@@ -91,6 +92,7 @@ describe("Junie tracking", () => {
   });
 
   it.each([
+    ["INPUT_REQUIRED", "waiting"],
     ["COMPLETED", "done"],
     ["FAILED", "failed"],
   ])("shows %s as %s", async (status, expected) => {

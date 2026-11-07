@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { recordingSchema } from "../../e2e/harness/recording.js";
+import { exportClaudeRecording } from "./export-claude-recording.js";
+import { exportJunieRecording } from "./export-junie-recording.js";
 import { exportCodexRecording } from "./export-codex-recording.js";
 import { exportCopilotRecording } from "./export-copilot-recording.js";
 
@@ -51,5 +53,44 @@ describe("the export of a Copilot session", () => {
 
   it("keeps the sequence of states from the state reducer of the hub", () => {
     expect(expectedStates(recording)).toEqual(["starting", "working", "waiting", "working", "done", "failed", null]);
+  });
+});
+
+describe("the export of a Claude Code session", () => {
+  const recording = exportClaudeRecording(readFixture("claude-canary-transcript.jsonl"));
+
+  it("makes a valid recording without content", () => {
+    expect(() => recordingSchema.parse(recording)).not.toThrow();
+    const output = JSON.stringify(recording);
+    expect(output).not.toContain("CANARY");
+    expect(output).not.toContain("/Users/");
+    expect(recording.header).toMatchObject({ agent: "claude-code", agentVersion: "2.1.319" });
+  });
+
+  it("gives working and done for each turn, and ignores tool results and sub-agent lines", () => {
+    expect(expectedStates(recording)).toEqual(["working", "done", "working", "done", null]);
+  });
+
+  it("never gives the state waiting, because the transcript has no permission request", () => {
+    expect(expectedStates(recording)).not.toContain("waiting");
+  });
+});
+
+describe("the export of a Junie session", () => {
+  const recording = exportJunieRecording(readFixture("junie-canary-events.jsonl"));
+
+  it("makes a valid recording without content", () => {
+    expect(() => recordingSchema.parse(recording)).not.toThrow();
+    const output = JSON.stringify(recording);
+    expect(output).not.toContain("CANARY");
+    expect(output).not.toContain("/Users/");
+  });
+
+  it("keeps each change of the state, including a request for input", () => {
+    expect(expectedStates(recording)).toEqual(["working", "waiting", "working", "done"]);
+  });
+
+  it("does not stop the mock IDE", () => {
+    expect(recording.timeline.some((step) => step.operation === "exit")).toBe(false);
   });
 });

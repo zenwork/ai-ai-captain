@@ -18,6 +18,7 @@ const execute = promisify(execFile);
 const hubOutputCharacters = 1_500;
 const defaultExpectationMilliseconds = 15_000;
 const pollIntervalMilliseconds = 100;
+const defaultSettleMilliseconds = 1_000;
 
 const sessionListSchema = z.object({ sessions: z.array(sessionSchema) });
 const focusLogLineSchema = z.object({ command: z.string(), args: z.array(z.string()) });
@@ -27,8 +28,14 @@ export interface PlayOptions {
   items: ScenarioItem[];
   environment: ScenarioEnvironment;
   deck?: DeckOptions;
-  /** With `realtime`, a step with an offset waits until its time. The default is `none`: the steps run as fast as the expectations allow. */
-  pace?: "none" | "realtime";
+  /**
+   * With `realtime`, a step with an offset waits until its time.
+   * With `fast`, the player ignores offsets and waits, and it waits only `settleMilliseconds` after each expectation.
+   * The default is `none`: the steps run as fast as the expectations allow.
+   */
+  pace?: "none" | "realtime" | "fast";
+  /** The time that the `fast` pace waits after each expectation. People then see the state, and the hub can finish its scan. */
+  settleMilliseconds?: number;
   /** Receives one line for each step. The sandbox shows these lines. */
   report?: (line: string) => void;
   /** Gives the first agent kind and version for the recording that is written when a step fails. */
@@ -70,6 +77,10 @@ function describeItem(item: ScenarioItem): string {
   }
 }
 
+function isExpectation(item: ScenarioItem): boolean {
+  return item.kind === "expectSession" || item.kind === "expectDeck" || item.kind === "expectFocus";
+}
+
 class ScenarioPlayer {
   private readonly agents = new Map<string, AgentRuntime>();
   private currentAgentKey: string | undefined;
@@ -105,6 +116,7 @@ class ScenarioPlayer {
       throw await this.failure(stepNumber, description, error);
     }
     this.options.report?.(`PASS  step ${String(stepNumber)}  ${description}`);
+    if (this.options.pace === "fast" && isExpectation(item)) await delay(this.options.settleMilliseconds ?? defaultSettleMilliseconds);
   }
 
   private async execute(item: ScenarioItem): Promise<void> {
@@ -122,7 +134,8 @@ class ScenarioPlayer {
       case "expectFocus":
         return this.expectFocus(item.appName, item.options);
       case "wait":
-        return delay(item.milliseconds);
+        // The fast pace has no fixed waits. The settle time after each expectation replaces them.
+        return this.options.pace === "fast" ? undefined : delay(item.milliseconds);
     }
   }
 

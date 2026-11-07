@@ -3,6 +3,8 @@
 // The script quits the Stream Deck app, starts the sandbox hub on the normal port, and starts the app again.
 // The plugin then uses the sandbox hub. The sandbox plays the scenarios again and again until you press Control and C.
 import { execFile, spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
@@ -17,9 +19,16 @@ const portFreeTimeoutMilliseconds = 20_000;
 const pollIntervalMilliseconds = 500;
 const sandboxReadyText = "Sandbox hub:";
 
+/** Gives the scenario files that do not exist. The command checks them before it quits the Stream Deck app. */
+export function missingScenarioFiles(arguments_: string[], exists: (path: string) => boolean = existsSync): string[] {
+  return arguments_.filter((argument) => !argument.startsWith("--") && !exists(resolve(repositoryRoot, argument)));
+}
+
 /** Gives the arguments for the sandbox. The sandbox loops, and the life cycle scenario is the default. */
-export function sandboxDeckArguments(scenarioFiles: string[]): string[] {
-  return ["--loop", ...(scenarioFiles.length > 0 ? scenarioFiles : [defaultScenarioModule])];
+export function sandboxDeckArguments(arguments_: string[]): string[] {
+  const scenarioFiles = arguments_.filter((argument) => !argument.startsWith("--"));
+  const options = arguments_.filter((argument) => argument.startsWith("--"));
+  return ["--loop", ...options, ...(scenarioFiles.length > 0 ? scenarioFiles : [defaultScenarioModule])];
 }
 
 function delay(milliseconds: number): Promise<void> {
@@ -97,6 +106,13 @@ function runSandbox(sandboxArguments: string[]): Promise<number> {
 async function main(): Promise<void> {
   if (process.platform !== "darwin") {
     console.error("This command works on macOS only. On other systems, start the sandbox with `npm run sandbox` and start the Stream Deck app yourself.");
+    process.exitCode = 1;
+    return;
+  }
+  const missingFiles = missingScenarioFiles(process.argv.slice(2));
+  if (missingFiles.length > 0) {
+    console.error(`These scenario files do not exist: ${missingFiles.join(", ")}. The Stream Deck app is not changed.`);
+    console.error("This command plays scenarios. To list or export sessions, use `npm run export:recording`.");
     process.exitCode = 1;
     return;
   }

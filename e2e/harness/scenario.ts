@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { relative } from "node:path";
 import { type ClaudeCodeAgent } from "./claude-code.js";
 import { type CodexAgent } from "./codex.js";
 import { type CopilotAgent } from "./copilot.js";
@@ -25,9 +26,15 @@ type DefinitionsOf<Factories extends AgentFactories> = { [Key in keyof Factories
 export interface RunOptions {
   /** An environment that the caller started. The caller must stop it. Without it, the run starts its own hub. */
   environment?: ScenarioEnvironment;
-  pace?: "none" | "realtime";
+  pace?: "none" | "realtime" | "fast";
+  /** The time that the `fast` pace waits after each expectation. The default is one second. */
+  settleMilliseconds?: number;
   report?: (line: string) => void;
 }
+
+const millisecondsPerSecond = 1_000;
+// Set AI_AI_CAPTAIN_E2E_VERBOSE=1 to print one line for each step of a scenario in a test.
+const verboseSteps = process.env.AI_AI_CAPTAIN_E2E_VERBOSE === "1";
 
 /** The result of `.step()` for an agent step, or one operation. */
 type StepResult = Operation | Operation[];
@@ -61,10 +68,12 @@ export class ScenarioBuilder<Factories extends AgentFactories = AgentFactories> 
   static fromRecordingData(name: string, recording: Recording): ScenarioBuilder {
     const builder = new ScenarioBuilder(name);
     builder.items = recordingToItems(recording);
+    builder.playsRecording = true;
     builder.recordingHeader = { source: recording.header.source, agent: recording.header.agent, agentVersion: recording.header.agentVersion };
     return builder;
   }
 
+  private playsRecording = false;
   private recordingHeader = { source: "inline", agent: "unknown", agentVersion: "unknown" };
 
   /** Opens the virtual deck in a headless browser. Only a scenario with a deck can use deck steps. */
@@ -135,6 +144,12 @@ export class ScenarioBuilder<Factories extends AgentFactories = AgentFactories> 
   async run(options: RunOptions = {}): Promise<void> {
     const environment = options.environment ?? (await startScenarioEnvironment());
     let failed = false;
+    // A test should show when it plays a recording. The sandbox prints its own lines.
+    const logRecording = this.playsRecording && options.report === undefined;
+    const startedAt = Date.now();
+    const elapsedSeconds = (): string => ((Date.now() - startedAt) / millisecondsPerSecond).toFixed(1);
+    if (logRecording) console.info(`[recording] Playing ${this.name}: ${String(this.items.length)} steps`);
+    const report = options.report ?? (verboseSteps ? console.info : undefined);
     try {
       await playScenario({
         name: this.name,
@@ -142,11 +157,14 @@ export class ScenarioBuilder<Factories extends AgentFactories = AgentFactories> 
         environment,
         ...(this.deckOptions ? { deck: this.deckOptions } : {}),
         pace: options.pace ?? "none",
-        ...(options.report ? { report: options.report } : {}),
+        ...(options.settleMilliseconds === undefined ? {} : { settleMilliseconds: options.settleMilliseconds }),
+        ...(report ? { report } : {}),
         recordingHeader: this.recordingHeader,
       });
+      if (logRecording) console.info(`[recording] Finished ${this.name} in ${elapsedSeconds()} s`);
     } catch (error) {
       failed = true;
+      if (logRecording) console.info(`[recording] Failed ${this.name} after ${elapsedSeconds()} s`);
       throw error;
     } finally {
       // The files of a failed run stay, so that a person can read the recording of the steps.
@@ -168,7 +186,7 @@ function createScenario<Factories extends AgentFactories>(name: string, agents?:
 /** Reads a recording file and makes a scenario from it. The read is synchronous, so that `.until()` and `.step()` can follow. */
 function fromRecording(file: string): ScenarioBuilder {
   const recording = recordingSchema.parse(JSON.parse(readFileSync(file, "utf8")));
-  return ScenarioBuilder.fromRecordingData(file, recording);
+  return ScenarioBuilder.fromRecordingData(relative(process.cwd(), file), recording);
 }
 
 export const scenario = Object.assign(createScenario, { fromRecording });

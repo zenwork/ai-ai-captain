@@ -2,6 +2,7 @@ import { CodexSessionState } from "../../src/server/codex.js";
 import { codex, codexRolloutPath } from "../../e2e/harness/codex.js";
 import type { Recording } from "../../e2e/harness/recording.js";
 import {
+  appendTo,
   assembleRecording,
   IdentifierAliases,
   objectField,
@@ -73,7 +74,7 @@ export function exportCodexRecording(rolloutText: string): Recording {
     agent: "codex",
     agentVersion: textField(objectField(sessionMeta?.payload).cli_version),
     preamble: definition.steps.spawn().slice(0, 3),
-    appendPath: codexRolloutPath,
+    toOperation: appendTo(codexRolloutPath),
     sessionTemplate: definition.sessionIdentifierTemplate,
     events,
     stateAfter: (kept, milliseconds) => {

@@ -392,7 +392,7 @@ The sandbox starts a hub with mock agents. The mock agents are real processes wi
 
 To use a different port, add `--port=<number>` before the scenarios. A scenario module must export a list named `scenarios`. A recording is a `.json` file.
 
-To play the scenarios again and again, add `--loop` before the scenarios. Press **Control** and **C** to stop.
+To play the scenarios again and again, add `--loop` before the scenarios. To play as fast as the hub allows, add `--fast`. The sandbox then ignores recorded times and pauses, and waits 1 second after each check. Add `--settle=<duration>` to change this time. Press **Control** and **C** to stop.
 
 To see the scenarios on the physical Stream Deck, use the setup command in [9.2](#92-show-mock-agents-on-the-physical-deck).
 
@@ -537,11 +537,11 @@ A recording uses placeholders for values that change in each run: `{PID}`, `{SES
 Usage:
 
 ```sh
-npm run export:recording -- <codex|copilot> --list [--home=<folder>] [--limit=<number>]
-npm run export:recording -- <codex|copilot> <session identifier or file> [--home=<folder>] [--out=<file>]
+npm run export:recording -- <codex|copilot|claude|junie> --list [--home=<folder>] [--limit=<number>]
+npm run export:recording -- <codex|copilot|claude|junie> <session identifier or file> [--home=<folder>] [--out=<file>]
 ```
 
-Use the export script to turn a real session into a recording. Run the script by hand. The hub does not run it. Codex and Copilot sessions work today. Claude Code and Junie are **Required**.
+Use the export script to turn a real session into a recording. Run the script by hand. The hub does not run it. Codex, Copilot, Claude Code, and Junie sessions work.
 
 1. Make a list of the sessions on the computer:
 
@@ -549,7 +549,7 @@ Use the export script to turn a real session into a recording. Run the script by
    npm run export:recording -- codex --list
    ```
 
-   Each line has the session identifier, the time of the last change, and the size of the file. The newest session is the first line. The list shows no content. For Copilot sessions, use `copilot` in place of `codex`. To show more than 20 lines, add `--limit=<number>`.
+   Each line has the session identifier, the time of the last change, and the size of the file. The newest session is the first line. The list shows no content. For other agents, use `copilot`, `claude`, or `junie` in place of `codex`. To show more than 20 lines, add `--limit=<number>`.
 
 2. Choose a session. Use the time and the size to find the session that you want. A session that you just used has the newest time.
 3. Type this command with the identifier from the list:
@@ -558,7 +558,7 @@ Use the export script to turn a real session into a recording. Run the script by
    npm run export:recording -- codex <session identifier>
    ```
 
-   For a Copilot session, use `copilot` in place of `codex`.
+   For another agent, use `copilot`, `claude`, or `junie` in place of `codex`.
 
 4. Open the file that the command names. Read it.
 5. Play it to check it:
@@ -567,11 +567,28 @@ Use the export script to turn a real session into a recording. Run the script by
    npm run sandbox -- codex-<short identifier>.recording.json
    ```
 
-The list and the export read the default folders `~/.codex` and `~/.copilot`. The variables `AI_AI_CAPTAIN_CODEX_HOME` and `AI_AI_CAPTAIN_COPILOT_HOME` change them. For a file that is not in these folders, give the path of the event file in place of the identifier. To use another agent folder, add `--home=<folder>`. To choose the name of the output, add `--out=<file>`. The command never overwrites a file.
+The list and the export read the default folders `~/.codex`, `~/.copilot`, `~/.claude`, and `~/.junie/sessions`. The variables `AI_AI_CAPTAIN_CODEX_HOME`, `AI_AI_CAPTAIN_COPILOT_HOME`, `AI_AI_CAPTAIN_CLAUDE_HOME`, and `AI_AI_CAPTAIN_JUNIE_HOME` change them. For a file that is not in these folders, give the path of the event file in place of the identifier. To use another agent folder, add `--home=<folder>`. To choose the name of the output, add `--out=<file>`. The command never overwrites a file.
 
 The recording has the sequence of events and nothing else. It has no prompt, response, tool data, error text, model name, token count, path, or session identifier. The recording keeps the event types, the time between events, and the pairing of requests with answers. The command writes the expected states from the state reducer of the hub.
 
+NOTE: A Claude Code export reads the transcript, because the registration file has no history. A prompt gives `busy`, and the end of a turn gives `idle`. The recording never has the state `waiting`. To record the real statuses, use the watch mode that follows. A Junie export keeps `INPUT_REQUIRED`, which the hub shows as WAITING.
+
 NOTE: The expected states show what the current hub does with the events. If the hub is wrong, the recording is wrong too. Check that the states agree with what you saw in the real session.
+
+To record the real statuses of a Claude Code session, watch it while it runs:
+
+1. Open a second terminal and type this command:
+
+   ```sh
+   npm run export:recording -- claude --watch
+   ```
+
+   Add the session identifier or the process identifier when more than one session runs. The command lists them.
+
+2. Use Claude Code as usual. The command prints each new status, for example `permission_required`.
+3. Press **Control** and **C**, or end the session. The command writes `claude-<short identifier>.recording.json`.
+
+The watch keeps only the status names and the time between changes. It never overwrites a file.
 
 Two more ways give a recording:
 

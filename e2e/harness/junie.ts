@@ -6,7 +6,7 @@ export const junieFixtureVersion = "unverified";
 // Junie runs inside IntelliJ IDEA. The hub finds the IDE by this path, and the path exists on macOS only.
 const ideProcessName = "IntelliJ IDEA.app/Contents/MacOS/idea";
 const sessionDirectory = "{JUNIE_HOME}/session-{SESSION}";
-const eventsPath = `${sessionDirectory}/events.jsonl`;
+export const junieEventsPath = `${sessionDirectory}/events.jsonl`;
 const indexPath = "{JUNIE_HOME}/index.jsonl";
 const instancePath = "{JETBRAINS_INSTANCES}/idea_{PID}.json";
 const defaultTaskIdentifier = "task-1";
@@ -51,7 +51,7 @@ export class JunieSteps extends AgentSteps {
         path: instancePath,
         content: { schema_version: 2, pid: "{PID}", project_path: this.options.project ?? "{PROJECT_1}" },
       },
-      this.line(eventsPath, { kind: "UserPromptEvent", requestId: "request-1", timestampMs: "{NOW_MS}" }),
+      this.line(junieEventsPath, { kind: "UserPromptEvent", requestId: "request-1", timestampMs: "{NOW_MS}" }),
       this.line(indexPath, {
         sessionId: "session-{SESSION}",
         createdAt: "{NOW_MS}",
@@ -64,6 +64,11 @@ export class JunieSteps extends AgentSteps {
   /** The task runs. The session state is working. */
   startTask(overrides: { taskId?: string } = {}): Operation[] {
     return [this.stateEvent("IN_PROGRESS", overrides.taskId)];
+  }
+
+  /** The task needs an answer from the user. The session state is waiting. */
+  requestInput(overrides: { taskId?: string } = {}): Operation[] {
+    return [this.stateEvent("INPUT_REQUIRED", overrides.taskId)];
   }
 
   /** The task ends. The session state is done. */
@@ -81,9 +86,10 @@ export class JunieSteps extends AgentSteps {
     return [{ operation: "exit", agent: this.agentKey }];
   }
 
-  private stateEvent(state: string, taskId = defaultTaskIdentifier): Operation {
+  /** Writes a state event with any state name. The hub shows `unknown` for a state that it does not know, for example a new state of a later Junie version. */
+  stateEvent(state: string, taskId = defaultTaskIdentifier): Operation {
     // The hub reads the text `"state":"<STATE>","agentEvent"`, so the key order matters.
-    return this.line(eventsPath, {
+    return this.line(junieEventsPath, {
       kind: "SessionA2uxEvent",
       event: { state, agentEvent: { kind: "TaskState", agent: { kind: "MainAgent", id: "main" } } },
       taskId,

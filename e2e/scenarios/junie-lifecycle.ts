@@ -1,7 +1,7 @@
 import { junie } from "../harness/junie.js";
 import { scenario, type ScenarioBuilder } from "../harness/scenario.js";
 
-/** The life cycle of one Junie session in IntelliJ IDEA: working and then done. It works on macOS only. */
+/** The life cycle of one Junie session in IntelliJ IDEA: working, waiting, working, and then done. It works on macOS only. */
 export function junieLifecycle(options: { pause?: string } = {}): ScenarioBuilder {
   const builder = scenario("junie life cycle", { ide: junie() });
   const pause = (): void => {
@@ -9,6 +9,10 @@ export function junieLifecycle(options: { pause?: string } = {}): ScenarioBuilde
   };
   builder.step("ide", (agent) => agent.spawn());
   builder.step("ide", (agent) => agent.startTask()).expectSession("ide", { source: "junie-local", harness: "intellij-ai", state: "working" });
+  pause();
+  builder.step("ide", (agent) => agent.requestInput()).expectSession("ide", { state: "waiting" });
+  pause();
+  builder.step("ide", (agent) => agent.startTask()).expectSession("ide", { state: "working" });
   pause();
   builder.step("ide", (agent) => agent.completeTask()).expectSession("ide", { state: "done" });
   pause();

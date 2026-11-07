@@ -27,6 +27,7 @@ type IndexEntry = z.infer<typeof indexEntrySchema>;
 
 export function junieEventState(status: string | undefined): SessionState {
   if (status === "IN_PROGRESS") return "working";
+  if (status === "INPUT_REQUIRED") return "waiting";
   if (status === "COMPLETED") return "done";
   if (status === "FAILED") return "failed";
   return "unknown";

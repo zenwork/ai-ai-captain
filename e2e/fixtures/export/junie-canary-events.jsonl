@@ -1,0 +1,8 @@
+{"kind": "UserPromptEvent", "requestId": "CANARY-request", "prompt": "CANARY-prompt", "presentablePrompt": "CANARY-prompt", "timestampMs": 1794050000000}
+{"kind": "TaskStartedEvent", "taskId": "CANARY-task", "timestampMs": 1794050000100}
+{"kind": "SessionA2uxEvent", "event": {"state": "IN_PROGRESS", "agentEvent": {"kind": "CANARY-agent-event", "text": "CANARY-text"}}, "taskId": "CANARY-task", "timestampMs": 1794050000500}
+{"kind": "SessionA2uxEvent", "event": {"state": "IN_PROGRESS", "agentEvent": {"kind": "CANARY-agent-event", "text": "CANARY-text"}}, "taskId": "CANARY-task", "timestampMs": 1794050000900}
+{"kind": "SystemMessageEvent", "text": "CANARY-system-message", "level": "info", "timestampMs": 1794050001000}
+{"kind": "SessionA2uxEvent", "event": {"state": "INPUT_REQUIRED", "agentEvent": {"kind": "CANARY-agent-event", "text": "CANARY-text"}}, "taskId": "CANARY-task", "timestampMs": 1794050002000}
+{"kind": "SessionA2uxEvent", "event": {"state": "IN_PROGRESS", "agentEvent": {"kind": "CANARY-agent-event", "text": "CANARY-text"}}, "taskId": "CANARY-task", "timestampMs": 1794050003000}
+{"kind": "SessionA2uxEvent", "event": {"state": "COMPLETED", "agentEvent": {"kind": "CANARY-agent-event", "text": "CANARY-text"}}, "taskId": "CANARY-task", "timestampMs": 1794050005000}

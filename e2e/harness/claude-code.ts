@@ -47,6 +47,11 @@ export class ClaudeCodeSteps extends AgentSteps {
     return [{ operation: "write", agent: this.agentKey, path: registrationPath, content: this.registrationContent(status) }];
   }
 
+  /** Writes a status text that was seen in a real registration. The hub shows `unknown` for a status that it does not know. */
+  observedStatus(status: string): Operation[] {
+    return [{ operation: "write", agent: this.agentKey, path: registrationPath, content: this.registrationContent(status) }];
+  }
+
   /** The harness stops the process. The next scan of the hub removes the session. */
   exit(): Operation[] {
     return [{ operation: "exit", agent: this.agentKey }];
@@ -57,7 +62,7 @@ export class ClaudeCodeSteps extends AgentSteps {
     writeRaw: (text: string): Operation[] => [{ operation: "write", agent: this.agentKey, path: registrationPath, content: text }],
   };
 
-  private registrationContent(status: ClaudeCodeStatus): Record<string, unknown> {
+  private registrationContent(status: string): Record<string, unknown> {
     return {
       pid: "{PID}",
       sessionId: "{SESSION}",

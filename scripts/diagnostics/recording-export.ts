@@ -3,7 +3,8 @@ import { formatDurationMilliseconds } from "../../e2e/harness/duration.js";
 import type { Operation, Recording } from "../../e2e/harness/recording.js";
 import { recordingFormatVersion } from "../../e2e/harness/recording.js";
 
-const agentKey = "cli";
+/** The agent key in an exported recording. */
+export const exportAgentKey = "cli";
 const exitDelayMilliseconds = 1_000;
 const versionPattern = /^[\w.+-]{1,40}$/;
 const objectSchema = z.record(z.string(), z.unknown());
@@ -75,16 +76,23 @@ export class IdentifierAliases {
   }
 }
 
+/** Gives a function that appends a kept event as one line to a file. */
+export function appendTo(path: string): (line: JsonObject) => Operation {
+  return (line) => ({ operation: "append", agent: exportAgentKey, path, content: line });
+}
+
 export interface AssembleOptions {
   agent: string;
   /** The version text from the file. The export uses it only when it has a safe form. */
   agentVersion: string | undefined;
   /** The operations that start the process and open the files. They come from the steps of the simulator. */
   preamble: Operation[];
-  /** The path of the file that receives the events. It has placeholders. */
-  appendPath: string;
+  /** Makes the operation that replays one kept event. */
+  toOperation: (line: JsonObject) => Operation;
   sessionTemplate: string;
   events: ExportedEvent[];
+  /** With `false`, the recording does not stop the process. The default is `true`. */
+  endWithExit?: boolean;
   /** Applies one event to the state reducer of the hub and gives the new state. */
   stateAfter: (line: JsonObject, timestampMilliseconds: number) => string;
 }
@@ -99,15 +107,17 @@ export function assembleRecording(options: AssembleOptions): Recording {
   for (const event of options.events) {
     offsetMilliseconds = Math.max(offsetMilliseconds, event.timestampMilliseconds - startMilliseconds);
     const offset = formatDurationMilliseconds(offsetMilliseconds);
-    timeline.push({ offset, operation: "append", agent: agentKey, path: options.appendPath, content: event.line });
+    timeline.push({ offset, ...options.toOperation(event.line) });
     const state = options.stateAfter(event.line, event.timestampMilliseconds);
     if (state === previousState) continue;
     expected.push({ offset, session: options.sessionTemplate, state });
     previousState = state;
   }
-  const exitOffset = formatDurationMilliseconds(offsetMilliseconds + exitDelayMilliseconds);
-  timeline.push({ offset: exitOffset, operation: "exit", agent: agentKey });
-  expected.push({ offset: exitOffset, session: options.sessionTemplate, state: null });
+  if (options.endWithExit !== false) {
+    const exitOffset = formatDurationMilliseconds(offsetMilliseconds + exitDelayMilliseconds);
+    timeline.push({ offset: exitOffset, operation: "exit", agent: exportAgentKey });
+    expected.push({ offset: exitOffset, session: options.sessionTemplate, state: null });
+  }
   const version = options.agentVersion;
   return {
     header: {
