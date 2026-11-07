@@ -143,6 +143,7 @@ export function appIconName(client: Client): string {
   const identity = `${client.id} ${client.name} ${client.focusTarget.bundleId ?? ""}`.toLowerCase();
   if (identity.includes("chatgpt") || identity.includes("openai")) return "openai";
   if (identity.includes("claude") || identity.includes("anthropic")) return "claude";
+  if (identity.includes("copilot") || identity.includes("m365copilot")) return "copilot";
   return "app-window";
 }
 

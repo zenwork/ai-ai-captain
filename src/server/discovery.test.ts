@@ -15,6 +15,21 @@ describe("desktop app process matching", () => {
     expect(matchesMainAppProcess("/Applications/Copilot.app/Contents/MacOS/Copilot", "Copilot.app", "Copilot")).toBe(true);
   });
 
+  it.skipIf(process.platform !== "darwin")("shows Copilot as an untracked app with its focus bundle and reason", async () => {
+    const clients = new ClientRegistry();
+    const processes = [{ pid: 12, parentPid: 1, name: "/Applications/Copilot.app/Contents/MacOS/Copilot" }];
+    await discoverDesktopApps(clients, processes);
+    expect(clients.list()).toEqual([
+      {
+        id: "desktop:copilot",
+        name: "Copilot",
+        focusTarget: { pid: 12, bundleId: "com.microsoft.m365copilot", appName: "Copilot", appPath: "/Applications/Copilot.app" },
+        sessionTracking: "unavailable",
+        trackingDetails: "No supported conversation ID or status source is exposed. Sidebar history links are not live sessions.",
+      },
+    ]);
+  });
+
   it("does not mistake an IntelliJ Copilot plugin process for the Copilot app", () => {
     expect(
       matchesMainAppProcess(

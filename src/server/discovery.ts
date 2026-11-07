@@ -8,7 +8,7 @@ import { JunieTracker } from "./junie.js";
 import { ClaudeTracker } from "./claude.js";
 import { ClaudeDesktopTracker } from "./claude-desktop.js";
 import { HostLifetimes } from "./lifetimes.js";
-import { listProcesses, type ProcessInfo } from "./processes.js";
+import { hostApplication, listProcesses, type ProcessInfo } from "./processes.js";
 import type { SessionStore } from "./store.js";
 import type { BudgetStore } from "./budgets.js";
 
@@ -17,8 +17,21 @@ const supportedPlatforms: NodeJS.Platform[] = ["darwin", "linux", "win32"];
 const candidates = [
   { key: "chatgpt", name: "ChatGPT", appBundle: "ChatGPT.app", executable: "ChatGPT", bundleId: "com.openai.codex" },
   { key: "claude", name: "Claude", appBundle: "Claude.app", executable: "Claude", bundleId: "com.anthropic.claudefordesktop" },
-  { key: "copilot", name: "Copilot", appBundle: "Copilot.app", executable: "Copilot", bundleId: "com.microsoft.copilot" },
+  { key: "copilot", name: "Copilot", appBundle: "Copilot.app", executable: "Copilot", bundleId: "com.microsoft.m365copilot" },
 ];
+
+function desktopTrackingDetails(clientKey: string, claudeStatus: string): string | undefined {
+  if (clientKey === "claude") {
+    if (claudeStatus === "permission-denied") {
+      return "Claude chat tracking needs Accessibility access for the application that runs the hub.";
+    }
+    return "No exposed Claude chat provides supported session metadata. Hidden chats and remote Code sessions are not tracked.";
+  }
+  if (clientKey === "copilot") {
+    return "No supported conversation ID or status source is exposed. Sidebar history links are not live sessions.";
+  }
+  return undefined;
+}
 
 export function matchesMainAppProcess(processName: string, appBundle: string, executable: string): boolean {
   const normalized = processName.toLowerCase();
@@ -40,19 +53,14 @@ export async function discoverDesktopApps(
     const match = inventory.find((process) => matchesMainAppProcess(process.name, candidate.appBundle, candidate.executable));
     const id = `desktop:${candidate.key}`;
     if (!match) continue;
+    const trackingDetails = desktopTrackingDetails(candidate.key, claudeStatus);
+    const application = hostApplication(match.pid, inventory) ?? { pid: match.pid, appName: candidate.name };
     clients.push({
       id,
       name: candidate.name,
-      focusTarget: { pid: match.pid, bundleId: candidate.bundleId, appName: candidate.name },
+      focusTarget: { ...application, bundleId: candidate.bundleId, appName: candidate.name },
       sessionTracking: "unavailable",
-      ...(candidate.key === "claude"
-        ? {
-            trackingDetails:
-              claudeStatus === "permission-denied"
-                ? "Claude chat tracking needs Accessibility access for the application that runs the hub."
-                : "No exposed Claude chat provides supported session metadata. Hidden chats and remote Code sessions are not tracked.",
-          }
-        : {}),
+      ...(trackingDetails ? { trackingDetails } : {}),
     });
   }
   registry.replace(clients);
