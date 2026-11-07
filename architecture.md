@@ -119,7 +119,7 @@ Reports, model changes, token counts, and polling must not masquerade as a fresh
 
 ## ARCH-05 — Discovery and normalization
 
-The discovery loop starts immediately and then runs every 1.5 seconds, without overlapping scans. Copilot, Codex, and Claude Code share a process inventory and host-lifetime inspector. Claude Code reads live session registrations and the end of the transcript, only to keep the model name and token counts. A separate Claude desktop adapter reads exposed conversation URLs and known Accessibility control labels. Each adapter sends only session metadata to the store.
+The discovery loop starts immediately and then runs every 5 seconds, without overlapping scans. Copilot, Codex, and Claude Code share a process inventory and host-lifetime inspector. Claude Code reads live session registrations and the end of the transcript, only to keep the model name and token counts. A separate Claude desktop adapter reads exposed conversation URLs and known Accessibility control labels. Each adapter sends only session metadata to the store.
 
 Claude desktop inspection has a four-second timeout and a 6000-element limit. It does not read text-field values or message text. Hidden conversations and remote Code runtimes are not inferred from app presence. Desktop chat support is experimental until the installed app exposes the required URL and controls.
 
@@ -127,7 +127,7 @@ The JSONL cursor replays a file initially, then reads appended bytes. It handles
 
 Ownership is necessary but insufficient. Host-lifetime filtering additionally considers revoked terminal descriptors, known app ownership, and supported JetBrains project registrations. It suppresses history from previous project openings until a fresh session/turn trigger occurs. Lack of lifetime evidence is `unverified`, not proof of closure. Detection details and coverage limits belong to [intagration.md](intagration.md).
 
-When multiple IntelliJ IDEA processes run, Junie navigation targets the process whose project registration is open.
+When multiple IntelliJ IDEA processes run, Junie and Copilot in IntelliJ target the process whose project registration is open.
 
 ## ARCH-06 — Transport and rendering
 

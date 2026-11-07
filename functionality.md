@@ -26,7 +26,7 @@ This anchor owns observable behavior and acceptance criteria. See [architecture.
 | Claude Code in the desktop app                           | Same registrations with Claude app ancestry; remote/isolated runtimes need a reporter                                                   |
 | Other IntelliJ AI workflows                              | Optional manual bridge, one reported task per project; not automatic conversation discovery                                             |
 | Claude desktop chat                                      | Experimental adapter using Accessibility chat and task URLs and known English controls; hidden chats and tasks remain unsupported       |
-| ChatGPT and Microsoft Copilot desktop plain chats        | App presence only (APP key); session adapters not implemented                                                                           |
+| ChatGPT and Microsoft Copilot desktop plain chats        | APP keys only; not session records (see INT-10 and INT-13)                                                                              |
 
 Illustrated icons do not expand this coverage matrix.
 
@@ -185,7 +185,7 @@ Assessment is a DONE substate: the user visited this specific session after its 
 
 ## FUNC-06 — Navigation
 
-**Implemented:** pressing a populated session key or browser focus control asks the hub to activate the recorded target. IntelliJ sessions with valid absolute project paths use project-specific navigation and the exact owning installation when known. macOS opens the project as a document so it can reuse that running installation. Other targets may only support application-level activation.
+**Implemented:** pressing a populated session key or browser focus control asks the hub to activate the recorded target. IntelliJ sessions with valid absolute project paths use project-specific navigation. For Junie and Copilot in IntelliJ, the hub targets the running installation whose project registration is open. macOS opens the project as a document so it can reuse that installation. Pressing a desktop APP key activates the detected app bundle. On macOS, the hub uses the exact bundle path when known, then the bundle ID, then the app name.
 
 **Implemented:** a double press (two presses within 0.4 seconds) on a DONE, FAILED, or UNKNOWN session key dismisses the session (`POST /api/sessions/:id/dismiss`). This applies to all session types. The hub sets `dismissedAt`. The Stream Deck and the virtual deck hide the session, and the other keys move up. The hub clears `dismissedAt` when the state changes, or when the session enters the same state again with a new state change time. Then the session shows again. The hub does not dismiss STARTING, WORKING, or WAITING sessions (HTTP 409). A single press on a DONE, FAILED, or UNKNOWN key waits 0.4 seconds before focus, so that the plugin can see a second press. Other states get focus at once.
 
@@ -233,7 +233,7 @@ Diagnostics must not display transcripts, prompts, tool arguments/results, regis
 
 ## FUNC-09 — Responsiveness and failure handling
 
-The automatic hub scan and hardware snapshot poll each normally run every 1.5 seconds. A change often reaches Stream Deck in about three seconds plus inspection/rendering time; this is not a hard real-time guarantee. Browser changes are pushed through SSE after hub updates.
+The automatic hub scan normally runs every 5 seconds. The hardware snapshot poll normally runs every 1.5 seconds. A change can reach Stream Deck in about 6.5 seconds plus inspection and rendering time. This is not a hard real-time guarantee. Browser changes are pushed through SSE after hub updates.
 
 When hardware polling fails, previously known sessions become UNKNOWN rather than continuing to blink as stale WAITING or DONE alerts. **Implemented:** the Stream Deck plugin starts the hub when no hub answers, and starts it again after a failure (see ARCH-01). The user does not start the hub manually when Stream Deck runs. When adapter discovery fails, affected tracked states become unknown and scanning retries. Lack of project-lifetime evidence alone does not erase otherwise supported lifecycle evidence or prove the project closed.
 
@@ -257,6 +257,8 @@ Implemented behavior must retain regression coverage for:
 14. Flash intensity increasing the contrast of WAITING and DONE bright/dim phases while aged DONE and reduced-motion behavior remain unchanged.
 15. The dashboard saving flash intensity 0–4 with the selected palette, applying it to previews and Stream Deck keys, and retaining confirmed values after a failed save.
 16. Two IDEA versions running with a Junie project open in one: focus targets the owning installation and reuses its running process.
+17. Microsoft Copilot desktop presence showing an APP key with its ribbon mark and tracking explanation; pressing it focuses the detected bundle path or, if missing, its bundle ID; sidebar history links do not create sessions.
+18. Two IDEA versions running with a Copilot project open in one: the key targets that installation, not the runtime parent.
 
 Claude regression coverage verifies independent registrations, process identity, closure, recovery, completion age, and metadata filtering. Desktop tests verify exposed-chat identity, control-based state, denied permissions, removal, and restricted deep links. App presence and sidebar history must never create session keys.
 

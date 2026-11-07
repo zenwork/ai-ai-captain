@@ -300,7 +300,7 @@ Push a budget key to open the usage page of the provider.
 | -------------- | -------------------------------------------- | ----------------------------------------------------------------- |
 | OpenAI         | Codex log files on this computer. Automatic  | After Codex runs on this computer. The hub reads every 30 seconds |
 | Claude         | Claude Code status line                      | After each Claude Code response                                   |
-| Claude         | Usage page of the Claude desktop app (macOS) | Every 1.5 seconds, but only while the page is open                |
+| Claude         | Usage page of the Claude desktop app (macOS) | Every 5 seconds, but only while the page is open                  |
 | GitHub Copilot | `report budget` command or the API           | When you report values                                            |
 | JetBrains AI   | `report budget` command or the API           | When you report values                                            |
 
@@ -429,6 +429,7 @@ The limits are in groups by operating system. In each group, they are in groups 
 #### GitHub Copilot
 
 - In IntelliJ IDEA, several conversations can use one Copilot runtime. Copilot agents that do not write the local event files do not show.
+- **Focus.** A session key opens the IntelliJ IDEA installation that has the project, not necessarily the one that runs the Copilot runtime. It does not select the Copilot conversation.
 - Copilot sessions show no info key data, unless a reporter gives it.
 - **Budget key.** There is no automatic source. You must report the values yourself. Automatic values would need the login token of your account, and AI AI Captain does not use account tokens.
 
@@ -440,7 +441,8 @@ The limits are in groups by operating system. In each group, they are in groups 
 
 #### Microsoft Copilot
 
-- Plain Microsoft Copilot chats are not tracked.
+- Plain Microsoft Copilot chats are not tracked. On macOS, the app appears as an APP key.
+- Sidebar history links are not live sessions and do not create session keys.
 
 #### Other assistants
 
@@ -462,7 +464,9 @@ The limits are in groups by operating system. In each group, they are in groups 
 
 #### OpenAI ChatGPT and Microsoft Copilot
 
-- These desktop apps show an APP key only.
+- These desktop apps show an APP key, not session keys. Push the key to open the app.
+- The Microsoft Copilot key shows the Copilot ribbon mark. Push it to bring the detected app to the front.
+- The Copilot key explains that the app does not expose a supported conversation ID or status source. Sidebar history links do not create keys.
 
 ### 8.3 Windows
 
