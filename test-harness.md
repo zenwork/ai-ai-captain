@@ -2,6 +2,34 @@
 
 Status: Phase 1 is partly **Implemented**. Section 15.2 lists what exists and what is still **Required**. All other items in this document are **Proposed**. This plan comes from a design discussion on 2026-11-07.
 
+## Contents
+
+- [1. Goals](#1-goals)
+- [2. Integration surface](#2-integration-surface)
+- [3. Architecture](#3-architecture)
+- [4. Hub under test](#4-hub-under-test)
+- [5. Agent simulators](#5-agent-simulators)
+- [6. Recording format](#6-recording-format)
+- [7. Inline scenario API](#7-inline-scenario-api)
+- [8. Deck fixture](#8-deck-fixture)
+- [9. Required hub changes](#9-required-hub-changes)
+- [10. Sandbox mode](#10-sandbox-mode)
+- [11. Export for issue reports](#11-export-for-issue-reports)
+  - [11.1 Content of an export](#111-content-of-an-export)
+- [12. Fidelity and drift](#12-fidelity-and-drift)
+- [13. Platforms](#13-platforms)
+- [14. Tools](#14-tools)
+- [15. Phases](#15-phases)
+  - [15.1 Starter tests](#151-starter-tests)
+    - [15.1.1 Inline scenario](#1511-inline-scenario)
+    - [15.1.2 Recording](#1512-recording)
+    - [15.1.3 Acceptance criteria](#1513-acceptance-criteria)
+  - [15.2 Status of Phase 1](#152-status-of-phase-1)
+- [16. Known defect to reproduce first](#16-known-defect-to-reproduce-first)
+- [17. Open questions](#17-open-questions)
+  - [17.1 Specification work before implementation](#171-specification-work-before-implementation)
+- [18. Related documents](#18-related-documents)
+
 ## 1. Goals
 
 1. Write behavioral tests by hand. Each test runs the real hub against mock agents of each supported type.
