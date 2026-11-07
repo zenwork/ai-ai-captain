@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
+import { type AgentSteps } from "./agent-steps.js";
 import { type ClaudeCodeAgent } from "./claude-code.js";
+import { type CodexAgent } from "./codex.js";
 import type { DeckOptions, DeckSnapshot } from "./deck-fixture.js";
 import { parseDurationMilliseconds } from "./duration.js";
 import { recordingSchema, type Operation, type Recording } from "./recording.js";
@@ -7,7 +9,7 @@ import { startScenarioEnvironment, type ScenarioEnvironment } from "./scenario-e
 import { itemsToRecording, recordingToItems, type ExpectationOptions, type ScenarioItem } from "./scenario-items.js";
 import { playScenario } from "./scenario-player.js";
 
-type AgentDefinition = ClaudeCodeAgent;
+type AgentDefinition = ClaudeCodeAgent | CodexAgent;
 type AgentFactory = (agentKey: string) => AgentDefinition;
 
 export interface RunOptions {
@@ -52,7 +54,7 @@ export class ScenarioBuilder {
   }
 
   /** Runs the steps of an agent in sequence. The next line starts when they are complete. */
-  step(agentKey: string, build: (steps: AgentDefinition["steps"]) => StepResult): this {
+  step(agentKey: string, build: (steps: AgentSteps) => StepResult): this {
     const definition = this.requireAgent(agentKey);
     const result = build(definition.steps);
     for (const operation of Array.isArray(result) ? result : [result]) this.items.push({ kind: "operation", operation });

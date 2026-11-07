@@ -1,0 +1,402 @@
+{
+  "agent": "codex",
+  "agentVersion": "0.162.1",
+  "file": "sessions/**/rollout-*.jsonl",
+  "capturedAt": "2026-11-07",
+  "shapes": {
+    "envelope": [
+      {
+        "name": "timestamp",
+        "type": "string"
+      },
+      {
+        "name": "ordinal",
+        "type": "number"
+      },
+      {
+        "name": "type",
+        "type": "string"
+      },
+      {
+        "name": "payload",
+        "type": "object"
+      }
+    ],
+    "session_meta/- payload": [
+      {
+        "name": "session_id",
+        "type": "string"
+      },
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "timestamp",
+        "type": "string"
+      },
+      {
+        "name": "cwd",
+        "type": "string"
+      },
+      {
+        "name": "originator",
+        "type": "string"
+      },
+      {
+        "name": "cli_version",
+        "type": "string"
+      },
+      {
+        "name": "source",
+        "type": ["object", "string"]
+      },
+      {
+        "name": "model_provider",
+        "type": "string"
+      },
+      {
+        "name": "base_instructions",
+        "type": "object"
+      },
+      {
+        "name": "history_mode",
+        "type": "string"
+      },
+      {
+        "name": "git",
+        "type": "object"
+      },
+      {
+        "name": "subagent_history_start_ordinal",
+        "type": "number"
+      },
+      {
+        "name": "dynamic_tools",
+        "type": "array"
+      },
+      {
+        "name": "thread_source",
+        "type": "string"
+      },
+      {
+        "name": "context_window",
+        "type": "object"
+      },
+      {
+        "name": "parent_thread_id",
+        "type": "string"
+      },
+      {
+        "name": "multi_agent_version",
+        "type": "string"
+      },
+      {
+        "name": "creator_user_id",
+        "type": "string"
+      },
+      {
+        "name": "creator_account_id",
+        "type": "string"
+      },
+      {
+        "name": "runtime_workspace_roots",
+        "type": "array"
+      }
+    ],
+    "event_msg/task_started payload": [
+      {
+        "name": "type",
+        "type": "string"
+      },
+      {
+        "name": "turn_id",
+        "type": "string"
+      },
+      {
+        "name": "started_at",
+        "type": "number"
+      },
+      {
+        "name": "model_context_window",
+        "type": ["null", "number"]
+      },
+      {
+        "name": "collaboration_mode_kind",
+        "type": "string"
+      },
+      {
+        "name": "turn_attribution",
+        "type": "object"
+      },
+      {
+        "name": "root_turn_id",
+        "type": "string"
+      }
+    ],
+    "event_msg/task_complete payload": [
+      {
+        "name": "type",
+        "type": "string"
+      },
+      {
+        "name": "turn_id",
+        "type": "string"
+      },
+      {
+        "name": "last_agent_message",
+        "type": ["null", "string"]
+      },
+      {
+        "name": "completed_at",
+        "type": "number"
+      },
+      {
+        "name": "duration_ms",
+        "type": "number"
+      },
+      {
+        "name": "time_to_first_token_ms",
+        "type": "number"
+      },
+      {
+        "name": "root_turn_id",
+        "type": "string"
+      },
+      {
+        "name": "error",
+        "type": "object"
+      },
+      {
+        "name": "started_at",
+        "type": "number"
+      }
+    ],
+    "turn_context/- payload": [
+      {
+        "name": "cwd",
+        "type": "string"
+      },
+      {
+        "name": "approval_policy",
+        "type": ["object", "string"]
+      },
+      {
+        "name": "sandbox_policy",
+        "type": "object"
+      },
+      {
+        "name": "model",
+        "type": "string"
+      },
+      {
+        "name": "personality",
+        "type": "string"
+      },
+      {
+        "name": "collaboration_mode",
+        "type": "object"
+      },
+      {
+        "name": "summary",
+        "type": "string"
+      },
+      {
+        "name": "turn_id",
+        "type": "string"
+      },
+      {
+        "name": "current_date",
+        "type": "string"
+      },
+      {
+        "name": "timezone",
+        "type": "string"
+      },
+      {
+        "name": "permission_profile",
+        "type": "object"
+      },
+      {
+        "name": "realtime_active",
+        "type": "boolean"
+      },
+      {
+        "name": "effort",
+        "type": "string"
+      },
+      {
+        "name": "file_system_sandbox_policy",
+        "type": "object"
+      },
+      {
+        "name": "workspace_roots",
+        "type": "array"
+      },
+      {
+        "name": "multi_agent_version",
+        "type": "string"
+      },
+      {
+        "name": "root_turn_id",
+        "type": "string"
+      },
+      {
+        "name": "disabled_plugin_ids",
+        "type": "array"
+      },
+      {
+        "name": "approvals_reviewer",
+        "type": "string"
+      },
+      {
+        "name": "active_permission_profile",
+        "type": "object"
+      },
+      {
+        "name": "comp_hash",
+        "type": "string"
+      },
+      {
+        "name": "multi_agent_mode",
+        "type": "string"
+      },
+      {
+        "name": "cyber_access_program",
+        "type": "string"
+      }
+    ],
+    "event_msg/token_count payload": [
+      {
+        "name": "type",
+        "type": "string"
+      },
+      {
+        "name": "info",
+        "type": ["null", "object"]
+      },
+      {
+        "name": "rate_limits",
+        "type": "object"
+      }
+    ],
+    "response_item/function_call payload": [
+      {
+        "name": "type",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "arguments",
+        "type": "string"
+      },
+      {
+        "name": "call_id",
+        "type": "string"
+      },
+      {
+        "name": "namespace",
+        "type": "string"
+      },
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "internal_chat_message_metadata_passthrough",
+        "type": "object"
+      }
+    ],
+    "event_msg/token_count payload.info": [
+      {
+        "name": "total_token_usage",
+        "type": "object"
+      },
+      {
+        "name": "last_token_usage",
+        "type": "object"
+      },
+      {
+        "name": "model_context_window",
+        "type": "number"
+      }
+    ],
+    "event_msg/token_count payload.info.total_token_usage": [
+      {
+        "name": "input_tokens",
+        "type": "number"
+      },
+      {
+        "name": "cached_input_tokens",
+        "type": "number"
+      },
+      {
+        "name": "cache_write_input_tokens",
+        "type": "number"
+      },
+      {
+        "name": "output_tokens",
+        "type": "number"
+      },
+      {
+        "name": "reasoning_output_tokens",
+        "type": "number"
+      },
+      {
+        "name": "total_tokens",
+        "type": "number"
+      }
+    ],
+    "event_msg/token_count payload.info.last_token_usage": [
+      {
+        "name": "input_tokens",
+        "type": "number"
+      },
+      {
+        "name": "cached_input_tokens",
+        "type": "number"
+      },
+      {
+        "name": "cache_write_input_tokens",
+        "type": "number"
+      },
+      {
+        "name": "output_tokens",
+        "type": "number"
+      },
+      {
+        "name": "reasoning_output_tokens",
+        "type": "number"
+      },
+      {
+        "name": "total_tokens",
+        "type": "number"
+      }
+    ],
+    "response_item/function_call_output payload": [
+      {
+        "name": "type",
+        "type": "string"
+      },
+      {
+        "name": "call_id",
+        "type": "string"
+      },
+      {
+        "name": "output",
+        "type": ["array", "string"]
+      },
+      {
+        "name": "internal_chat_message_metadata_passthrough",
+        "type": "object"
+      },
+      {
+        "name": "id",
+        "type": "string"
+      }
+    ]
+  }
+}

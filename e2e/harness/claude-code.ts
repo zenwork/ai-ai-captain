@@ -1,3 +1,4 @@
+import { AgentSteps } from "./agent-steps.js";
 import type { Operation } from "./recording.js";
 
 /** The version of Claude Code that the shape file in `e2e/fixtures/claude-code/` comes from. */
@@ -28,11 +29,13 @@ export interface ClaudeCodeAgent {
   steps: ClaudeCodeSteps;
 }
 
-export class ClaudeCodeSteps {
+export class ClaudeCodeSteps extends AgentSteps {
   constructor(
     private readonly agentKey: string,
     private readonly options: ClaudeCodeOptions,
-  ) {}
+  ) {
+    super();
+  }
 
   /** Starts the process and writes the registration. */
   spawn(overrides: { status?: ClaudeCodeStatus } = {}): Operation[] {

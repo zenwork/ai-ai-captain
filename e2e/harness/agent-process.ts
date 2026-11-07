@@ -15,14 +15,32 @@ const errorOutputCharacters = 2_000;
 // it can stop at once when its name is not one of its own commands. A shell does not depend on its name.
 const shellProgram = "/bin/sh";
 
-// The fake agent waits for a child process. A scenario stops it earlier. The time limit makes sure that a lost
-// process ends by itself. The signal handler ends the child, so that no process stays after the agent stops.
-const agentScript = "trap 'kill \"$child\" 2>/dev/null' TERM; sleep 600 & child=$!; wait";
+// The fake agent reads one command for each line from its input. The commands are:
+//   open <number> <path>   Keep the file open on this file descriptor. A real Codex process does this with its lock file.
+//   close <number>         Close the file descriptor.
+//   quit                   Stop the agent.
+// It writes the line "ack" after each command. When the input closes, the agent stops, so no process stays
+// after a test that ended without a clean stop.
+const agentScript = [
+  "while IFS=' ' read -r command number path; do",
+  '  case "$command" in',
+  '    open) eval "exec $number<>\\"\\$path\\"" ;;',
+  '    close) eval "exec $number>&-" ;;',
+  "    quit) exit 0 ;;",
+  "  esac",
+  "  echo ack",
+  "done",
+].join("\n");
 
 // The host starts the agent as its child, so that the real terminal or editor that runs the test does not become
-// the host of the agent. It writes the process identifier of the agent. Then it waits for the agent to stop and
-// stays alive, as a terminal does, until the harness closes its input.
-const hostScript = '"$0" -c "$1" & echo "$!"; wait; read -r _';
+// the host of the agent. The agent reads the input of the host. The host writes the process identifier of the agent.
+// Then it waits for the agent to stop and stays alive, as a terminal does, until the harness closes its input.
+const hostScript = '"$0" -c "$1" <&0 & echo "$!"; wait; read -r _';
+
+// The shell can use the file descriptors 3 to 9 in the command "exec".
+const firstFileDescriptor = 3;
+const lastFileDescriptor = 9;
+const acknowledgementTimeoutMilliseconds = 5_000;
 
 export interface AgentProcess {
   /** The process identifier of the agent. */
@@ -31,6 +49,10 @@ export interface AgentProcess {
   hostPid: number;
   /** The time in milliseconds since 1970 when the agent started. */
   startedAt: number;
+  /** Keeps a file open in the agent process, as a real agent does with a lock file. The file is made when it is missing. */
+  holdOpen(path: string): Promise<void>;
+  /** Closes a file that `holdOpen` opened. */
+  release(path: string): Promise<void>;
   /** Stops the agent and waits until it is gone. The fake host stays. */
   stopAgent(): Promise<void>;
   /** Stops the agent and the fake host. */
@@ -86,6 +108,59 @@ async function waitUntilGone(pid: number, timeoutMilliseconds: number): Promise<
   return !isAlive(pid);
 }
 
+/** Collects the lines that the fake host writes. The first line is the process identifier of the agent. */
+class HostOutput {
+  private received = "";
+  private readonly waiting: (() => void)[] = [];
+  private pendingAcknowledgements = 0;
+  private firstLine: string | undefined;
+  private onFirstLine: ((line: string) => void) | undefined;
+
+  add(chunk: string): void {
+    this.received += chunk;
+    for (let newline = this.received.indexOf("\n"); newline !== -1; newline = this.received.indexOf("\n")) {
+      const line = this.received.slice(0, newline);
+      this.received = this.received.slice(newline + 1);
+      this.takeLine(line);
+    }
+  }
+
+  private takeLine(line: string): void {
+    if (this.firstLine === undefined) {
+      this.firstLine = line;
+      this.onFirstLine?.(line);
+      return;
+    }
+    if (line !== "ack") return;
+    const next = this.waiting.shift();
+    if (next) next();
+    else this.pendingAcknowledgements += 1;
+  }
+
+  waitForFirstLine(): Promise<string> {
+    if (this.firstLine !== undefined) return Promise.resolve(this.firstLine);
+    return new Promise((resolvePromise) => {
+      this.onFirstLine = resolvePromise;
+    });
+  }
+
+  waitForAcknowledgement(timeoutMilliseconds: number): Promise<void> {
+    if (this.pendingAcknowledgements > 0) {
+      this.pendingAcknowledgements -= 1;
+      return Promise.resolve();
+    }
+    return new Promise((resolvePromise, rejectPromise) => {
+      const timer = setTimeout(() => {
+        rejectPromise(new Error("The fake agent did not answer a command in time"));
+      }, timeoutMilliseconds);
+      this.waiting.push(() => {
+        clearTimeout(timer);
+        resolvePromise();
+      });
+    });
+  }
+}
+
 /** Starts a fake host process and an agent process below it. */
 export async function startAgentProcess(options: AgentProcessOptions): Promise<AgentProcess> {
   if (!isAgentSimulationSupported) throw new Error("The harness cannot make fake agent processes on this operating system");
@@ -98,6 +173,10 @@ export async function startAgentProcess(options: AgentProcessOptions): Promise<A
   host.stderr.on("data", (chunk: Buffer) => {
     errorText = (errorText + chunk.toString("utf8")).slice(-errorOutputCharacters);
   });
+  const output = new HostOutput();
+  host.stdout.on("data", (chunk: Buffer) => {
+    output.add(chunk.toString("utf8"));
+  });
   const hostPid = host.pid;
   if (hostPid === undefined) throw new Error("The fake host did not start");
 
@@ -105,17 +184,14 @@ export async function startAgentProcess(options: AgentProcessOptions): Promise<A
     const timer = setTimeout(() => {
       rejectPromise(new Error("The fake host did not report the process identifier of the agent in time"));
     }, startTimeoutMilliseconds);
-    let received = "";
-    host.stdout.on("data", (chunk: Buffer) => {
-      received += chunk.toString("utf8");
-      const line = received.split("\n")[0];
-      if (!received.includes("\n") || !/^\d+$/.test(line)) return;
-      clearTimeout(timer);
-      resolvePromise(Number(line));
-    });
     host.once("exit", () => {
       clearTimeout(timer);
       rejectPromise(new Error("The fake host stopped before it reported the agent"));
+    });
+    void output.waitForFirstLine().then((line) => {
+      clearTimeout(timer);
+      if (/^\d+$/.test(line)) resolvePromise(Number(line));
+      else rejectPromise(new Error("The fake host gave a line that is not a process identifier"));
     });
   }).catch((error: unknown) => {
     host.kill("SIGKILL");
@@ -123,9 +199,35 @@ export async function startAgentProcess(options: AgentProcessOptions): Promise<A
   });
   const startedAt = Date.now();
 
+  const heldFiles = new Map<string, number>();
+  const send = async (command: string): Promise<void> => {
+    const acknowledged = output.waitForAcknowledgement(acknowledgementTimeoutMilliseconds);
+    host.stdin.write(`${command}\n`);
+    await acknowledged;
+  };
+  const holdOpen = async (path: string): Promise<void> => {
+    if (heldFiles.has(path)) return;
+    const used = new Set(heldFiles.values());
+    let fileDescriptor = firstFileDescriptor;
+    while (used.has(fileDescriptor) && fileDescriptor <= lastFileDescriptor) fileDescriptor += 1;
+    if (fileDescriptor > lastFileDescriptor) throw new Error("The fake agent can hold at most seven files open");
+    // A line break in a path would split the command. A path from a recording is data from outside.
+    if (path.includes("\n")) throw new Error("A path for holdOpen must not contain a line break");
+    heldFiles.set(path, fileDescriptor);
+    await send(`open ${String(fileDescriptor)} ${path}`);
+  };
+  const release = async (path: string): Promise<void> => {
+    const fileDescriptor = heldFiles.get(path);
+    if (fileDescriptor === undefined) throw new Error("The fake agent does not hold this file open");
+    heldFiles.delete(path);
+    await send(`close ${String(fileDescriptor)}`);
+  };
+
   const stopAgent = async (): Promise<void> => {
     if (!isAlive(pid)) return;
-    process.kill(pid, "SIGTERM");
+    host.stdin.write("quit\n");
+    if (await waitUntilGone(pid, stopTimeoutMilliseconds)) return;
+    process.kill(pid, "SIGKILL");
     if (!(await waitUntilGone(pid, stopTimeoutMilliseconds))) throw new Error("The fake agent did not stop in time");
   };
   const stopAll = async (): Promise<void> => {
@@ -142,5 +244,5 @@ export async function startAgentProcess(options: AgentProcessOptions): Promise<A
     await closed;
     clearTimeout(timer);
   };
-  return { pid, hostPid, startedAt, stopAgent, stopAll, errorOutput: () => errorText };
+  return { pid, hostPid, startedAt, holdOpen, release, stopAgent, stopAll, errorOutput: () => errorText };
 }

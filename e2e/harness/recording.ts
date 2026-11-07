@@ -30,7 +30,37 @@ const writeOperationSchema = z.object({
   content: z.union([z.string(), z.record(z.string(), z.unknown())]),
 });
 
-export const timelineStepSchema = z.discriminatedUnion("operation", [spawnOperationSchema, exitOperationSchema, writeOperationSchema]);
+const appendOperationSchema = z.object({
+  offset: durationSchema.optional(),
+  operation: z.literal("append"),
+  agent: z.string().min(1).optional(),
+  path: z.string().min(1),
+  // An object becomes one line of JSON with a line break. A text is added as it is.
+  content: z.union([z.string(), z.record(z.string(), z.unknown())]),
+});
+
+const holdOpenOperationSchema = z.object({
+  offset: durationSchema.optional(),
+  operation: z.literal("holdOpen"),
+  agent: z.string().min(1).optional(),
+  path: z.string().min(1),
+});
+
+const releaseOperationSchema = z.object({
+  offset: durationSchema.optional(),
+  operation: z.literal("release"),
+  agent: z.string().min(1).optional(),
+  path: z.string().min(1),
+});
+
+export const timelineStepSchema = z.discriminatedUnion("operation", [
+  spawnOperationSchema,
+  exitOperationSchema,
+  writeOperationSchema,
+  appendOperationSchema,
+  holdOpenOperationSchema,
+  releaseOperationSchema,
+]);
 
 export const expectedStateSchema = z.object({
   offset: durationSchema.optional(),

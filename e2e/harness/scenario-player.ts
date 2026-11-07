@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { z } from "zod";
@@ -157,6 +157,7 @@ class ScenarioPlayer {
     };
     if (name in fixed) return fixed[name];
     const runtime = this.agent(this.resolveAgentKey(agentKey));
+    if (name === "NOW") return new Date().toISOString();
     if (name === "SESSION") return runtime.sessionUuid;
     if (!runtime.process) throw new Error(`The placeholder {${name}} needs a started agent`);
     if (name === "PID") return runtime.process.pid;
@@ -178,8 +179,15 @@ class ScenarioPlayer {
     const agentKey = this.resolveAgentKey(operation.agent);
     const lookup = (name: string, key: string | undefined): string | number => this.lookupPlaceholder(name, key ?? agentKey);
     const path = resolveInsideDirectory(this.options.environment.temporaryDirectory, String(resolvePlaceholders(operation.path, lookup)));
-    const content = resolvePlaceholders(operation.content, lookup);
     await mkdir(dirname(path), { recursive: true });
+    if (operation.operation === "holdOpen") return this.requireProcess(agentKey).holdOpen(path);
+    if (operation.operation === "release") return this.requireProcess(agentKey).release(path);
+    const content = resolvePlaceholders(operation.content, lookup);
+    if (operation.operation === "append") {
+      // One line for each JSON object, as the log files of the agents have.
+      await appendFile(path, typeof content === "string" ? content : `${JSON.stringify(content)}\n`);
+      return;
+    }
     if (typeof content === "string") {
       await writeFile(path, content);
       return;
@@ -188,6 +196,12 @@ class ScenarioPlayer {
     const temporaryPath = `${path}.writing`;
     await writeFile(temporaryPath, JSON.stringify(content));
     await rename(temporaryPath, path);
+  }
+
+  private requireProcess(agentKey: string): AgentProcess {
+    const process = this.agent(agentKey).process;
+    if (!process) throw new Error(`The agent ${agentKey} has no process. Add a spawn step first`);
+    return process;
   }
 
   private async readSessions(): Promise<Session[]> {

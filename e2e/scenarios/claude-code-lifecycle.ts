@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { claudeCode } from "../harness/claude-code.js";
+import { claudeCode, ClaudeCodeSteps } from "../harness/claude-code.js";
 import { scenario, type ScenarioBuilder } from "../harness/scenario.js";
 
 export interface LifecycleOptions {
@@ -16,13 +16,15 @@ export function claudeCodeLifecycle(options: LifecycleOptions = { checkDeck: tru
   const pause = (): void => {
     if (options.pause) builder.wait(options.pause);
   };
-  builder.step("cli", (agent) => agent.spawn({ status: "busy" })).expectSession("cli", { source: "claude-local", harness: "claude-cli", state: "working" });
+  builder
+    .step("cli", (agent) => agent.as(ClaudeCodeSteps).spawn({ status: "busy" }))
+    .expectSession("cli", { source: "claude-local", harness: "claude-cli", state: "working" });
   pause();
-  builder.step("cli", (agent) => agent.status("permission_required")).expectSession("cli", { state: "waiting" });
+  builder.step("cli", (agent) => agent.as(ClaudeCodeSteps).status("permission_required")).expectSession("cli", { state: "waiting" });
   pause();
-  builder.step("cli", (agent) => agent.status("busy")).expectSession("cli", { state: "working" });
+  builder.step("cli", (agent) => agent.as(ClaudeCodeSteps).status("busy")).expectSession("cli", { state: "working" });
   pause();
-  builder.step("cli", (agent) => agent.status("idle")).expectSession("cli", { state: "done" });
+  builder.step("cli", (agent) => agent.as(ClaudeCodeSteps).status("idle")).expectSession("cli", { state: "done" });
   pause();
   if (options.checkDeck) {
     builder.expectDeck((deck) => {
@@ -31,7 +33,7 @@ export function claudeCodeLifecycle(options: LifecycleOptions = { checkDeck: tru
       assert.ok(deck.key(1).texts.includes("DONE"), "The key must show the label DONE");
     });
   }
-  return builder.step("cli", (agent) => agent.exit()).expectSession("cli", undefined);
+  return builder.step("cli", (agent) => agent.as(ClaudeCodeSteps).exit()).expectSession("cli", undefined);
 }
 
 /** The sandbox plays these scenarios. Each state stays for a few seconds, so that people can see it on a deck. */

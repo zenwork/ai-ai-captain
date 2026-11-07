@@ -107,7 +107,7 @@ There are three levels of steps:
 
 Each agent factory has its own typed steps:
 
-- `codex()`: `startTurn`, `turnContext`, `tokenCount`, `toolCall`, `approve`, `completeTurn`.
+- `codex()`: `spawn`, `turnContext`, `startTurn`, `tokenCount`, `requestPermission`, `approve`, `completeTurn`, `releaseLock`, `exit`. The step `toolCall` is **Required**. Use `agent.as(CodexSteps)` to get the typed steps. The shape file `e2e/fixtures/codex/0.162.1/rollout-events.shape.json` limits the event keys.
 - `claudeCode()`: `status`, `assistantMessage`, `registration.writeRaw`, `transcript.appendRaw`.
 - `copilot()` and `junie()`: steps from their recorded event types.
 - `hook("<harness>")`: `event(name, payload)`.
@@ -506,7 +506,7 @@ The player examines each item of the expected part in sequence. Each item uses t
 | `npm run test:e2e`, `npm run sandbox`                                   | **Implemented** | `vitest.e2e.config.ts`, `scripts/dev/sandbox.ts`                             |
 | Two starter tests and the equality test                                 | **Implemented** | `e2e/scenarios/claude-code-lifecycle.e2e.test.ts`                            |
 | Shape file, shape check, and tolerance scenarios (Claude Code)          | **Implemented** | `e2e/harness/shape.ts`, `e2e/scenarios/claude-code-registration.e2e.test.ts` |
-| Codex simulator (lock file held open, rollout events)                   | **Required**    | Needs a process that holds a file open                                       |
+| Codex simulator (lock file held open, rollout events)                   | **Implemented** | `e2e/harness/codex.ts`, `e2e/scenarios/codex-lifecycle.e2e.test.ts`          |
 | Transcript steps of Claude Code (`assistantMessage`)                    | **Required**    |                                                                              |
 | Scenario for the known defect in section 16                             | **Required**    | Needs a decision on the open questions in section 17                         |
 | `.parallel()`, `.at()`, `.requires()`, `skipIf` helpers                 | **Required**    |                                                                              |
