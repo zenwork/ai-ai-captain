@@ -1,4 +1,5 @@
 import { hubEventSchema, type Client, type Session } from "../src/shared/session.js";
+import { doneAttention } from "../src/shared/attention.js";
 import { defaultFlashIntensity } from "../src/shared/settings.js";
 import { isFlashIntensity } from "../src/shared/flash-intensity.js";
 import { defaultPaletteId, isPaletteId, type PaletteId } from "../src/shared/palette.js";
@@ -239,8 +240,9 @@ class DeckPanel extends HTMLElement {
     return { width: viewWindow.innerWidth - shellPadding, height: viewWindow.innerHeight - shellPadding - statusLineHeight - toolbarHeight };
   }
 
-  #keyButton(image: string, label: string, action: string, argument = ""): string {
-    return `<button class="deck-key" data-action="${action}" data-argument="${argument}" aria-label="${label}" title="${label}">${image}</button>`;
+  // The extra attributes are a stable contract for the end-to-end tests. They do not depend on the wording of the labels.
+  #keyButton(image: string, label: string, action: string, argument = "", extraAttributes = ""): string {
+    return `<button class="deck-key" data-action="${action}" data-argument="${argument}"${extraAttributes} aria-label="${label}" title="${label}">${image}</button>`;
   }
 
   #itemButton(item: DeckItem, options: Parameters<typeof sessionImage>[2]): string {
@@ -253,7 +255,9 @@ class DeckPanel extends HTMLElement {
       );
     const { session } = item;
     const label = `Key ${item.keyNumber}: ${session.label}, ${sessionTypeLabels[sessionType(session)]}, ${session.state}`;
-    return this.#keyButton(sessionImage(session, item.keyNumber, options), label, "focus-session", encodeURIComponent(session.id));
+    const attention = doneAttention(session, options.now, options.reducedMotion)?.phase;
+    const sessionAttributes = ` data-identity="${escapeHtml(session.label)}" data-state="${session.state}"${attention ? ` data-attention="${attention}"` : ""}`;
+    return this.#keyButton(sessionImage(session, item.keyNumber, options), label, "focus-session", encodeURIComponent(session.id), sessionAttributes);
   }
 
   // The controls go to the side of the keys when the stacked layout is taller than the window.

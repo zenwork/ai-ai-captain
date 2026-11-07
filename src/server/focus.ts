@@ -1,10 +1,11 @@
 import { execFile } from "node:child_process";
-import { realpath, stat } from "node:fs/promises";
+import { appendFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { promisify } from "node:util";
 import type { FocusTarget } from "./types.js";
 import { focusTargetSchema } from "../shared/session.js";
 import { claudeDesktopInspectionScript } from "./claude-desktop.js";
+import { readSandboxSettings } from "./sandbox.js";
 
 export type FocusResult = { focused: true; scope?: "application" | "project" | "session" } | { focused: false; reason: string };
 export type FocusHandler = (target: FocusTarget | undefined, projectPath?: string) => Promise<FocusResult>;
@@ -23,6 +24,14 @@ async function runCommand(command: string, args: string[]): Promise<FocusResult>
   } catch {
     return { focused: false, reason: "The operating system could not complete the focus request" };
   }
+}
+
+/** Writes each command as one JSON line to a file and does not run it. Test harnesses use it, so that no real window changes. */
+function createDryRunCommandRunner(logPath: string): CommandRunner {
+  return async (command, args) => {
+    await appendFile(logPath, `${JSON.stringify({ command, args })}\n`);
+    return { focused: true };
+  };
 }
 
 /** Opens a URL with the default program of the system. */
@@ -57,7 +66,8 @@ async function focusOtherSystem(platform: NodeJS.Platform, target: FocusTarget, 
 export function createFocusHandler(options: { platform?: NodeJS.Platform; preciseFocus?: boolean; run?: CommandRunner } = {}): FocusHandler {
   const platform = options.platform ?? process.platform;
   const preciseFocus = options.preciseFocus ?? process.env.AI_AI_CAPTAIN_PRECISE_FOCUS === "1";
-  const run = options.run ?? runCommand;
+  const focusLogPath = readSandboxSettings(process.env).focusLogPath;
+  const run = options.run ?? (focusLogPath ? createDryRunCommandRunner(focusLogPath) : runCommand);
   const activate = async (script: string): Promise<FocusResult> => {
     const result = await run("/usr/bin/osascript", ["-e", script]);
     return result.focused ? { focused: true, scope: "application" } : result;

@@ -11,8 +11,7 @@ import { HostLifetimes } from "./lifetimes.js";
 import { hostApplication, listProcesses, type ProcessInfo } from "./processes.js";
 import type { SessionStore } from "./store.js";
 import type { BudgetStore } from "./budgets.js";
-
-const discoveryIntervalMilliseconds = 5_000;
+import { readSandboxSettings } from "./sandbox.js";
 
 const supportedPlatforms: NodeJS.Platform[] = ["darwin", "linux", "win32"];
 
@@ -79,6 +78,7 @@ export function startSessionDiscovery(
   budgets?: BudgetStore,
 ): ReturnType<typeof setInterval> | undefined {
   if (!supportedPlatforms.includes(process.platform)) return undefined;
+  const sandbox = readSandboxSettings(process.env);
   const codexHome = codexHomeDirectory();
   const copilot = new CopilotTracker(store, join(process.env.AI_AI_CAPTAIN_COPILOT_HOME ?? join(homedir(), ".copilot"), "session-state"));
   const codex = new CodexTracker(store, codexHome);
@@ -96,6 +96,8 @@ export function startSessionDiscovery(
     try {
       const processes = await listProcesses();
       const lifetimes = await hosts.scan(processes);
+      // A sandbox hub must not read the real desktop applications of the computer.
+      const claudeDesktopScan = sandbox.enabled ? Promise.resolve() : claudeDesktop.scan(processes);
       await Promise.all([
         copilot.scan(processes, lifetimes).catch(() => {
           copilot.unavailable();
@@ -109,11 +111,11 @@ export function startSessionDiscovery(
         junie.scan(processes, lifetimes).catch(() => {
           junie.unavailable();
         }),
-        claudeDesktop.scan(processes).catch(() => {
+        claudeDesktopScan.catch(() => {
           claudeDesktop.unavailable();
         }),
       ]);
-      await discoverDesktopApps(clients, processes, claudeDesktop.hasSessions, claudeDesktop.status);
+      if (!sandbox.enabled) await discoverDesktopApps(clients, processes, claudeDesktop.hasSessions, claudeDesktop.status);
     } catch {
       copilot.unavailable();
       codex.unavailable();
@@ -125,7 +127,7 @@ export function startSessionDiscovery(
     }
   };
   void scan();
-  const timer = setInterval(() => void scan(), discoveryIntervalMilliseconds);
+  const timer = setInterval(() => void scan(), sandbox.discoveryIntervalMilliseconds);
   timer.unref();
   return timer;
 }

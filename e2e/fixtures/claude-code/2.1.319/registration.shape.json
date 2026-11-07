@@ -1,0 +1,27 @@
+{
+  "agent": "claude-code",
+  "agentVersion": "2.1.319",
+  "file": "sessions/<pid>.json",
+  "capturedAt": "2026-11-07",
+  "keys": [
+    { "name": "pid", "type": "number" },
+    { "name": "sessionId", "type": "string" },
+    { "name": "cwd", "type": "string" },
+    { "name": "startedAt", "type": "number" },
+    { "name": "procStart", "type": "string" },
+    { "name": "version", "type": "string" },
+    { "name": "peerProtocol", "type": "number" },
+    { "name": "peerFeatures", "type": "array" },
+    { "name": "kind", "type": "string" },
+    { "name": "entrypoint", "type": "string" },
+    { "name": "pidDomain", "type": "string" },
+    { "name": "asksForConvertedSkills", "type": "boolean" },
+    { "name": "messagingSocketPath", "type": "string" },
+    { "name": "name", "type": "string" },
+    { "name": "nameSource", "type": "string" },
+    { "name": "nameSince", "type": "number" },
+    { "name": "status", "type": "string" },
+    { "name": "updatedAt", "type": "number" },
+    { "name": "statusUpdatedAt", "type": "number" }
+  ]
+}

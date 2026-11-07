@@ -286,16 +286,19 @@ AI_AI_CAPTAIN_PRECISE_FOCUS=1 npm start
 
 Type the setting each time you start the hub.
 
-| Setting                             | Default value                                 | Function                                                  |
-| ----------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
-| `AI_AI_CAPTAIN_PORT`                | `43681`                                       | The network port of the hub.                              |
-| `AI_AI_CAPTAIN_DATA_DIR`            | `~/Library/Application Support/ai-ai-captain` | The folder where AI AI Captain keeps its data.            |
-| `AI_AI_CAPTAIN_PRECISE_FOCUS`       | Off                                           | Set to `1` to go to the exact window when you push a key. |
-| `AI_AI_CAPTAIN_COPILOT_HOME`        | `~/.copilot`                                  | The Copilot data folder.                                  |
-| `AI_AI_CAPTAIN_CODEX_HOME`          | `~/.codex`                                    | The Codex data folder.                                    |
-| `AI_AI_CAPTAIN_CLAUDE_HOME`         | `~/.claude`                                   | The Claude data folder. `CLAUDE_CONFIG_DIR` also sets it. |
-| `AI_AI_CAPTAIN_JUNIE_HOME`          | `~/.junie/sessions`                           | The Junie session folder.                                 |
-| `AI_AI_CAPTAIN_JETBRAINS_INSTANCES` | `~/.junie/instances`                          | The folder where IntelliJ IDEA records its open projects. |
+| Setting                                         | Default value                                 | Function                                                   |
+| ----------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------- |
+| `AI_AI_CAPTAIN_PORT`                            | `43681`                                       | The network port of the hub.                               |
+| `AI_AI_CAPTAIN_DATA_DIR`                        | `~/Library/Application Support/ai-ai-captain` | The folder where AI AI Captain keeps its data.             |
+| `AI_AI_CAPTAIN_PRECISE_FOCUS`                   | Off                                           | Set to `1` to go to the exact window when you push a key.  |
+| `AI_AI_CAPTAIN_COPILOT_HOME`                    | `~/.copilot`                                  | The Copilot data folder.                                   |
+| `AI_AI_CAPTAIN_CODEX_HOME`                      | `~/.codex`                                    | The Codex data folder.                                     |
+| `AI_AI_CAPTAIN_CLAUDE_HOME`                     | `~/.claude`                                   | The Claude data folder. `CLAUDE_CONFIG_DIR` also sets it.  |
+| `AI_AI_CAPTAIN_JUNIE_HOME`                      | `~/.junie/sessions`                           | The Junie session folder.                                  |
+| `AI_AI_CAPTAIN_JETBRAINS_INSTANCES`             | `~/.junie/instances`                          | The folder where IntelliJ IDEA records its open projects.  |
+| `AI_AI_CAPTAIN_SANDBOX`                         | Off                                           | Set to `1` for tests. The hub does not scan desktop apps.  |
+| `AI_AI_CAPTAIN_DISCOVERY_INTERVAL_MILLISECONDS` | `5000`                                        | The time between two scans. The minimum is `100`.          |
+| `AI_AI_CAPTAIN_FOCUS_LOG`                       | Off                                           | A file path. The hub writes focus commands and skips them. |
 
 Change a data folder only if the assistant uses a different folder.
 
@@ -372,6 +375,75 @@ npm run demo:keys -- --brightness
 Keys 1 to 5 show WAITING. Keys 6 to 10 show DONE. Intensity 0 to 4 goes from left to right. The terminal shows the name of each key. This demo does not change the saved setting of the hub.
 
 NOTE: The demo cannot show the aged and assessed DONE keys. These keys need a real session age. The demo keys go before other session keys on the first page.
+
+### 9.1 Play scenarios with mock agents
+
+The sandbox starts a hub with mock agents. The mock agents are real processes with the names that the hub looks for. They write the files that the hub reads. The sandbox also runs the adapters, and `npm run demo:keys` does not.
+
+1. Stop every other hub. The sandbox stops when a hub listens on port `43681`.
+2. Type this command:
+
+   ```sh
+   npm run sandbox -- e2e/scenarios/claude-code-lifecycle.ts e2e/fixtures/claude-code/hand-written/lifecycle.recording.json
+   ```
+
+3. Open <http://127.0.0.1:43681/deck.html> to see the virtual deck.
+4. Read the PASS and FAIL lines in the terminal.
+
+To use a different port, add `--port=<number>` before the scenarios. A scenario module must export a list named `scenarios`. A recording is a `.json` file.
+
+To play the scenarios again and again, add `--loop` before the scenarios. Press **Control** and **C** to stop.
+
+To see the scenarios on the physical Stream Deck, use the setup command in [9.2](#92-show-mock-agents-on-the-physical-deck).
+
+### 9.2 Show mock agents on the physical deck
+
+The plugin uses a hub that already answers when the plugin starts. Thus, the sandbox hub must run before the Stream Deck app starts. This command does the steps for you. It works on macOS only.
+
+CAUTION: THE COMMAND QUITS THE STREAM DECK APP. THE REAL HUB OF THE PLUGIN STOPS WITH IT. YOUR REAL SESSIONS DISAPPEAR FROM THE DECK UNTIL THE SANDBOX STOPS.
+
+1. Save your work in the Stream Deck app.
+2. Type this command:
+
+   ```sh
+   npm run sandbox:deck
+   ```
+
+3. Look at the first keys of the Stream Deck. The mock session goes through WORKING, WAITING, WORKING, and DONE. Each state stays for 4 seconds.
+4. To stop, push **Control** and **C**.
+
+The command does these steps in sequence:
+
+1. It quits the Stream Deck app, if the app runs.
+2. It waits until port `43681` is free. If a hub still listens, it stops and tells you. It never stops a hub by force.
+3. It starts the sandbox hub on port `43681` and plays the scenarios in a loop.
+4. It starts the Stream Deck app.
+
+When you stop the command, the plugin starts its own hub again after a few seconds. To play other scenarios, add them to the command:
+
+```sh
+npm run sandbox:deck -- e2e/fixtures/claude-code/hand-written/lifecycle.recording.json
+```
+
+### 9.3 Run the end-to-end tests
+
+The end-to-end tests start the real hub and mock agents in a temporary folder. They do not change your files. The tests run on macOS and Linux.
+
+1. Install the browser for the virtual deck once:
+
+   ```sh
+   npx playwright-core install chromium
+   ```
+
+2. Type this command:
+
+   ```sh
+   npm run test:e2e
+   ```
+
+The browser runs headless, so the tests need no display. To see the browser while a test runs, set `AI_AI_CAPTAIN_E2E_HEADED=1` before the command. CI ignores this setting.
+
+If a test fails, the message shows the scenario name, the step number, and the last sessions of the hub. The test also keeps a recording of the steps until the failure. The message gives the path of the recording. Refer to [test-harness.md](test-harness.md) for the design of the tests.
 
 ---
 

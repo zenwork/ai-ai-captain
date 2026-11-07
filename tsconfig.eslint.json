@@ -16,9 +16,11 @@
     "src/**/*.ts",
     "web-src/**/*.ts",
     "streamdeck/src/**/*.ts",
+    "e2e/**/*.ts",
     "scripts/**/*.ts",
     "scripts/**/*.d.mts",
     "integrations/**/*.d.mts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "vitest.e2e.config.ts"
   ]
 }

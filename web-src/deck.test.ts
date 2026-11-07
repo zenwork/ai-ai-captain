@@ -289,3 +289,24 @@ describe("deck Picture-in-Picture", () => {
     expect(mainWindow.clearInterval).toHaveBeenCalledWith(1);
   });
 });
+
+describe("deck key contract for tests", () => {
+  function session(id: string, label: string, state: string): Record<string, string> {
+    const now = new Date().toISOString();
+    return { id, source: "test", label, state, createdAt: now, updatedAt: now, lastActivityAt: now };
+  }
+
+  it("shows the identity and the state on the key of each session", async () => {
+    await loadPanel();
+    TestEventSource.instances[0].onmessage?.({ data: JSON.stringify({ type: "snapshot", sessions: [session("one", "Shop · 1a2b3c", "working")] }) });
+    expect(grid.innerHTML).toContain('data-identity="Shop · 1a2b3c"');
+    expect(grid.innerHTML).toContain('data-state="working"');
+    expect(grid.innerHTML).not.toContain("data-attention");
+  });
+
+  it("shows the attention phase on the key of a DONE session", async () => {
+    await loadPanel();
+    TestEventSource.instances[0].onmessage?.({ data: JSON.stringify({ type: "snapshot", sessions: [session("two", "Shop · 4d5e6f", "done")] }) });
+    expect(grid.innerHTML).toMatch(/data-state="done" data-attention="(?:bright|dim)"/);
+  });
+});

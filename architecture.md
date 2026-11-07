@@ -82,6 +82,8 @@ Automatic discovery and window focus run on macOS, Linux, and Windows. macOS use
 | `src/server/claude-desktop.ts`                                             | Experimental exposed-chat Accessibility inspection; only conversation IDs and state leave the inspector                  |
 | `src/server/store.ts`, `clients.ts`, `settings.ts`                         | Canonical session store, separate app-presence registry, and persisted hub-wide palette and flash-intensity settings     |
 | `src/server/app.ts`, `main.ts`, `focus.ts`                                 | Static/API hosting, startup/configuration, macOS navigation                                                              |
+| `src/server/sandbox.ts`                                                    | Settings for test harnesses: sandbox mode, scan interval, and focus dry-run log; read from the environment               |
+| `e2e/harness/`, `e2e/scenarios/`, `e2e/fixtures/`                          | End-to-end test harness: fake agent processes, scenario player, virtual deck fixture, scenarios, and recorded fixtures   |
 | `src/server/parent-process.ts`                                             | Supervised-hub shutdown when the parent plugin process stops                                                             |
 | `src/server/dashboard.ts`                                                  | Default-browser detection, dashboard-tab reuse, and system URL-opening fallback; separate from session focus/assessment  |
 | `src/cli.ts`                                                               | Generic metadata reporter and hook entry point                                                                           |
@@ -176,5 +178,7 @@ Restored sessions remain hidden until a live adapter/reporter confirms them. Per
 A new automatic adapter must prove session identity, lifecycle semantics, ownership/closure evidence, privacy filtering, and recovery behavior before being called supported. It feeds the same session model; consumers should not require vendor-specific telemetry access.
 
 At minimum, changes affecting these boundaries should exercise `npm test`, `npm run typecheck`, and `npm run build`. The plugin runs the hub on the Stream Deck Node 20 runtime. Hub code must therefore use only ES2023 language features and Node 20 APIs. Plugin changes also require Stream Deck package validation and readable 72-pixel visual review. Browser source changes require browser-source type checking as documented in [intagration.md](intagration.md).
+
+The end-to-end harness in [test-harness.md](test-harness.md) runs the real hub against fake agent processes. Run it with `npm run test:e2e`. A change to an adapter must keep the scenarios in `e2e/scenarios/` correct. The harness writes only to a temporary folder and sets `AI_AI_CAPTAIN_SANDBOX=1`, so it does not read the Claude desktop application or the real files of the user. Status: **Implemented** for Claude Code scenarios on macOS and Linux. Other agents are **Required**.
 
 Architectural acceptance includes: no SSR; no fake sessions from app presence; shared state semantics; no transcript persistence; no automatic revival of stale history; and no coupling of session discovery to physical key locations.
