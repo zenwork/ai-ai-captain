@@ -67,17 +67,17 @@ The process list is global. Real agents on the computer do not show in the test 
 
 Each simulator starts a real operating system process. The process name must agree with the name that the hub looks for. Use one of these methods:
 
-- A symbolic link or a hard link to the Node.js binary, with the agent name, for example `<temp>/bin/codex`.
-- `process.title` in the driver script, for names such as `claude bg-spare`.
+- A symbolic link with the agent name to a program that is not Node.js, for example `<temp>/bin/claude` to `/bin/sleep`.
+- A way to set the name when the program starts, for names such as `claude bg-spare`. This is **Required**. `process.title` in Node.js is not enough on Linux (refer to the CAUTION below).
 - A fake host process above the agent, for example `<temp>/IntelliJ IDEA.app/Contents/MacOS/idea` or `<temp>/Terminal.app/Contents/MacOS/Terminal`.
 
-The test controls the driver script through Node.js IPC (`child.send`). The driver writes files, holds files open, releases locks, and stops.
+The harness writes the files itself. The fake host is a shell (`/bin/sh`) that starts the agent, writes the process identifier of the agent, and waits. The harness stops the agent with a signal. A scenario that must hold a file open (Codex) needs a driver process that is not Node.js, or a process name that Node.js can set. This is **Required**.
 
-CAUTION: Make sure that `ps -o comm` on macOS shows the link name for a Node.js symbolic link. If it does not, use a hard link. Do this check first.
+CAUTION: Do not use a link to the Node.js program for a fake process. On Linux, Node.js renames its main thread, and `ps -o comm` shows `MainThread` for every Node.js process. The hub then never finds `claude`, `codex`, or `xterm`. On macOS the link name shows, so only a test on Linux finds this fault. The first CI run on Linux found it (2026-11-07).
 
-NOTE: The check passed on macOS (2026-11-07). A symbolic link shows the path that started it, and `process.title` changes the name. The harness uses symbolic links.
+NOTE: The check on macOS passed for symbolic links to `/bin/sleep` and `/bin/sh`. A symbolic link shows the path that started it.
 
-CAUTION: Do the same check for `process.title`. Names such as `claude bg-spare` and `(2.1.317)` depend on it. On Linux, `comm` is only the base name, with a maximum of 15 characters. Thus, names with a path, such as `…/versions/2.1.317`, do not show there. Use `skipIf` for these names on Linux.
+CAUTION: Names such as `claude bg-spare` and `(2.1.317)` need a way to set the process name. Check each way on macOS and on Linux. On Linux, `comm` is only the base name, with a maximum of 15 characters. Thus, names with a path, such as `…/versions/2.1.317`, do not show there. Use `skipIf` for these names on Linux.
 
 The hub gets the host application from the parent chain of the agent process. A fake host process with a `.app` path makes the hub activate the real application when a test presses a key. Use the focus dry-run (refer to section 9) in each scenario that has a fake host process.
 
