@@ -262,7 +262,10 @@ The user approved this design (2026-11-07). The export is a script that a person
 
 ```sh
 npm run export:recording -- <codex|copilot> <session identifier or file> [--home=<folder>] [--out=<file>]
+npm run export:recording -- <codex|copilot> --list [--home=<folder>] [--limit=<number>]
 ```
+
+The option `--list` shows the session identifiers, the times of the last change, and the file sizes. It reads no content.
 
 The script reads the event file of the agent. It writes a recording file. It never overwrites a file. Refer to `scripts/diagnostics/export-recording.ts`.
 

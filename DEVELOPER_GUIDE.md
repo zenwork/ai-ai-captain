@@ -534,10 +534,25 @@ A recording uses placeholders for values that change in each run: `{PID}`, `{SES
 
 ### 9.7 Export a session to a recording
 
+Usage:
+
+```sh
+npm run export:recording -- <codex|copilot> --list [--home=<folder>] [--limit=<number>]
+npm run export:recording -- <codex|copilot> <session identifier or file> [--home=<folder>] [--out=<file>]
+```
+
 Use the export script to turn a real session into a recording. Run the script by hand. The hub does not run it. Codex and Copilot sessions work today. Claude Code and Junie are **Required**.
 
-1. Find the session identifier. For Codex, it is the UUID at the end of the name of the file `~/.codex/sessions/<year>/<month>/<day>/rollout-<time>-<uuid>.jsonl`. For Copilot, it is the name of the folder in `~/.copilot/session-state/`.
-2. Type this command:
+1. Make a list of the sessions on the computer:
+
+   ```sh
+   npm run export:recording -- codex --list
+   ```
+
+   Each line has the session identifier, the time of the last change, and the size of the file. The newest session is the first line. The list shows no content. For Copilot sessions, use `copilot` in place of `codex`. To show more than 20 lines, add `--limit=<number>`.
+
+2. Choose a session. Use the time and the size to find the session that you want. A session that you just used has the newest time.
+3. Type this command with the identifier from the list:
 
    ```sh
    npm run export:recording -- codex <session identifier>
@@ -545,14 +560,14 @@ Use the export script to turn a real session into a recording. Run the script by
 
    For a Copilot session, use `copilot` in place of `codex`.
 
-3. Open the file that the command names. Read it.
-4. Play it to check it:
+4. Open the file that the command names. Read it.
+5. Play it to check it:
 
    ```sh
    npm run sandbox -- codex-<short identifier>.recording.json
    ```
 
-To use a file that is not in the default folder, give the path of the event file in place of the identifier. To use another agent folder, add `--home=<folder>`. To choose the name of the output, add `--out=<file>`. The command never overwrites a file.
+The list and the export read the default folders `~/.codex` and `~/.copilot`. The variables `AI_AI_CAPTAIN_CODEX_HOME` and `AI_AI_CAPTAIN_COPILOT_HOME` change them. For a file that is not in these folders, give the path of the event file in place of the identifier. To use another agent folder, add `--home=<folder>`. To choose the name of the output, add `--out=<file>`. The command never overwrites a file.
 
 The recording has the sequence of events and nothing else. It has no prompt, response, tool data, error text, model name, token count, path, or session identifier. The recording keeps the event types, the time between events, and the pairing of requests with answers. The command writes the expected states from the state reducer of the hub.
 
