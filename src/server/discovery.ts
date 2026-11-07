@@ -12,6 +12,8 @@ import { hostApplication, listProcesses, type ProcessInfo } from "./processes.js
 import type { SessionStore } from "./store.js";
 import type { BudgetStore } from "./budgets.js";
 
+const discoveryIntervalMilliseconds = 5_000;
+
 const supportedPlatforms: NodeJS.Platform[] = ["darwin", "linux", "win32"];
 
 const candidates = [
@@ -123,7 +125,7 @@ export function startSessionDiscovery(
     }
   };
   void scan();
-  const timer = setInterval(() => void scan(), 1500);
+  const timer = setInterval(() => void scan(), discoveryIntervalMilliseconds);
   timer.unref();
   return timer;
 }

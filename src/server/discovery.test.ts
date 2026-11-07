@@ -1,6 +1,25 @@
-import { describe, expect, it } from "vitest";
-import { discoverDesktopApps, matchesMainAppProcess } from "./discovery.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { discoverDesktopApps, matchesMainAppProcess, startSessionDiscovery } from "./discovery.js";
 import { ClientRegistry } from "./clients.js";
+import { SessionStore } from "./store.js";
+import * as processes from "./processes.js";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
+
+it("starts discovery at once and repeats it every five seconds", async () => {
+  vi.useFakeTimers();
+  const listProcesses = vi.spyOn(processes, "listProcesses").mockRejectedValue(new Error("unavailable"));
+  const timer = startSessionDiscovery(new SessionStore(), new ClientRegistry());
+  expect(listProcesses).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(4_999);
+  expect(listProcesses).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(listProcesses).toHaveBeenCalledTimes(2);
+  clearInterval(timer);
+});
 
 describe("desktop app process matching", () => {
   it.skipIf(process.platform !== "darwin")("shows Claude tracking limits without creating a fake conversation", async () => {
