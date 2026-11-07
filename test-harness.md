@@ -258,40 +258,32 @@ Physical deck: the plugin uses an external hub if a hub answers when the plugin 
 
 ## 11. Export for issue reports
 
-Users must not need Node.js or a terminal. The hub runs in the plugin. Thus, put the export in the dashboard:
+The user approved this design (2026-11-07). The export is a script that a person runs by hand. It is not part of the hub. The hub does not change.
 
-CAUTION: This export goes beyond the privacy rules in ARCH-08 as they are today. The adapters read only the tail of a file, and no code keeps hook payloads. Get approval from the user and change ARCH-08 before you implement the export.
+```sh
+npm run export:recording -- <codex|copilot> <session identifier or file> [--home=<folder>] [--out=<file>]
+```
 
-1. Each session has the action **Export for issue report**.
-2. The dashboard shows a preview of the full file and a redaction summary.
-3. The user downloads the file and attaches it to the GitHub issue.
+The script reads the event file of the agent. It writes a recording file. It never overwrites a file. Refer to `scripts/diagnostics/export-recording.ts`.
 
-Developers can also use `npm run report -- export <id>`.
+| Agent       | Status          | Source file                                      |
+| ----------- | --------------- | ------------------------------------------------ |
+| Codex       | **Implemented** | `sessions/**/rollout-*-<id>.jsonl`               |
+| Copilot     | **Implemented** | `session-state/<id>/events.jsonl`                |
+| Claude Code | **Required**    | The registration is one snapshot. It has no log. |
+| Junie       | **Required**    | Needs a decision about the IDE host evidence     |
 
-Contents of an export:
+### 11.1 Content of an export
 
-| Source                                                 | Content                                                                                                                               |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| File-based agents (Codex, Copilot, Claude Code, Junie) | The full history from the files that the adapter reads, through `exportEvidence`.                                                     |
-| All agents                                             | The process chain from the agent to its host application at export time, with new pid numbers. The open-file evidence of the session. |
-| Hook and API sessions                                  | The report buffer. Sanitize each report when it arrives, and not at export time. Hook payloads can contain tool arguments.            |
-| Claude desktop                                         | The last sanitized inspector snapshots. They contain only conversation IDs and states.                                                |
-| Hub                                                    | The state change buffer as the expected part. The rejection reasons.                                                                  |
+The export has the sequence of events and nothing else.
 
-### 11.1 Sanitization rules
+- The recording keeps the type of each event and the time between events.
+- The recording keeps the pairing of a turn, a request, or a call with its end. The script replaces each identifier with an alias such as `turn-1`.
+- The recording has no prompt, no response, no tool argument, no tool result, no error message, no model name, no token count, no path, and no session identifier.
+- The script uses an allowlist. It copies a field only when the field is on the list. A new field of a new agent version is dropped until a person adds it.
+- The expected part comes from the state reducer of the hub. The script replays the kept events through it. Thus the recording agrees with the current hub code.
 
-These rules must agree with ARCH-08 in [architecture.md](architecture.md).
-
-- Keep all keys. Thus, a format drift stays visible.
-- Replace string values with `"<redacted:LENGTH>"`. Do not replace the fields on the allowlist of each adapter: event types, states, statuses, model names, token counts, timestamps, and identifiers. A length can show the size of private text. Get approval from the user for the lengths, or replace them with a fixed text.
-- Keep numbers and booleans.
-- Always remove message text and tool arguments.
-- Replace paths with placeholders: `{HOME}`, `{CODEX_HOME}`, `{PROJECT_1}`. Remove user names and project names.
-- Identifiers keep their format but not their value. Replace each session UUID with a new UUID, and use the same new UUID in all parts of the file. The adapters validate the UUID format.
-- Move timestamps to a fixed start date. Keep the intervals.
-- Keep the key sequence and the compact JSON format. The Junie adapter reads raw text such as `"state":"X","agentEvent"`. Mark each record whose sanitized form does not agree with the original pattern.
-- Do not read authentication files, `hooks.json`, or settings files. Read only allowlisted fields.
-- Add a privacy test. Put canary secrets in fixtures. The test fails if a canary is in an export.
+CAUTION: The script runs on the computer of the user, and the user reads the recording before sharing it. The privacy test puts canary secrets in the fixtures `e2e/fixtures/export/`. The test fails if a canary is in an export.
 
 ## 12. Fidelity and drift
 

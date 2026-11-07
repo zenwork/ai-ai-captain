@@ -1,0 +1,10 @@
+{"type": "session.start", "timestamp": "2026-11-07T10:00:00.000Z", "data": {"selectedModel": "CANARY-model", "context": {"cwd": "/Users/CANARY-user/secret-project"}}}
+{"type": "user.message", "timestamp": "2026-11-07T10:00:01.000Z", "data": {"content": "CANARY-prompt"}}
+{"type": "assistant.turn_start", "timestamp": "2026-11-07T10:00:01.000Z", "data": {"model": "CANARY-model"}}
+{"type": "tool.execution_start", "timestamp": "2026-11-07T10:00:02.000Z", "data": {"toolName": "bash", "toolCallId": "CANARY-tool-bash", "arguments": {"command": "CANARY-command"}}}
+{"type": "tool.execution_complete", "timestamp": "2026-11-07T10:00:03.000Z", "data": {"toolCallId": "CANARY-tool-bash", "result": "CANARY-result"}}
+{"type": "permission.requested", "timestamp": "2026-11-07T10:00:04.000Z", "data": {"requestId": "CANARY-request", "detail": "CANARY-detail"}}
+{"type": "permission.completed", "timestamp": "2026-11-07T10:00:06.000Z", "data": {"requestId": "CANARY-request"}}
+{"type": "assistant.message", "timestamp": "2026-11-07T10:00:07.000Z", "data": {"content": "CANARY-response"}}
+{"type": "assistant.turn_end", "timestamp": "2026-11-07T10:00:08.000Z", "data": {}}
+{"type": "session.error", "timestamp": "2026-11-07T10:00:09.000Z", "data": {"message": "CANARY-error"}}

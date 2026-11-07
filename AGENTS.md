@@ -183,6 +183,7 @@ Do not edit generated files. Generated files include `web/app.js`, `dist/`, and 
 | `npm run test:e2e`          | Run the end-to-end scenarios with the real hub           |
 | `npm run sandbox`           | Play scenarios in real time on a hub for the decks       |
 | `npm run sandbox:deck`      | Set up the physical Stream Deck to show mock agents      |
+| `npm run export:recording`  | Export the event sequence of a real session to a file    |
 | `npm run typecheck`         | Check the types of the hub and the plugin                |
 | `npm run lint`              | Lint all TypeScript. A warning is a failure.             |
 | `npm run lint:fix`          | Repair the lint problems that ESLint can repair          |

@@ -532,23 +532,44 @@ To play a recording on a deck, give the file to `npm run sandbox` or `npm run sa
 
 A recording uses placeholders for values that change in each run: `{PID}`, `{SESSION}`, `{NOW}`, `{CLAUDE_HOME}`, `{CODEX_HOME}`, `{COPILOT_HOME}`, `{JUNIE_HOME}`, and `{PROJECT_1}`. A path in a recording must stay inside the temporary folder of the test.
 
-### 9.7 Make a recording
+### 9.7 Export a session to a recording
 
-There are three ways to get a recording today.
+Use the export script to turn a real session into a recording. Run the script by hand. The hub does not run it. Codex and Copilot sessions work today. Claude Code and Junie are **Required**.
 
-1. **From a failed scenario.** When a scenario fails, the error message gives the path of a recording file with the steps until the failure. Attach the file to an issue report.
-2. **From an inline scenario.** Call `.toRecording()` on the scenario and write the result to a file with `JSON.stringify`.
-3. **By hand.** Copy `e2e/fixtures/claude-code/hand-written/lifecycle.recording.json` and change it.
+1. Find the session identifier. For Codex, it is the UUID at the end of the name of the file `~/.codex/sessions/<year>/<month>/<day>/rollout-<time>-<uuid>.jsonl`. For Copilot, it is the name of the folder in `~/.copilot/session-state/`.
+2. Type this command:
 
-WARNING: DO NOT PUT PROMPTS, TRANSCRIPTS, RESPONSES, OR TOOL DATA IN A RECORDING. A RECORDING IS A PUBLIC FILE. THE PRIVACY RULES IN `ARCH-08` APPLY TO IT.
+   ```sh
+   npm run export:recording -- codex <session identifier>
+   ```
 
-The export of a real session to a recording is **Required**, and it is not built. The plan is in section 11 of [test-harness.md](test-harness.md). The export needs a decision about the privacy rules first. Until then, make a shape file from a real session to keep a simulator correct:
+   For a Copilot session, use `copilot` in place of `codex`.
+
+3. Open the file that the command names. Read it.
+4. Play it to check it:
+
+   ```sh
+   npm run sandbox -- codex-<short identifier>.recording.json
+   ```
+
+To use a file that is not in the default folder, give the path of the event file in place of the identifier. To use another agent folder, add `--home=<folder>`. To choose the name of the output, add `--out=<file>`. The command never overwrites a file.
+
+The recording has the sequence of events and nothing else. It has no prompt, response, tool data, error text, model name, token count, path, or session identifier. The recording keeps the event types, the time between events, and the pairing of requests with answers. The command writes the expected states from the state reducer of the hub.
+
+NOTE: The expected states show what the current hub does with the events. If the hub is wrong, the recording is wrong too. Check that the states agree with what you saw in the real session.
+
+Two more ways give a recording:
+
+- **From a failed scenario.** The error message ends with the path of a recording with the steps until the failure.
+- **From an inline scenario.** Call `.toRecording()` on the scenario.
+
+To keep a simulator correct, also make a shape file from a real session:
 
 1. Read one real file of the agent, for example a `rollout-*.jsonl` file of Codex.
 2. Write the key names and the value types of each event type to a `*.shape.json` file in `e2e/fixtures/<agent>/<version>/`. Do not write values.
 3. Add a unit test that checks each event of the simulator against the shape file. `e2e/harness/codex.test.ts` is an example.
 
-NOTE: The project has no real Copilot or Junie shape files yet. Their simulators follow the code of the adapters and the unit tests. Make the shape files when you have a real session of these agents.
+NOTE: The project has no real Copilot or Junie shape files yet. Their simulators follow the code of the adapters and the unit tests.
 
 ---
 

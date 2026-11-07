@@ -7,8 +7,8 @@ export const codexFixtureVersion = "0.162.1";
 
 const codexProcessName = "codex";
 // The hub finds the lock file and the rollout file by their names. The folder with the date can be any date.
-const lockPath = "{CODEX_HOME}/thread-writer-locks/{SESSION}.lock";
-const rolloutPath = "{CODEX_HOME}/sessions/2026/11/07/rollout-2026-11-07T10-00-00-{SESSION}.jsonl";
+export const codexLockPath = "{CODEX_HOME}/thread-writer-locks/{SESSION}.lock";
+export const codexRolloutPath = "{CODEX_HOME}/sessions/2026/11/07/rollout-2026-11-07T10-00-00-{SESSION}.jsonl";
 const defaultTurnIdentifier = "turn-1";
 const defaultCallIdentifier = "call-1";
 const permissionRequestName = "request_user_input";
@@ -56,8 +56,8 @@ export class CodexSteps extends AgentSteps {
   spawn(): Operation[] {
     return [
       { operation: "spawn", agent: this.agentKey, processName: codexProcessName },
-      { operation: "holdOpen", agent: this.agentKey, path: lockPath },
-      { operation: "holdOpen", agent: this.agentKey, path: rolloutPath },
+      { operation: "holdOpen", agent: this.agentKey, path: codexLockPath },
+      { operation: "holdOpen", agent: this.agentKey, path: codexRolloutPath },
       this.event("session_meta", {
         session_id: "{SESSION}",
         id: "{SESSION}",
@@ -123,7 +123,7 @@ export class CodexSteps extends AgentSteps {
 
   /** The process closes the lock file. A scenario can examine what the hub does when the lock is gone but the process stays. */
   releaseLock(): Operation[] {
-    return [{ operation: "release", agent: this.agentKey, path: lockPath }];
+    return [{ operation: "release", agent: this.agentKey, path: codexLockPath }];
   }
 
   /** The harness stops the process. The next scan of the hub ends the session. */
@@ -136,7 +136,7 @@ export class CodexSteps extends AgentSteps {
   }
 
   private event(type: string, payload: Record<string, unknown>): Operation {
-    return { operation: "append", agent: this.agentKey, path: rolloutPath, content: { timestamp: "{NOW}", type, payload } };
+    return { operation: "append", agent: this.agentKey, path: codexRolloutPath, content: { timestamp: "{NOW}", type, payload } };
   }
 }
 

@@ -10,8 +10,8 @@ export const copilotFixtureVersion = "unverified";
 const copilotProcessName = "copilot";
 // The hub finds the session through the file `inuse.<pid>.hold`, which the process holds open.
 const sessionDirectory = "{COPILOT_HOME}/session-state/{SESSION}";
-const holdPath = `${sessionDirectory}/inuse.{PID}.hold`;
-const eventsPath = `${sessionDirectory}/events.jsonl`;
+export const copilotHoldPath = `${sessionDirectory}/inuse.{PID}.hold`;
+export const copilotEventsPath = `${sessionDirectory}/events.jsonl`;
 const defaultRequestIdentifier = "request-1";
 
 export interface CopilotOptions {
@@ -43,7 +43,7 @@ export class CopilotSteps extends AgentSteps {
   spawn(): Operation[] {
     return [
       { operation: "spawn", agent: this.agentKey, processName: copilotProcessName },
-      { operation: "holdOpen", agent: this.agentKey, path: holdPath },
+      { operation: "holdOpen", agent: this.agentKey, path: copilotHoldPath },
       this.event("session.start", { selectedModel: this.options.model ?? "copilot-model", context: { cwd: this.options.project ?? "{PROJECT_1}" } }),
     ];
   }
@@ -79,7 +79,7 @@ export class CopilotSteps extends AgentSteps {
   }
 
   private event(type: string, data: Record<string, unknown>): Operation {
-    return { operation: "append", agent: this.agentKey, path: eventsPath, content: { type, timestamp: "{NOW}", data } };
+    return { operation: "append", agent: this.agentKey, path: copilotEventsPath, content: { type, timestamp: "{NOW}", data } };
   }
 }
 
