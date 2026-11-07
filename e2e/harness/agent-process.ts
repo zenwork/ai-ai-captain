@@ -35,7 +35,9 @@ const agentScript = [
 // The host starts the agent as its child, so that the real terminal or editor that runs the test does not become
 // the host of the agent. The agent reads the input of the host. The host writes the process identifier of the agent.
 // Then it waits for the agent to stop and stays alive, as a terminal does, until the harness closes its input.
-const hostScript = '"$0" -c "$1" <&0 & echo "$!"; wait; read -r _';
+// A shell gives /dev/null as input to a background job, even when the job names "<&0". Thus the host copies its input
+// to the file descriptor 3 first, and the agent closes that copy.
+const hostScript = 'exec 3<&0; "$0" -c "$1" <&3 3<&- & echo "$!"; wait; read -r _';
 
 // The shell can use the file descriptors 3 to 9 in the command "exec".
 const firstFileDescriptor = 3;
