@@ -96,9 +96,9 @@ export function createFocusHandler(options: { platform?: NodeJS.Platform; precis
       preciseResult = await activate(`tell application "System Events" to set frontmost of first process whose unix id is ${target.pid} to true`);
       if (preciseResult.focused) return preciseResult;
     }
-    const application = target.appPath ?? target.appName;
-    if (application) return activate(`tell application ${appleScriptString(application)} to activate`);
+    if (target.appPath) return activate(`tell application ${appleScriptString(target.appPath)} to activate`);
     if (target.bundleId) return activate(`tell application id ${appleScriptString(target.bundleId)} to activate`);
+    if (target.appName) return activate(`tell application ${appleScriptString(target.appName)} to activate`);
     if (target.url) {
       const { command, args } = openUrlCommand(platform, target.url);
       return run(command, args);

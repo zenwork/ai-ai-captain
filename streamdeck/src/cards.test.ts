@@ -23,6 +23,7 @@ describe("app keys", () => {
   it("chooses the icon from the app identity", () => {
     expect(appIconName(client("desktop:chatgpt", "ChatGPT", "com.openai.codex"))).toBe("openai");
     expect(appIconName(client("desktop:claude", "Claude", "com.anthropic.claudefordesktop"))).toBe("claude");
+    expect(appIconName(client("desktop:copilot", "Copilot", "com.microsoft.m365copilot"))).toBe("copilot");
     expect(appIconName(client("desktop:other", "Other"))).toBe("app-window");
   });
 

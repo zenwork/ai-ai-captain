@@ -47,8 +47,25 @@ describe("project-aware focus", () => {
     expect(run.mock.calls[0][1].slice(-3)).toEqual(["--", "42", "0123456789abcdef"]);
     run.mockResolvedValueOnce({ focused: false, reason: "not found" });
     expect(await focus(row)).toEqual({ focused: true, scope: "application" });
-    expect(run).toHaveBeenLastCalledWith("/usr/bin/osascript", ["-e", 'tell application "Claude" to activate']);
+    expect(run).toHaveBeenLastCalledWith("/usr/bin/osascript", ["-e", 'tell application id "com.anthropic.claudefordesktop" to activate']);
     expect(focusTargetSchema.safeParse({ claudeRowKey: "Ping; rm -rf" }).success).toBe(false);
+  });
+
+  it("activates an application by bundle identifier when no application path is set", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "darwin", run });
+    expect(await focus({ appName: "Microsoft Copilot", bundleId: "com.microsoft.m365copilot" })).toEqual({ focused: true, scope: "application" });
+    expect(run).toHaveBeenCalledWith("/usr/bin/osascript", ["-e", 'tell application id "com.microsoft.m365copilot" to activate']);
+  });
+
+  it("activates an application by path when set", async () => {
+    const run = successfulRunner();
+    const focus = createFocusHandler({ platform: "darwin", run });
+    expect(await focus({ appName: "Copilot", appPath: "/Applications/Microsoft Copilot.app", bundleId: "com.microsoft.m365copilot" })).toEqual({
+      focused: true,
+      scope: "application",
+    });
+    expect(run).toHaveBeenCalledWith("/usr/bin/osascript", ["-e", 'tell application "/Applications/Microsoft Copilot.app" to activate']);
   });
 
   it("does not press Claude rows on other systems", async () => {
