@@ -10,7 +10,22 @@ permissions:
   contents: read
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
+
   validate:
+    needs: quality
     strategy:
       fail-fast: false
       matrix:
@@ -27,10 +42,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xdotool xvfb
       - run: npm ci
       - run: npm run typecheck
-      # The lint result is the same on each system. Run it one time only.
-      - name: Lint
-        if: runner.os == 'Linux'
-        run: npm run lint
       - name: Test (Linux, with a virtual display)
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum npm test
