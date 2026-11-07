@@ -29,6 +29,8 @@ const hostMessageSchema = z.discriminatedUnion("type", [
 export interface AgentProcess {
   /** The process identifier of the agent. */
   pid: number;
+  /** The process identifier of the fake host program. */
+  hostPid: number;
   /** The time in milliseconds since 1970 when the agent started. */
   startedAt: number;
   /** Stops the agent and waits until it is gone. The fake host stays. */
@@ -109,5 +111,5 @@ export async function startAgentProcess(options: AgentProcessOptions): Promise<A
     host.disconnect();
     await closed;
   };
-  return { pid, startedAt, stopAgent, stopAll };
+  return { pid, hostPid: host.pid ?? 0, startedAt, stopAgent, stopAll };
 }

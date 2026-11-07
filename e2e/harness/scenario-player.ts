@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { promisify } from "node:util";
 import { z } from "zod";
 import { sessionSchema, type Session } from "../../src/shared/session.js";
 import { startAgentProcess, type AgentProcess } from "./agent-process.js";
@@ -12,6 +14,8 @@ import type { Operation } from "./recording.js";
 import type { ScenarioEnvironment } from "./scenario-environment.js";
 import { itemsToRecording, type ExpectationOptions, type ScenarioItem } from "./scenario-items.js";
 
+const execute = promisify(execFile);
+const hubOutputCharacters = 1_500;
 const defaultExpectationMilliseconds = 15_000;
 const pollIntervalMilliseconds = 100;
 
@@ -260,10 +264,31 @@ class ScenarioPlayer {
       `Scenario "${this.options.name}" failed at step ${String(stepNumber)}: ${description}`,
       errorText(error),
       `Last sessions of the hub: ${JSON.stringify(sessions)}`,
+      ...(await this.describeEvidence()),
       ...(deckKeys ? [`Last deck keys: ${JSON.stringify(deckKeys)}`] : []),
       `Steps until the failure: ${recordingPath}`,
     ];
     return new ScenarioFailure(lines.join("\n"));
+  }
+
+  /** Shows what the hub could see: the fake processes, the registration files, and the last output of the hub. */
+  private async describeEvidence(): Promise<string[]> {
+    const processIdentifiers = [...this.agents.values()].flatMap((runtime) => (runtime.process ? [runtime.process.hostPid, runtime.process.pid] : []));
+    const processList = await execute("ps", ["-axo", "pid=,ppid=,comm="]).then(
+      (result) => result.stdout,
+      () => "",
+    );
+    const processLines = processList
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => processIdentifiers.includes(Number(line.split(/\s+/)[0])));
+    const { directories } = this.options.environment.hub;
+    const registrationFiles = await readdir(join(directories.claude, "sessions")).catch(() => []);
+    return [
+      `Fake processes (pid, parent, name): ${JSON.stringify(processLines)}`,
+      `Registration files: ${JSON.stringify(registrationFiles)}`,
+      `Last output of the hub: ${JSON.stringify(this.options.environment.hub.outputTail().slice(-hubOutputCharacters))}`,
+    ];
   }
 
   private async cleanUp(): Promise<void> {
