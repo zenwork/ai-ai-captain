@@ -109,7 +109,8 @@ Each agent factory has its own typed steps:
 
 - `codex()`: `spawn`, `turnContext`, `startTurn`, `tokenCount`, `requestPermission`, `approve`, `completeTurn`, `releaseLock`, `exit`. The step `toolCall` is **Required**. Use `agent.as(CodexSteps)` to get the typed steps. The shape file `e2e/fixtures/codex/0.162.1/rollout-events.shape.json` limits the event keys.
 - `claudeCode()`: `status`, `assistantMessage`, `registration.writeRaw`, `transcript.appendRaw`.
-- `copilot()` and `junie()`: steps from their recorded event types.
+- `copilot()`: `spawn`, `startTurn`, `requestPermission`, `approve`, `completeTurn`, `shutdown`, `exit`. The events follow the adapter. No real shape file exists.
+- `junie()`: `spawn`, `startTask`, `completeTask`, `failTask`, `exit`. The simulator starts a fake IntelliJ IDEA process, so it works on macOS only.
 - `hook("<harness>")`: `event(name, payload)`.
 
 Builder rules:
@@ -495,22 +496,28 @@ The player examines each item of the expected part in sequence. Each item uses t
 
 ### 15.2 Status of Phase 1
 
-| Item                                                                    | Status          | Where                                                                        |
-| ----------------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
-| Recording format and placeholder rules                                  | **Implemented** | `e2e/harness/recording.ts`, `placeholders.ts`                                |
-| Scenario player and builder API (spawn, write, exit, expectations)      | **Implemented** | `e2e/harness/scenario.ts`, `scenario-player.ts`, `scenario-items.ts`         |
-| Claude Code simulator (macOS and Linux)                                 | **Implemented** | `e2e/harness/claude-code.ts`, `agent-process.ts`                             |
-| Hub launcher with temporary folders                                     | **Implemented** | `e2e/harness/hub-process.ts`, `scenario-environment.ts`                      |
-| Deck fixture with `bright`, `dim`, `aged`, and `assessed` attention     | **Implemented** | `e2e/harness/deck-fixture.ts`, `web-src/deck.ts`                             |
-| Sandbox flag, discovery interval, focus dry-run, stable deck attributes | **Implemented** | `src/server/sandbox.ts`, `discovery.ts`, `focus.ts`, `web-src/deck.ts`       |
-| `npm run test:e2e`, `npm run sandbox`                                   | **Implemented** | `vitest.e2e.config.ts`, `scripts/dev/sandbox.ts`                             |
-| Two starter tests and the equality test                                 | **Implemented** | `e2e/scenarios/claude-code-lifecycle.e2e.test.ts`                            |
-| Shape file, shape check, and tolerance scenarios (Claude Code)          | **Implemented** | `e2e/harness/shape.ts`, `e2e/scenarios/claude-code-registration.e2e.test.ts` |
-| Codex simulator (lock file held open, rollout events)                   | **Implemented** | `e2e/harness/codex.ts`, `e2e/scenarios/codex-lifecycle.e2e.test.ts`          |
-| Transcript steps of Claude Code (`assistantMessage`)                    | **Required**    |                                                                              |
-| Scenario for the known defect in section 16                             | **Required**    | Needs a decision on the open questions in section 17                         |
-| `.parallel()`, `.at()`, `.requires()`, `skipIf` helpers                 | **Required**    |                                                                              |
-| Windows support of the simulators                                       | **Required**    | `isAgentSimulationSupported` is false on Windows                             |
+| Item                                                                         | Status          | Where                                                                        |
+| ---------------------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
+| Recording format and placeholder rules                                       | **Implemented** | `e2e/harness/recording.ts`, `placeholders.ts`                                |
+| Scenario player and builder API (spawn, write, exit, expectations)           | **Implemented** | `e2e/harness/scenario.ts`, `scenario-player.ts`, `scenario-items.ts`         |
+| Claude Code simulator (macOS and Linux)                                      | **Implemented** | `e2e/harness/claude-code.ts`, `agent-process.ts`                             |
+| Hub launcher with temporary folders                                          | **Implemented** | `e2e/harness/hub-process.ts`, `scenario-environment.ts`                      |
+| Deck fixture with `bright`, `dim`, `aged`, and `assessed` attention          | **Implemented** | `e2e/harness/deck-fixture.ts`, `web-src/deck.ts`                             |
+| Sandbox flag, discovery interval, focus dry-run, stable deck attributes      | **Implemented** | `src/server/sandbox.ts`, `discovery.ts`, `focus.ts`, `web-src/deck.ts`       |
+| `npm run test:e2e`, `npm run sandbox`                                        | **Implemented** | `vitest.e2e.config.ts`, `scripts/dev/sandbox.ts`                             |
+| Two starter tests and the equality test                                      | **Implemented** | `e2e/scenarios/claude-code-lifecycle.e2e.test.ts`                            |
+| Shape file, shape check, and tolerance scenarios (Claude Code)               | **Implemented** | `e2e/harness/shape.ts`, `e2e/scenarios/claude-code-registration.e2e.test.ts` |
+| Codex simulator (lock file held open, rollout events)                        | **Implemented** | `e2e/harness/codex.ts`, `e2e/scenarios/codex-lifecycle.e2e.test.ts`          |
+| Copilot simulator (`inuse` file held open, `events.jsonl` events)            | **Implemented** | `e2e/harness/copilot.ts`, `e2e/scenarios/copilot-lifecycle.e2e.test.ts`      |
+| Junie simulator (fake IntelliJ IDEA, project registration, session files)    | **Implemented** | `e2e/harness/junie.ts`. macOS only.                                          |
+| Shape files of Copilot and Junie                                             | **Required**    | The project has no real session files of these agents                        |
+| Scenario modules for the sandbox (Claude Code, Codex, Copilot, Junie)        | **Implemented** | `e2e/scenarios/*-lifecycle.ts`                                               |
+| Process isolation: the hub in a test sees the real processes of the computer | **Required**    | A real IntelliJ IDEA keeps a Junie session visible after the fake IDE stops  |
+| Export of a real session to a recording (section 11)                         | **Required**    | Needs approval for the privacy rules                                         |
+| Transcript steps of Claude Code (`assistantMessage`)                         | **Required**    |                                                                              |
+| Scenario for the known defect in section 16                                  | **Required**    | Needs a decision on the open questions in section 17                         |
+| `.parallel()`, `.at()`, `.requires()`, `skipIf` helpers                      | **Required**    |                                                                              |
+| Windows support of the simulators                                            | **Required**    | `isAgentSimulationSupported` is false on Windows                             |
 
 ## 16. Known defect to reproduce first
 

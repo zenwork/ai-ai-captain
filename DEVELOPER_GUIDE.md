@@ -427,7 +427,7 @@ npm run sandbox:deck -- e2e/fixtures/claude-code/hand-written/lifecycle.recordin
 
 ### 9.3 Run the end-to-end tests
 
-The end-to-end tests start the real hub and mock agents in a temporary folder. They do not change your files. The tests run on macOS and Linux.
+The end-to-end tests start the real hub and mock agents in a temporary folder. They do not change your files. The tests run on macOS and Linux. The Junie scenario runs on macOS only.
 
 1. Install the browser for the virtual deck once:
 
@@ -444,6 +444,112 @@ The end-to-end tests start the real hub and mock agents in a temporary folder. T
 The browser runs headless, so the tests need no display. To see the browser while a test runs, set `AI_AI_CAPTAIN_E2E_HEADED=1` before the command. CI ignores this setting.
 
 If a test fails, the message shows the scenario name, the step number, and the last sessions of the hub. The test also keeps a recording of the steps until the failure. The message gives the path of the recording. Refer to [test-harness.md](test-harness.md) for the design of the tests.
+
+### 9.4 Write a scenario
+
+A scenario is a list of steps. Each step does one thing: start a mock agent, change a file, or check the hub. Put a scenario in `e2e/scenarios/`. Name the file `<agent>-<topic>.ts`. Name the test `<agent>-<topic>.e2e.test.ts`.
+
+This example runs one Codex session through working and done:
+
+```ts
+import { codex, CodexSteps } from "../harness/codex.js";
+import { scenario } from "../harness/scenario.js";
+
+await scenario("codex short life cycle")
+  .agent("cli", codex({ model: "codex-model" }))
+  .step("cli", (agent) => agent.as(CodexSteps).spawn())
+  .step("cli", (agent) => agent.as(CodexSteps).startTurn())
+  .expectSession("cli", { harness: "codex-cli", state: "working" })
+  .step("cli", (agent) => agent.as(CodexSteps).completeTurn())
+  .expectSession("cli", { state: "done" })
+  .run();
+```
+
+The first argument of `.step()` and `.expectSession()` is the agent key. A scenario can use more than one agent. Use a different key for each agent.
+
+| Agent       | Import                               | Process that the hub looks for | Systems      |
+| ----------- | ------------------------------------ | ------------------------------ | ------------ |
+| Claude Code | `claudeCode()` and `ClaudeCodeSteps` | `claude`                       | macOS, Linux |
+| Codex       | `codex()` and `CodexSteps`           | `codex`                        | macOS, Linux |
+| Copilot     | `copilot()` and `CopilotSteps`       | `copilot`                      | macOS, Linux |
+| Junie       | `junie()` and `JunieSteps`           | IntelliJ IDEA (`idea`)         | macOS        |
+
+These methods check the hub and the deck:
+
+| Method                        | Function                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `.expectSession(key, fields)` | Wait until the session has these fields. Use `undefined` to wait until it is gone.   |
+| `.deck(options)`              | Open the virtual deck in a headless browser. Use it before the deck steps.           |
+| `.expectDeck(check)`          | Wait until the check passes for a snapshot of the deck keys.                         |
+| `.advanceDeckClock("10m")`    | Move the clock of the deck page forward, to age a DONE key. Use `clock: "manual"`.   |
+| `.pressKey(number)`           | Press a session key or an app key on the virtual deck.                               |
+| `.expectFocus({ appName })`   | Wait until the hub tries to focus the application. The hub does not run the command. |
+| `.wait("2s")`                 | Wait. Use it only for behavior that depends on time.                                 |
+
+Each expectation waits up to 15 seconds. Add `{ within: "30s" }` to change the limit. Add `{ during: "5s" }` to make sure that the value does not change.
+
+NOTE: The hub in a test sees all processes of the computer. If IntelliJ IDEA runs on your computer, the hub sees it too. Thus the Junie scenario does not check that the session disappears when the mock IDE stops.
+
+### 9.5 Show a scenario on a virtual deck or a physical deck
+
+The virtual deck is the page `/deck.html` of the hub. The physical deck is the Stream Deck with the plugin. Both show the sessions of the hub. Use the sandbox for both.
+
+1. Export the scenarios from a module as `export const scenarios: ScenarioBuilder[] = [...]`. The modules `e2e/scenarios/*-lifecycle.ts` are examples. They wait 4 seconds after each state.
+2. To show the scenario on the virtual deck, type this command and open <http://127.0.0.1:43681/deck.html>:
+
+   ```sh
+   npm run sandbox -- e2e/scenarios/codex-lifecycle.ts
+   ```
+
+3. To show the scenario on the physical deck, type this command. Read the CAUTION in [9.2](#92-show-mock-agents-on-the-physical-deck) first:
+
+   ```sh
+   npm run sandbox:deck -- e2e/scenarios/codex-lifecycle.ts
+   ```
+
+You can give more than one module or recording to both commands. They play the files in the order that you give them. Add `--loop` to the sandbox command to play them again and again.
+
+To check the virtual deck in a test, use `.deck()` and `.expectDeck()` in the scenario. The test runs the browser headless. To see the browser, set `AI_AI_CAPTAIN_E2E_HEADED=1`.
+
+### 9.6 Use a recording
+
+A recording is a JSON file with the steps of a scenario. A recording has three parts: a header, a timeline of operations, and the expected states. The player plays the timeline and checks the expected states in sequence.
+
+Use a recording to do these tasks:
+
+- Play a session from an issue report again.
+- Make sure that an inline scenario and a recording give the same result.
+- Show the same steps on a deck, without TypeScript.
+
+To play a recording in a test:
+
+```ts
+import { scenario } from "../harness/scenario.js";
+
+await scenario.fromRecording("e2e/fixtures/claude-code/hand-written/lifecycle.recording.json").run();
+```
+
+To play a recording on a deck, give the file to `npm run sandbox` or `npm run sandbox:deck`.
+
+A recording uses placeholders for values that change in each run: `{PID}`, `{SESSION}`, `{NOW}`, `{CLAUDE_HOME}`, `{CODEX_HOME}`, `{COPILOT_HOME}`, `{JUNIE_HOME}`, and `{PROJECT_1}`. A path in a recording must stay inside the temporary folder of the test.
+
+### 9.7 Make a recording
+
+There are three ways to get a recording today.
+
+1. **From a failed scenario.** When a scenario fails, the error message gives the path of a recording file with the steps until the failure. Attach the file to an issue report.
+2. **From an inline scenario.** Call `.toRecording()` on the scenario and write the result to a file with `JSON.stringify`.
+3. **By hand.** Copy `e2e/fixtures/claude-code/hand-written/lifecycle.recording.json` and change it.
+
+WARNING: DO NOT PUT PROMPTS, TRANSCRIPTS, RESPONSES, OR TOOL DATA IN A RECORDING. A RECORDING IS A PUBLIC FILE. THE PRIVACY RULES IN `ARCH-08` APPLY TO IT.
+
+The export of a real session to a recording is **Required**, and it is not built. The plan is in section 11 of [test-harness.md](test-harness.md). The export needs a decision about the privacy rules first. Until then, make a shape file from a real session to keep a simulator correct:
+
+1. Read one real file of the agent, for example a `rollout-*.jsonl` file of Codex.
+2. Write the key names and the value types of each event type to a `*.shape.json` file in `e2e/fixtures/<agent>/<version>/`. Do not write values.
+3. Add a unit test that checks each event of the simulator against the shape file. `e2e/harness/codex.test.ts` is an example.
+
+NOTE: The project has no real Copilot or Junie shape files yet. Their simulators follow the code of the adapters and the unit tests. Make the shape files when you have a real session of these agents.
 
 ---
 

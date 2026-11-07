@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { type AgentSteps } from "./agent-steps.js";
 import { type ClaudeCodeAgent } from "./claude-code.js";
 import { type CodexAgent } from "./codex.js";
+import { type CopilotAgent } from "./copilot.js";
+import { type JunieAgent } from "./junie.js";
 import type { DeckOptions, DeckSnapshot } from "./deck-fixture.js";
 import { parseDurationMilliseconds } from "./duration.js";
 import { recordingSchema, type Operation, type Recording } from "./recording.js";
@@ -9,7 +11,7 @@ import { startScenarioEnvironment, type ScenarioEnvironment } from "./scenario-e
 import { itemsToRecording, recordingToItems, type ExpectationOptions, type ScenarioItem } from "./scenario-items.js";
 import { playScenario } from "./scenario-player.js";
 
-type AgentDefinition = ClaudeCodeAgent | CodexAgent;
+type AgentDefinition = ClaudeCodeAgent | CodexAgent | CopilotAgent | JunieAgent;
 type AgentFactory = (agentKey: string) => AgentDefinition;
 
 export interface RunOptions {

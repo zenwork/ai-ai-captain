@@ -153,11 +153,13 @@ class ScenarioPlayer {
       CODEX_HOME: directories.codex,
       COPILOT_HOME: directories.copilot,
       JUNIE_HOME: directories.junie,
+      JETBRAINS_INSTANCES: directories.jetbrainsInstances,
       PROJECT_1: this.options.environment.projectDirectory,
     };
     if (name in fixed) return fixed[name];
     const runtime = this.agent(this.resolveAgentKey(agentKey));
     if (name === "NOW") return new Date().toISOString();
+    if (name === "NOW_MS") return Date.now();
     if (name === "SESSION") return runtime.sessionUuid;
     if (!runtime.process) throw new Error(`The placeholder {${name}} needs a started agent`);
     if (name === "PID") return runtime.process.pid;
@@ -272,7 +274,14 @@ class ScenarioPlayer {
     const recordingPath = join(this.options.environment.temporaryDirectory, `${this.options.name.replaceAll(/\W+/g, "-")}.recording.json`);
     const recording = itemsToRecording(this.options.items.slice(0, this.executedCount), this.options.recordingHeader, this.agents.size <= 1);
     await writeFile(recordingPath, JSON.stringify(recording, undefined, 2)).catch(() => undefined);
-    const sessions = this.lastSessions.map((session) => ({ id: session.id, state: session.state, harness: session.harness, model: session.model }));
+    const sessions = this.lastSessions.map((session) => ({
+      id: session.id,
+      state: session.state,
+      harness: session.harness,
+      model: session.model,
+      hostLifetime: session.metadata?.hostLifetime,
+      hostEvidence: session.metadata?.hostEvidence,
+    }));
     const deckKeys = this.lastDeck?.view.keys.filter((key) => key.kind === "session" || key.kind === "app").map((key) => key.label);
     const lines = [
       `Scenario "${this.options.name}" failed at step ${String(stepNumber)}: ${description}`,

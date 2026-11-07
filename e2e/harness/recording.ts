@@ -5,8 +5,12 @@ export const recordingFormatVersion = 1;
 
 const durationSchema = z.string().regex(durationPattern);
 
-// A process name becomes the name of a link in a temporary folder. A recording is data from outside, so allow only safe characters.
-const processNameSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._() -]{0,63}$/);
+// A process name becomes the path of a link in a temporary folder. A recording is data from outside, so allow only safe characters.
+// A name can have folders, for example `IntelliJ IDEA.app/Contents/MacOS/idea`. A folder name must not be `..`.
+const processNameSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._() /-]{0,127}$/)
+  .refine((name) => name.split("/").every((part) => part !== "" && part !== ".." && part !== "."));
 
 const spawnOperationSchema = z.object({
   offset: durationSchema.optional(),

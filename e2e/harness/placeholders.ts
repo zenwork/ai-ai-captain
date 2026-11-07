@@ -7,7 +7,7 @@ const placeholderPattern = /\{([A-Z_0-9]+)(?::([A-Za-z0-9_-]+))?\}/g;
 const wholePlaceholderPattern = /^\{([A-Z_0-9]+)(?::([A-Za-z0-9_-]+))?\}$/;
 
 // A value that is only one of these placeholders keeps its number type in a JSON object.
-const numericPlaceholderNames = new Set(["PID", "T"]);
+const numericPlaceholderNames = new Set(["PID", "T", "NOW_MS"]);
 
 function resolveText(text: string, lookup: PlaceholderLookup): string | number {
   const whole = wholePlaceholderPattern.exec(text);
