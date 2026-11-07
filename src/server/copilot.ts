@@ -3,9 +3,10 @@ import type { FocusTarget, SessionInput, SessionState } from "../shared/session.
 import { hostApplication, listOpenFiles, type ProcessInfo } from "./processes.js";
 import type { SessionStore } from "./store.js";
 import { EventCursor } from "./events.js";
-import { SessionLifetimeGate, type LifetimeInspector } from "./lifetimes.js";
+import { SessionLifetimeGate, type HostLifetime, type LifetimeInspector } from "./lifetimes.js";
 
 type Fields = Record<string, unknown>;
+const ideProcessPattern = /\/IntelliJ IDEA[^/]*\.app\/Contents\/MacOS\/idea$/;
 
 function fields(value: unknown): Fields {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Fields) : {};
@@ -109,10 +110,10 @@ export class CopilotTracker {
   async scan(processes: ProcessInfo[], lifetimes?: LifetimeInspector): Promise<void> {
     const candidates = processes.filter((process) => /(?:^|\/)(?:copilot|copilot-runtime)(?:$|\s)/.test(process.name));
     const output = await listOpenFiles(candidates.map((process) => process.pid));
-    await this.reconcile(copilotOwners(output, this.root, processes), lifetimes);
+    await this.reconcile(copilotOwners(output, this.root, processes), lifetimes, processes);
   }
 
-  async reconcile(owners: CopilotOwner[], lifetimes?: LifetimeInspector): Promise<void> {
+  async reconcile(owners: CopilotOwner[], lifetimes?: LifetimeInspector, processes?: ProcessInfo[]): Promise<void> {
     const present = new Set(owners.map((owner) => `copilot:${owner.sessionId}`));
     for (const owner of owners) {
       const id = `copilot:${owner.sessionId}`;
@@ -129,7 +130,7 @@ export class CopilotTracker {
         errorCode = typeof code === "string" ? code.slice(0, 40) : "READ_FAILED";
       }
       const observed = cursor.state;
-      const lifetime = (await lifetimes?.(owner, observed.project)) ?? { status: "unverified", evidence: "Runtime ownership only" };
+      const { lifetime, focusTarget } = await this.#projectLifetime(owner, observed.project, lifetimes, processes);
       if (!this.#lifetimes.visible(id, lifetime, observed.lastTriggeredAt)) {
         this.store.remove(id);
         this.#tracked.delete(id);
@@ -139,16 +140,16 @@ export class CopilotTracker {
       const input: SessionInput = {
         id,
         source: "copilot-local",
-        harness: owner.focusTarget?.appName?.includes("IntelliJ") ? "copilot-ide" : "copilot-cli",
+        harness: focusTarget?.appName?.includes("IntelliJ") ? "copilot-ide" : "copilot-cli",
         label: `${observed.project ? basename(observed.project) : "Copilot"} · ${owner.sessionId.slice(0, 6)}`,
         state: available ? observed.state : "unknown",
         ended: available ? observed.ended : false,
         model: observed.model,
         project: observed.project,
-        focusTarget: owner.focusTarget,
+        focusTarget,
         metadata: {
           sessionId: owner.sessionId,
-          host: owner.focusTarget?.appName ?? "CLI",
+          host: focusTarget?.appName ?? "CLI",
           ownerPid: String(owner.pid),
           tracking: "copilot-events",
           hostLifetime: lifetime.status,
@@ -181,6 +182,40 @@ export class CopilotTracker {
       this.#cursors.delete(id);
       this.#lifetimes.forget(id);
     }
+  }
+
+  async #projectLifetime(
+    owner: CopilotOwner,
+    project: string | undefined,
+    lifetimes?: LifetimeInspector,
+    processes?: ProcessInfo[],
+  ): Promise<{ lifetime: HostLifetime; focusTarget?: FocusTarget }> {
+    const runtimeFocusTarget = owner.focusTarget;
+    const fallbackLifetime: HostLifetime = { status: "unverified", evidence: "Runtime ownership only" };
+    if (!lifetimes || !processes?.length || !runtimeFocusTarget?.appName?.includes("IntelliJ")) {
+      return { lifetime: (await lifetimes?.(owner, project)) ?? fallbackLifetime, focusTarget: runtimeFocusTarget };
+    }
+
+    const hosts = processes.filter((process) => ideProcessPattern.test(process.name));
+    if (hosts.length === 0) {
+      return { lifetime: await lifetimes(owner, project), focusTarget: runtimeFocusTarget };
+    }
+
+    let fallback: HostLifetime | undefined;
+    let fallbackFocusTarget: FocusTarget | undefined;
+    for (const host of hosts) {
+      const focusTarget = hostApplication(host.pid, processes);
+      const lifetime = await lifetimes({ pid: host.pid, focusTarget }, project);
+      if (lifetime.status === "open") return { lifetime, focusTarget };
+      if (!fallback || lifetime.status === "unverified") {
+        fallback = lifetime;
+        fallbackFocusTarget = focusTarget;
+      }
+    }
+    return {
+      lifetime: fallback ?? fallbackLifetime,
+      focusTarget: fallbackFocusTarget ?? runtimeFocusTarget,
+    };
   }
 
   unavailable(): void {
