@@ -63,6 +63,178 @@ describe("Copilot session tracking", () => {
     expect(store.list()).toHaveLength(2);
   });
 
+  it("focuses an IDE Copilot session on the IDEA installation with its project open", async () => {
+    const { store, tracker, owners } = await fixture();
+    const processes = [
+      { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.3.app/Contents/MacOS/idea" },
+      { pid: 20, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.2.app/Contents/MacOS/idea" },
+      { pid: 123, parentPid: 10, name: "/cache/copilot-runtime" },
+    ];
+    const owner = {
+      ...owners[0],
+      focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA 2026.3.app" },
+    };
+    const inspectedPids: number[] = [];
+    const inspect = async (host: { pid: number }) => {
+      inspectedPids.push(host.pid);
+      return {
+        status: host.pid === 20 ? ("open" as const) : ("closed" as const),
+        evidence: "JetBrains project registration",
+      };
+    };
+
+    await tracker.reconcile([owner], inspect, processes);
+
+    expect(inspectedPids).toEqual([10, 20]);
+    expect(store.get("copilot:first-session")).toMatchObject({
+      harness: "copilot-ide",
+      project: "/projects/example",
+      focusTarget: {
+        appName: "IntelliJ IDEA",
+        pid: 20,
+        appPath: "/Applications/IntelliJ IDEA 2026.2.app",
+      },
+      metadata: { hostLifetime: "open", hostEvidence: "JetBrains project registration" },
+    });
+  });
+
+  it("falls back to unverified IDEA host when no host is open", async () => {
+    const { store, tracker, owners } = await fixture();
+    const processes = [
+      { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.3.app/Contents/MacOS/idea" },
+      { pid: 20, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.2.app/Contents/MacOS/idea" },
+      { pid: 123, parentPid: 10, name: "/cache/copilot-runtime" },
+    ];
+    const owner = {
+      ...owners[0],
+      focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA 2026.3.app" },
+    };
+    const inspect = async (host: { pid: number }) => ({
+      status: host.pid === 20 ? ("unverified" as const) : ("closed" as const),
+      evidence: host.pid === 20 ? "Unverified host" : "Closed host",
+    });
+
+    await tracker.reconcile([owner], inspect, processes);
+
+    expect(store.get("copilot:first-session")).toMatchObject({
+      harness: "copilot-ide",
+      focusTarget: {
+        appName: "IntelliJ IDEA",
+        pid: 20,
+        appPath: "/Applications/IntelliJ IDEA 2026.2.app",
+      },
+      metadata: { hostLifetime: "unverified", hostEvidence: "Unverified host" },
+    });
+  });
+
+  it("retains runtime parent focus target when parent is not IntelliJ IDEA", async () => {
+    const { store, tracker, owners } = await fixture();
+    const processes = [
+      { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.3.app/Contents/MacOS/idea" },
+      { pid: 50, parentPid: 1, name: "/usr/bin/zsh" },
+      { pid: 123, parentPid: 50, name: "/cache/copilot-runtime" },
+    ];
+    const owner = {
+      ...owners[0],
+      focusTarget: { appName: "Terminal", pid: 50 },
+    };
+    const inspectedPids: number[] = [];
+    const inspect = async (host: { pid: number }) => {
+      inspectedPids.push(host.pid);
+      return { status: "open" as const, evidence: "Terminal connection active" };
+    };
+
+    await tracker.reconcile([owner], inspect, processes);
+
+    expect(inspectedPids).toEqual([123]);
+    expect(store.get("copilot:first-session")).toMatchObject({
+      harness: "copilot-cli",
+      focusTarget: { appName: "Terminal", pid: 50 },
+      metadata: { host: "Terminal", hostLifetime: "open" },
+    });
+  });
+
+  it("removes an IDE Copilot session when every IDEA host is closed", async () => {
+    const { store, tracker, owners } = await fixture();
+    const processes = [
+      { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.3.app/Contents/MacOS/idea" },
+      { pid: 20, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.2.app/Contents/MacOS/idea" },
+      { pid: 123, parentPid: 10, name: "/cache/copilot-runtime" },
+    ];
+    const owner = {
+      ...owners[0],
+      focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA 2026.3.app" },
+    };
+    const inspectedPids: number[] = [];
+    const inspect = async (host: { pid: number }) => {
+      inspectedPids.push(host.pid);
+      return { status: "closed" as const, evidence: "Closed host" };
+    };
+
+    await tracker.reconcile([owner], inspect, processes);
+
+    expect(inspectedPids).toEqual([10, 20]);
+    expect(store.get("copilot:first-session")).toBeUndefined();
+    expect(store.list()).toHaveLength(0);
+  });
+
+  it("keeps the runtime parent target when no running process matches the IDEA binary pattern", async () => {
+    const { store, tracker, owners } = await fixture();
+    const processes = [
+      { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.3.app/Contents/Frameworks/Helper" },
+      { pid: 123, parentPid: 10, name: "/cache/copilot-runtime" },
+    ];
+    const owner = {
+      ...owners[0],
+      focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA 2026.3.app" },
+    };
+    const inspectedPids: number[] = [];
+    const inspect = async (host: { pid: number }) => {
+      inspectedPids.push(host.pid);
+      return { status: "open" as const, evidence: "Runtime owner registration" };
+    };
+
+    await tracker.reconcile([owner], inspect, processes);
+
+    expect(inspectedPids).toEqual([123]);
+    expect(store.get("copilot:first-session")).toMatchObject({
+      harness: "copilot-ide",
+      focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA 2026.3.app" },
+      metadata: { host: "IntelliJ IDEA", hostLifetime: "open", hostEvidence: "Runtime owner registration" },
+    });
+  });
+
+  it("selects the last unverified IDEA host when several hosts are unverified and none is open", async () => {
+    const { store, tracker, owners } = await fixture();
+    const processes = [
+      { pid: 10, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.3.app/Contents/MacOS/idea" },
+      { pid: 20, parentPid: 1, name: "/Applications/IntelliJ IDEA 2026.2.app/Contents/MacOS/idea" },
+      { pid: 123, parentPid: 10, name: "/cache/copilot-runtime" },
+    ];
+    const owner = {
+      ...owners[0],
+      focusTarget: { appName: "IntelliJ IDEA", pid: 10, appPath: "/Applications/IntelliJ IDEA 2026.3.app" },
+    };
+    const inspectedPids: number[] = [];
+    const inspect = async (host: { pid: number }) => {
+      inspectedPids.push(host.pid);
+      return { status: "unverified" as const, evidence: `Unverified host ${host.pid}` };
+    };
+
+    await tracker.reconcile([owner], inspect, processes);
+
+    expect(inspectedPids).toEqual([10, 20]);
+    expect(store.get("copilot:first-session")).toMatchObject({
+      harness: "copilot-ide",
+      focusTarget: {
+        appName: "IntelliJ IDEA",
+        pid: 20,
+        appPath: "/Applications/IntelliJ IDEA 2026.2.app",
+      },
+      metadata: { hostLifetime: "unverified", hostEvidence: "Unverified host 20" },
+    });
+  });
+
   it("does not restore conversations predating a reopened project and removes revoked CLI terminals", async () => {
     const { store, tracker, owners } = await fixture();
     const openedAt = Date.parse("2026-10-25T12:30:00.000Z");
