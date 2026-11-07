@@ -153,18 +153,18 @@ When you edit a file that has incorrect tables, correct the tables that you chan
 
 ## 5. Project structure
 
-| Path                       | Content                                                   |
-| -------------------------- | --------------------------------------------------------- |
-| `src/server/`              | Hub: HTTP API, adapters, discovery, store, focus          |
-| `src/shared/`              | Code and types for the hub, the plugin, and the dashboard |
-| `src/cli.ts`               | Reporter and hook command                                 |
-| `web-src/`                 | Dashboard source. The build makes `web/app.js`.           |
-| `web/`                     | Static dashboard files and service worker                 |
-| `streamdeck/src/`          | Stream Deck plugin source                                 |
-| `streamdeck/manifest.json` | Stream Deck plugin manifest                               |
-| `intellij-bridge/`         | Optional Kotlin IntelliJ plugin                           |
-| `scripts/`                 | Build, package, and design render scripts                 |
-| `docs/design/`             | Palettes, icon sheets, and design tokens                  |
+| Path                       | Content                                                     |
+| -------------------------- | ----------------------------------------------------------- |
+| `src/server/`              | Hub: HTTP API, adapters, discovery, store, focus            |
+| `src/shared/`              | Code and types for the hub, the plugin, and the dashboard   |
+| `src/cli.ts`               | Reporter and hook command                                   |
+| `web-src/`                 | Dashboard source. The build makes `web/app.js`.             |
+| `web/`                     | Static dashboard files and service worker                   |
+| `streamdeck/src/`          | Stream Deck plugin source                                   |
+| `streamdeck/manifest.json` | Stream Deck plugin manifest                                 |
+| `intellij-bridge/`         | Optional Kotlin IntelliJ plugin                             |
+| `scripts/`                 | Scripts in `design/`, `streamdeck/`, `dev/`, `diagnostics/` |
+| `docs/design/`             | Palettes, icon sheets, and design tokens                    |
 
 The `project-structure` skill in `.claude/skills/project-structure/` gives the rules for the location and the names of files and symbols.
 

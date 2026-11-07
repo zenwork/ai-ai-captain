@@ -317,7 +317,7 @@ Next step: run a Codex thread in the ChatGPT app. Check if the Codex adapter sho
 The Claude desktop adapter and sidebar row focus use macOS Accessibility only. Windows has UI Automation. PowerShell can read it and can invoke a button.
 The Claude app uses Chromium, so it probably shows a similar tree. Nobody has verified the names, the status indicators, or the page URLs on Windows.
 
-Next step: on a Windows computer, open the Claude app with some running tasks. Run `scripts/claude-uia-tree.ps1 > logs\claude-uia-tree.txt`. Remove titles, message text, and personal names. Add the result as a test fixture. Then write the PowerShell inspector so that it gives the same JSON snapshot as the macOS script.
+Next step: on a Windows computer, open the Claude app with some running tasks. Run `scripts/diagnostics/claude-uia-tree.ps1 > logs\claude-uia-tree.txt`. Remove titles, message text, and personal names. Add the result as a test fixture. Then write the PowerShell inspector so that it gives the same JSON snapshot as the macOS script.
 
 ## INT-13 — Microsoft Copilot desktop research
 

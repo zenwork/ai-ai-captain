@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 const streamDeckCliScriptPath = fileURLToPath(new URL("./streamdeck-cli.mjs", import.meta.url));
-const streamDeckPluginPath = fileURLToPath(new URL("../streamdeck/com.local.ai-ai-captain.sdPlugin", import.meta.url));
+const streamDeckPluginPath = fileURLToPath(new URL("../../streamdeck/com.local.ai-ai-captain.sdPlugin", import.meta.url));
 const temporaryDirectoryPaths: string[] = [];
 
 async function createTemporaryDirectory(): Promise<string> {

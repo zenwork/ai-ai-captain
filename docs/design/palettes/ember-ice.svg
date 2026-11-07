@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1304" height="1844" viewBox="0 0 1304 1844" role="img" aria-labelledby="visual-title visual-description">
 <title id="visual-title">AI AI Captain: Ember &amp; Ice complete icon and state combinations</title>
 <desc id="visual-description">12 client/host combinations across ten state and brightness examples: STARTING, WORKING, WAITING bright/dim, DONE fresh/dim/aged/assessed, FAILED and UNK. Claude Desktop, fixed controls and seven 72-pixel samples are included. Assessed DONE is darkest and double-checked; a press on the DONE key assesses it. Choose the live palette in the dashboard.</desc>
-<metadata>{&quot;purpose&quot;:&quot;Design reference; the live palette is configured through the hub&quot;,&quot;artwork&quot;:&quot;Local Lobe Icons 1.100.0 and Lucide 0.468.0; see docs/design/THIRD_PARTY_NOTICES.txt&quot;,&quot;generatedBy&quot;:&quot;scripts/render-design-proposals.mjs&quot;,&quot;previewPalette&quot;:&quot;ember-ice&quot;,&quot;selectedPalette&quot;:&quot;fjord&quot;}</metadata>
+<metadata>{&quot;purpose&quot;:&quot;Design reference; the live palette is configured through the hub&quot;,&quot;artwork&quot;:&quot;Local Lobe Icons 1.100.0 and Lucide 0.468.0; see docs/design/THIRD_PARTY_NOTICES.txt&quot;,&quot;generatedBy&quot;:&quot;scripts/design/render-design-proposals.mjs&quot;,&quot;previewPalette&quot;:&quot;ember-ice&quot;,&quot;selectedPalette&quot;:&quot;fjord&quot;}</metadata>
 <rect width="1304" height="1844" fill="#1B1817"/>
 <g font-family="Arial, Helvetica, sans-serif">
 <text x="36" y="28" fill="#BDB5AD" font-size="11" font-weight="700" letter-spacing="2">AI AI CAPTAIN / ICON SYSTEM / EMBER &amp; ICE</text>

@@ -14,7 +14,7 @@ export default tseslint.config(
       "intellij-bridge/",
       "node_modules/",
       "Claude outputs/",
-      // Made by scripts/render-design-proposals.mjs.
+      // Made by scripts/design/render-design-proposals.mjs.
       "src/shared/card-assets.ts",
       "**/*.js",
       "**/*.mjs",

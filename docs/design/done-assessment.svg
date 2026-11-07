@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1050" height="1274" viewBox="0 0 1050 1274" role="img" aria-labelledby="visual-title visual-description">
 <title id="visual-title">AI AI Captain: DONE assessment in all five palettes</title>
 <desc id="visual-description">Fresh, aged and assessed completed sessions are compared across all five palettes, including dark and light high contrast. A verified visit after completion can assess the result at any age. Assessment cancels blinking, uses the darkest blue and a double check, and resets on a new turn. It remains a design requirement, not implemented visit tracking.</desc>
-<metadata>{&quot;purpose&quot;:&quot;Design reference; the live palette is configured through the hub&quot;,&quot;artwork&quot;:&quot;Local Lobe Icons 1.100.0 and Lucide 0.468.0; see docs/design/THIRD_PARTY_NOTICES.txt&quot;,&quot;generatedBy&quot;:&quot;scripts/render-design-proposals.mjs&quot;,&quot;previewPalette&quot;:&quot;comparison&quot;,&quot;selectedPalette&quot;:&quot;fjord&quot;}</metadata>
+<metadata>{&quot;purpose&quot;:&quot;Design reference; the live palette is configured through the hub&quot;,&quot;artwork&quot;:&quot;Local Lobe Icons 1.100.0 and Lucide 0.468.0; see docs/design/THIRD_PARTY_NOTICES.txt&quot;,&quot;generatedBy&quot;:&quot;scripts/design/render-design-proposals.mjs&quot;,&quot;previewPalette&quot;:&quot;comparison&quot;,&quot;selectedPalette&quot;:&quot;fjord&quot;}</metadata>
 <rect width="1050" height="1274" fill="#0B1019"/>
 <g font-family="Arial, Helvetica, sans-serif">
 <text x="36" y="48" fill="#F4F6FA" font-size="26" font-weight="700">DONE keeps its meaning. Assessment changes attention.</text>
