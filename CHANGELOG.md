@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/zenwork/ai-ai-captain/compare/v1.1.0...v1.1.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* **desktop:** update Copilot desktop discovery and focus precedence ([fb634d4](https://github.com/zenwork/ai-ai-captain/commit/fb634d4531ae663ca44f2545d8224fd746a38782))
+* **discovery:** adjust scan interval to five seconds ([e1b1b50](https://github.com/zenwork/ai-ai-captain/commit/e1b1b50abed14f486891ea255688f98bf228459d))
+
 ## [1.1.0](https://github.com/zenwork/ai-ai-captain/compare/v1.0.0...v1.1.0) (2026-11-01)
 
 
