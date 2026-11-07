@@ -107,7 +107,7 @@ There are three levels of steps:
 
 Each agent factory has its own typed steps:
 
-- `codex()`: `spawn`, `turnContext`, `startTurn`, `tokenCount`, `requestPermission`, `approve`, `completeTurn`, `releaseLock`, `exit`. The step `toolCall` is **Required**. Use `agent.as(CodexSteps)` to get the typed steps. The shape file `e2e/fixtures/codex/0.162.1/rollout-events.shape.json` limits the event keys.
+- `codex()`: `spawn`, `turnContext`, `startTurn`, `tokenCount`, `requestPermission`, `approve`, `completeTurn`, `releaseLock`, `exit`. The step `toolCall` is **Required**. The shape file `e2e/fixtures/codex/0.162.1/rollout-events.shape.json` limits the event keys.
 - `claudeCode()`: `status`, `assistantMessage`, `registration.writeRaw`, `transcript.appendRaw`.
 - `copilot()`: `spawn`, `startTurn`, `requestPermission`, `approve`, `completeTurn`, `shutdown`, `exit`. The events follow the adapter. No real shape file exists.
 - `junie()`: `spawn`, `startTask`, `completeTask`, `failTask`, `exit`. The simulator starts a fake IntelliJ IDEA process, so it works on macOS only.
@@ -128,9 +128,8 @@ Builder rules:
 Example for Claude Code in a terminal:
 
 ```ts
-await scenario("claude cli turn with permission")
+await scenario("claude cli turn with permission", { cli: claudeCode({ project: "/projects/shop" }) })
   .deck({ viewport: { width: 900, height: 300 }, clock: "manual" })
-  .agent("cli", claudeCode({ project: "/projects/shop" }))
 
   .step("cli", (agent) => agent.spawn({ status: "starting" }))
   .expectSession("cli", { source: "claude-local", harness: "claude-cli", state: "starting" })
@@ -372,9 +371,8 @@ Rules for the starter tests:
 
 ```ts
 test("claude code life cycle from an inline scenario", async () => {
-  await scenario("claude code life cycle")
+  await scenario("claude code life cycle", { cli: claudeCode({}) })
     .deck({ viewport: { width: 900, height: 300 }, clock: "manual" })
-    .agent("cli", claudeCode({}))
 
     .step("cli", (agent) => agent.spawn({ status: "busy" }))
     .expectSession("cli", { source: "claude-local", harness: "claude-cli", state: "working" })

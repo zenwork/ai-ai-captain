@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
-import { type AgentSteps } from "./agent-steps.js";
 import { type ClaudeCodeAgent } from "./claude-code.js";
 import { type CodexAgent } from "./codex.js";
 import { type CopilotAgent } from "./copilot.js";
 import { type JunieAgent } from "./junie.js";
 import type { DeckOptions, DeckSnapshot } from "./deck-fixture.js";
 import { parseDurationMilliseconds } from "./duration.js";
+import type { Session } from "../../src/shared/session.js";
 import { recordingSchema, type Operation, type Recording } from "./recording.js";
 import { startScenarioEnvironment, type ScenarioEnvironment } from "./scenario-environment.js";
 import { itemsToRecording, recordingToItems, type ExpectationOptions, type ScenarioItem } from "./scenario-items.js";
@@ -13,6 +13,14 @@ import { playScenario } from "./scenario-player.js";
 
 type AgentDefinition = ClaudeCodeAgent | CodexAgent | CopilotAgent | JunieAgent;
 type AgentFactory = (agentKey: string) => AgentDefinition;
+
+/** The fields of a session that an expectation can name. The editor shows the field names and the state names. */
+export type SessionExpectation = { [Field in keyof Session]?: Session[Field] extends Record<string, unknown> ? Partial<Session[Field]> : Session[Field] };
+
+/** The agents of a scenario. The key of each entry is the name that the steps use, for example `cli`. */
+export type AgentFactories = Record<string, AgentFactory>;
+
+type DefinitionsOf<Factories extends AgentFactories> = { [Key in keyof Factories]: ReturnType<Factories[Key]> };
 
 export interface RunOptions {
   /** An environment that the caller started. The caller must stop it. Without it, the run starts its own hub. */
@@ -24,12 +32,30 @@ export interface RunOptions {
 /** The result of `.step()` for an agent step, or one operation. */
 type StepResult = Operation | Operation[];
 
-export class ScenarioBuilder {
+/**
+ * The steps of a scenario. The type parameter holds the agents, so the editor knows the steps of each agent key:
+ * `scenario("name", { cli: codex() }).step("cli", (agent) => agent.spawn())`.
+ */
+export class ScenarioBuilder<Factories extends AgentFactories = AgentFactories> {
   private items: ScenarioItem[] = [];
   private deckOptions: DeckOptions | undefined;
   private readonly agents = new Map<string, AgentDefinition>();
+  private readonly definitions: DefinitionsOf<Factories>;
 
-  constructor(private readonly name: string) {}
+  constructor(
+    private readonly name: string,
+    factories?: Factories,
+  ) {
+    const created: Record<string, AgentDefinition> = {};
+    for (const [agentKey, factory] of Object.entries(factories ?? {})) {
+      const definition = factory(agentKey);
+      created[agentKey] = definition;
+      this.agents.set(agentKey, definition);
+      this.recordingHeader = { source: "inline", agent: definition.kind, agentVersion: definition.version };
+    }
+    // TypeScript cannot show that `created` has exactly the keys of `Factories`. The loop above makes one definition for each key.
+    this.definitions = created as DefinitionsOf<Factories>;
+  }
 
   /** Adds the steps of a recording at the start. */
   static fromRecordingData(name: string, recording: Recording): ScenarioBuilder {
@@ -47,24 +73,15 @@ export class ScenarioBuilder {
     return this;
   }
 
-  /** Declares an agent. The key names it in later steps. */
-  agent(agentKey: string, factory: AgentFactory): this {
-    const definition = factory(agentKey);
-    this.agents.set(agentKey, definition);
-    this.recordingHeader = { source: "inline", agent: definition.kind, agentVersion: definition.version };
-    return this;
-  }
-
   /** Runs the steps of an agent in sequence. The next line starts when they are complete. */
-  step(agentKey: string, build: (steps: AgentSteps) => StepResult): this {
-    const definition = this.requireAgent(agentKey);
-    const result = build(definition.steps);
+  step<Key extends keyof Factories & string>(agentKey: Key, build: (steps: DefinitionsOf<Factories>[Key]["steps"]) => StepResult): this {
+    const result = build(this.definitions[agentKey].steps);
     for (const operation of Array.isArray(result) ? result : [result]) this.items.push({ kind: "operation", operation });
     return this;
   }
 
   /** Polls until the session of the agent has these fields. Give `undefined` to wait until the session is gone. */
-  expectSession(agentKey: string, expected: Record<string, unknown> | undefined, options: ExpectationOptions = {}): this {
+  expectSession(agentKey: keyof Factories & string, expected: SessionExpectation | undefined, options: ExpectationOptions = {}): this {
     const definition = this.requireAgent(agentKey);
     const template =
       this.agents.size > 1 ? definition.sessionIdentifierTemplate.replace("{SESSION}", `{SESSION:${agentKey}}`) : definition.sessionIdentifierTemplate;
@@ -139,13 +156,13 @@ export class ScenarioBuilder {
 
   private requireAgent(agentKey: string): AgentDefinition {
     const definition = this.agents.get(agentKey);
-    if (!definition) throw new Error(`The scenario has no agent "${agentKey}". Declare it with .agent() first`);
+    if (!definition) throw new Error(`The scenario has no agent "${agentKey}". Declare it in the second argument of scenario()`);
     return definition;
   }
 }
 
-function createScenario(name: string): ScenarioBuilder {
-  return new ScenarioBuilder(name);
+function createScenario<Factories extends AgentFactories>(name: string, agents?: Factories): ScenarioBuilder<Factories> {
+  return new ScenarioBuilder(name, agents);
 }
 
 /** Reads a recording file and makes a scenario from it. The read is synchronous, so that `.until()` and `.step()` can follow. */

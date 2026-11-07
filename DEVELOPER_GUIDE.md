@@ -452,20 +452,19 @@ A scenario is a list of steps. Each step does one thing: start a mock agent, cha
 This example runs one Codex session through working and done:
 
 ```ts
-import { codex, CodexSteps } from "../harness/codex.js";
+import { codex } from "../harness/codex.js";
 import { scenario } from "../harness/scenario.js";
 
-await scenario("codex short life cycle")
-  .agent("cli", codex({ model: "codex-model" }))
-  .step("cli", (agent) => agent.as(CodexSteps).spawn())
-  .step("cli", (agent) => agent.as(CodexSteps).startTurn())
+await scenario("codex short life cycle", { cli: codex({ model: "codex-model" }) })
+  .step("cli", (agent) => agent.spawn())
+  .step("cli", (agent) => agent.startTurn())
   .expectSession("cli", { harness: "codex-cli", state: "working" })
-  .step("cli", (agent) => agent.as(CodexSteps).completeTurn())
+  .step("cli", (agent) => agent.completeTurn())
   .expectSession("cli", { state: "done" })
   .run();
 ```
 
-The first argument of `.step()` and `.expectSession()` is the agent key. A scenario can use more than one agent. Use a different key for each agent.
+The second argument of `scenario()` names the agents. The first argument of `.step()` and `.expectSession()` is one of these names. The editor shows the steps of that agent and the fields of a session. It rejects a name that the scenario does not have. A scenario can use more than one agent. Use a different name for each agent.
 
 | Agent       | Import                               | Process that the hub looks for | Systems      |
 | ----------- | ------------------------------------ | ------------------------------ | ------------ |

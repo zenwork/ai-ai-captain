@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { isAgentSimulationSupported } from "../harness/agent-process.js";
-import { claudeCode, ClaudeCodeSteps } from "../harness/claude-code.js";
+import { claudeCode } from "../harness/claude-code.js";
 import type { Recording } from "../harness/recording.js";
 import { scenario } from "../harness/scenario.js";
 import { ScenarioFailure } from "../harness/scenario-player.js";
@@ -28,9 +28,8 @@ describe.skipIf(!isAgentSimulationSupported)("claude code life cycle", () => {
   });
 
   it("reports the scenario name, the step, and the last session when a state is wrong", async () => {
-    const failing = scenario("wrong state")
-      .agent("cli", claudeCode({}))
-      .step("cli", (agent) => agent.as(ClaudeCodeSteps).spawn({ status: "busy" }))
+    const failing = scenario("wrong state", { cli: claudeCode({}) })
+      .step("cli", (agent) => agent.spawn({ status: "busy" }))
       .expectSession("cli", { state: "done" }, { within: "2s" });
     const failure = await failing.run().then(
       () => undefined,

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 import { isAgentSimulationSupported } from "../harness/agent-process.js";
-import { claudeCode, ClaudeCodeSteps } from "../harness/claude-code.js";
+import { claudeCode } from "../harness/claude-code.js";
 import { scenario } from "../harness/scenario.js";
 
 const futureRegistration = JSON.stringify({
@@ -17,23 +17,21 @@ const futureRegistration = JSON.stringify({
 
 describe.skipIf(!isAgentSimulationSupported)("claude code registration file", () => {
   it("tolerates keys that a newer version of Claude Code adds", async () => {
-    await scenario("unknown registration keys")
-      .agent("cli", claudeCode({}))
-      .step("cli", (agent) => agent.as(ClaudeCodeSteps).spawn({ status: "idle" }))
+    await scenario("unknown registration keys", { cli: claudeCode({}) })
+      .step("cli", (agent) => agent.spawn({ status: "idle" }))
       .expectSession("cli", { state: "done" })
-      .step("cli", (agent) => agent.as(ClaudeCodeSteps).registration.writeRaw(futureRegistration))
+      .step("cli", (agent) => agent.registration.writeRaw(futureRegistration))
       .expectSession("cli", { state: "working" })
       .run();
   });
 
   it("shows the state unknown with a safe error code when the registration is cut off", async () => {
-    await scenario("registration cut off")
-      .agent("cli", claudeCode({}))
-      .step("cli", (agent) => agent.as(ClaudeCodeSteps).spawn({ status: "busy" }))
+    await scenario("registration cut off", { cli: claudeCode({}) })
+      .step("cli", (agent) => agent.spawn({ status: "busy" }))
       .expectSession("cli", { state: "working" })
-      .step("cli", (agent) => agent.as(ClaudeCodeSteps).registration.writeRaw('{"pid":{PID},"sessionId":"{SESSION}"'))
-      .expectSession("cli", { state: "unknown", metadata: expect.objectContaining({ telemetryError: "REGISTRATION_UNREADABLE" }) })
-      .step("cli", (agent) => agent.as(ClaudeCodeSteps).status("idle"))
+      .step("cli", (agent) => agent.registration.writeRaw('{"pid":{PID},"sessionId":"{SESSION}"'))
+      .expectSession("cli", { state: "unknown", metadata: { telemetryError: "REGISTRATION_UNREADABLE" } })
+      .step("cli", (agent) => agent.status("idle"))
       .expectSession("cli", { state: "done" })
       .run();
   });
