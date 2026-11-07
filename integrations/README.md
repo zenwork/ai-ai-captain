@@ -73,7 +73,7 @@ Copilot, Codex, and Claude Code share these host-lifetime checks:
 - Compare session start/resume/turn-start timestamps against registration creation time to exclude history from earlier project openings. A suppressed conversation requires a fresh session/turn trigger before it returns; completion, token counts, or model changes alone do not qualify.
 - Remember runtime-to-app ownership and registration coverage across scans and hub restarts, with process start identity to reject PID reuse. If an owning app exits but its child runtime survives, the orphaned sessions stay excluded. Only descriptive metadata is saved; registry RPC credentials are ignored.
 
-Confirmed terminal/project/app closure removes sessions on the next successful scan (normally about 1.5 seconds). Releasing a session's lock or reporting shutdown retains the ten-second grace period. Without supported project registrations, per-project closure cannot be established automatically; runtime ownership alone remains the fallback. No bridge reinstall is needed for supported registrations, and the hub never terminates user processes to clear keys.
+Confirmed terminal/project/app closure removes sessions on the next successful scan (normally within 5 seconds). Releasing a session's lock or reporting shutdown retains the ten-second grace period. Without supported project registrations, per-project closure cannot be established automatically; runtime ownership alone remains the fallback. No bridge reinstall is needed for supported registrations, and the hub never terminates user processes to clear keys.
 
 ## Generic lifecycle hooks
 
@@ -92,6 +92,8 @@ Session-start/resume events mean `starting`; prompt/turn-start/tool events mean 
 ## Limitations
 
 Hook names and payload shapes vary by harness and version. Generic reporters need explicit configuration and do not change harness settings. ChatGPT, Microsoft Copilot desktop, and unsupported JetBrains workflows still need session adapters. Claude desktop chat covers exposed conversations only; it does not provide full desktop history or remote Code session discovery.
+
+On macOS, Microsoft Copilot desktop appears as an APP key when the hub finds the app. The key explains that the inspected UI exposes no supported conversation ID or status source. Sidebar history links are not live session evidence. See [INT-13](../intagration.md#int-13-microsoft-copilot-desktop-research).
 
 ## Claude subscription limits
 

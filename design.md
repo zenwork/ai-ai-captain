@@ -40,6 +40,8 @@ The main mark represents the harness/client, never whichever model it currently 
 
 Claude Code registrations use the Claude mark with a terminal, IntelliJ, or desktop badge from host ancestry. Regular desktop chats use the desktop badge. These adapters use the existing artwork, state labels, palette, and attention timing. Unsupported telemetry stays UNK; app presence alone never creates a session tile.
 
+The Microsoft Copilot APP key uses the Microsoft Copilot ribbon mark, not the generic app-window symbol.
+
 | Client/session type              | Proposed main mark                                           | Host badge                        |
 | -------------------------------- | ------------------------------------------------------------ | --------------------------------- |
 | GitHub Copilot CLI               | Recognizable Copilot goggles                                 | Terminal `>_`                     |

@@ -11,7 +11,7 @@ This file intentionally uses the requested name `intagration.md`. It owns integr
 | Integration                         | Implemented evidence/path                                                                    | Limits                                                                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Copilot CLI                         | Live `inuse.<pid>.hold` ownership and per-session `events.jsonl`                             | Depends on installed local event/lock formats                                                                               |
-| Copilot in IntelliJ                 | Same session telemetry plus IDE process ancestry/project lifetime evidence                   | Several conversations can share one runtime; ACP variants without these files need another reporter                         |
+| Copilot in IntelliJ                 | Same session telemetry, live runtime ownership, and IDEA project registration                | Focus uses the IDEA with the project open; ACP variants without these files need another reporter                           |
 | Codex CLI                           | Live writer locks/open rollout files and supported rollout events                            | Missing rollout history yields UNKNOWN; not every approval pause is recorded                                                |
 | Codex in the ChatGPT desktop app    | Same Codex ownership and rollout telemetry; the key shows the Codex desktop app badge        | Plain ChatGPT chats have no known local status source (see INT-10)                                                          |
 | Codex in JetBrains AI Assistant     | Codex ownership/rollout telemetry through the installed ACP runtime                          | Does not intercept/take over JetBrains' app-server connection                                                               |
@@ -21,7 +21,7 @@ This file intentionally uses the requested name `intagration.md`. It owns integr
 | Other harness hooks                 | Generic CLI/HTTP reporter                                                                    | Requires the harness to invoke configured hooks                                                                             |
 | Other IntelliJ tasks                | Optional manual Kotlin bridge                                                                | One manually reported task per project, not per-conversation automatic telemetry                                            |
 | Claude desktop chat and task        | Experimental Accessibility adapter for exposed chat and task URLs and known English controls | Requires Accessibility access; hidden chats and other UI formats are not fully supported; tasks have no model or token data |
-| ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`; shown as an APP key on Stream Deck                     | Plain conversations not automatically tracked (see INT-10 for ChatGPT research)                                             |
+| ChatGPT / Microsoft Copilot desktop | Main-app detection in `/api/clients`; shown as an APP key on Stream Deck                     | Plain conversations not automatically tracked (see INT-10 and INT-13)                                                       |
 
 Node.js 24+ is required to build AI AI Captain and for local hub development. Stream Deck 7.1+ is required for the current plugin; its manifest targets macOS 13+, Windows 10+, and the embedded Node 20 runtime. The plugin also runs the bundled hub on that Node 20 runtime. The default hardware profile targets the XL. macOS is required for the current automatic process/lifetime adapters and focus commands, not for the generic session API itself.
 
@@ -41,6 +41,8 @@ Reduce supported records as follows:
 | Turn end, idle, task completion, cancellation                      | done with conversation open, unless user action remains outstanding |
 | `session.error`                                                    | failed                                                              |
 | `session.shutdown`                                                 | ended completion; normal closing grace period                       |
+
+For Copilot in IntelliJ, inspect running IDEA processes against the session project. Use the process with an open project registration for lifetime and focus. Do not use the runtime parent as the focus target when another IDEA owns the project. CLI sessions retain process ancestry focus.
 
 ### Codex
 
@@ -181,14 +183,14 @@ The reporter normalizes lifecycle names and retains selected metadata only. Star
 
 ## INT-05 — Focus integration
 
-The macOS adapter validates IntelliJ's absolute project directory and opens it as a document with the owning installation:
+The macOS adapter validates IntelliJ's absolute project directory and opens it as a document with the owning installation. For Copilot in IntelliJ, the hub selects the running IDEA process with an open registration for the session project. It does not use the Copilot runtime's IDEA parent when another installation owns the project.
 
 ```text
 open -a <owning IDEA.app> <absolute project directory>
 open -b <IDEA bundle ID> <absolute project directory>
 ```
 
-Do not use `-n` or `--args`; these options start a new IDEA process or pass the project path as an application argument. Opening the project as a document lets macOS reuse the selected running installation. The adapter reports project scope when the command succeeds. Other sessions use supported app-path/name, bundle-ID, optional PID, or HTTP(S) URL navigation. `AI_AI_CAPTAIN_PRECISE_FOCUS=1` enables an attempted PID-based app focus, which may need Accessibility permission; project targeting takes precedence.
+Do not use `-n` or `--args`; these options start a new IDEA process or pass the project path as an application argument. Opening the project as a document lets macOS reuse the selected running installation. The adapter reports project scope when the command succeeds. Other sessions use supported app-path/name, bundle-ID, optional PID, or HTTP(S) URL navigation. For a detected desktop APP key, the hub uses its exact app bundle path when known, then its bundle ID, then its app name. `AI_AI_CAPTAIN_PRECISE_FOCUS=1` enables an attempted PID-based app focus, which may need Accessibility permission; project targeting takes precedence.
 
 Focus scopes are application, project, and session. An identified Claude desktop chat uses session scope through its restricted deep link. On macOS, a Claude desktop sidebar row uses session scope when the hub opens that row. The hub finds the row through Accessibility and clicks it with a mouse event, then restores the pointer position. The app ignores the Accessibility press on sidebar rows. This click is the only action that the Claude adapter does in the app. The press reuses the inspection script with the row title key as a second argument. A successful navigation command does not prove that the user read the result. Assessed DONE remains unimplemented.
 
@@ -316,6 +318,26 @@ The Claude desktop adapter and sidebar row focus use macOS Accessibility only. W
 The Claude app uses Chromium, so it probably shows a similar tree. Nobody has verified the names, the status indicators, or the page URLs on Windows.
 
 Next step: on a Windows computer, open the Claude app with some running tasks. Run `scripts/claude-uia-tree.ps1 > logs\claude-uia-tree.txt`. Remove titles, message text, and personal names. Add the result as a test fixture. Then write the PowerShell inspector so that it gives the same JSON snapshot as the macOS script.
+
+## INT-13 — Microsoft Copilot desktop research
+
+**Proposed.** Do not implement a session adapter without approval from the user.
+
+Findings from a local check of the Microsoft 365 Copilot app on macOS:
+
+- The app uses a Chromium profile.
+- The open page URL has no conversation ID.
+- Sidebar links use `/chat/conversation/<UUID>`. They are history links, not evidence of a live session. FUNC-10 forbids history keys.
+- The inspected UI has no supported Stop, Send, Running, or Waiting control.
+- The hub shows the app as an APP key. It does not create session records from app presence.
+
+Options:
+
+- **Inspect a live chat in the UI:** Could expose a live ID and state, but the checked page had no ID or supported state control.
+- **Use a supported reporter or API:** Could report session lifecycle, but no supported interface has been confirmed.
+- **Use sidebar history links:** Could list past conversations, but history is not live-session evidence. FUNC-10 forbids history keys.
+
+Next step: inspect a generating chat for visible state controls only if its open page URL includes a conversation ID. Do not read chat files, History, IndexedDB, or conversation content.
 
 ## INT-12 — Subscription budget keys
 
