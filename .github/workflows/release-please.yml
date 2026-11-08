@@ -30,8 +30,49 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  marketplace-pack:
+  # CI runs on pull requests only. This job checks the CI result of each pull request in the release.
+  # A failed or missing result stops the release. Release Please keeps the release as a draft.
+  ci-gate:
     needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+      REPOSITORY: ${{ github.repository }}
+      RELEASE_SHA: ${{ needs.release-please.outputs.sha }}
+    steps:
+      - name: Check the CI result of each commit in the release
+        run: |
+          set -euo pipefail
+          commits=$(gh api "repos/$REPOSITORY/commits?sha=$RELEASE_SHA&per_page=100" --jq '.[] | [.sha, (.commit.message | split("\n")[0])] | @tsv')
+          checked=0
+          while IFS=$'\t' read -r commit subject; do
+            if [[ "$subject" == "chore(main): release"* ]]; then
+              # The first one is the release commit. The second one is the previous release, where the search ends.
+              if [[ "$commit" == "$RELEASE_SHA" ]]; then continue; fi
+              break
+            fi
+            head_sha=$(gh api "repos/$REPOSITORY/commits/$commit/pulls" --jq '.[0].head.sha // empty')
+            if [[ -z "$head_sha" ]]; then
+              echo "::error::Commit $commit has no pull request, so it has no CI result."
+              exit 1
+            fi
+            failures=$(gh api "repos/$REPOSITORY/commits/$head_sha/check-runs?per_page=100" --jq '[.check_runs | group_by(.name)[] | max_by(.started_at)] | map(select(.conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral")) | length')
+            successes=$(gh api "repos/$REPOSITORY/commits/$head_sha/check-runs?per_page=100" --jq '[.check_runs[] | select(.conclusion == "success")] | length')
+            if [[ "$failures" != "0" || "$successes" == "0" ]]; then
+              echo "::error::The CI of the pull request for commit $commit failed or did not finish ($failures not passed, $successes passed)."
+              exit 1
+            fi
+            checked=$((checked + 1))
+          done <<< "$commits"
+          echo "CI passed for $checked commits in this release."
+
+  marketplace-pack:
+    needs: [release-please, ci-gate]
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -44,8 +85,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm install --global @elgato/cli
-      - run: npm run typecheck
-      - run: npm test
+      # CI tested this code in the pull request. The pack step builds and validates the plugin again.
       - run: npm run pack:streamdeck
       - name: Attach the Marketplace files to the release
         env:
