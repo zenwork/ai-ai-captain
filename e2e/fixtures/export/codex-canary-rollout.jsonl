@@ -1,0 +1,10 @@
+{"timestamp": "2026-11-07T10:00:00.000Z", "type": "session_meta", "payload": {"id": "CANARY-session-id", "cwd": "/Users/CANARY-user/secret-project", "cli_version": "0.162.1", "base_instructions": {"text": "CANARY-instructions"}}}
+{"timestamp": "2026-11-07T10:00:00.100Z", "type": "turn_context", "payload": {"cwd": "/Users/CANARY-user/secret-project", "model": "test-model-1", "effort": "CANARY secret text", "approval_policy": "on-request", "turn_id": "CANARY-turn-1"}}
+{"timestamp": "2026-11-07T10:00:01.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "CANARY-turn-1"}}
+{"timestamp": "2026-11-07T10:00:01.200Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"text": "CANARY-prompt"}]}}
+{"timestamp": "2026-11-07T10:00:02.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "shell", "arguments": "{\"cmd\":\"CANARY-command\"}", "call_id": "CANARY-call-shell"}}
+{"timestamp": "2026-11-07T10:00:02.500Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "CANARY-call-shell", "output": "CANARY-tool-output"}}
+{"timestamp": "2026-11-07T10:00:03.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "request_user_input", "arguments": "{\"question\":\"CANARY-question\"}", "call_id": "CANARY-call-ask"}}
+{"timestamp": "2026-11-07T10:00:05.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "CANARY-call-ask", "output": "CANARY-answer"}}
+{"timestamp": "2026-11-07T10:00:05.500Z", "type": "event_msg", "payload": {"type": "token_count", "info": {"total_token_usage": {"total_tokens": 999}}}}
+{"timestamp": "2026-11-07T10:00:06.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "CANARY-turn-1", "last_agent_message": "CANARY-response"}}

@@ -1,0 +1,44 @@
+{
+  "header": {
+    "formatVersion": 1,
+    "source": "hand-written",
+    "agent": "claude-code",
+    "agentVersion": "2.x",
+    "platform": "any"
+  },
+  "timeline": [
+    { "offset": "0s", "operation": "spawn", "agent": "cli", "processName": "claude" },
+    {
+      "offset": "0s",
+      "operation": "write",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": { "pid": "{PID}", "sessionId": "{SESSION}", "cwd": "{PROJECT_1}", "startedAt": "{T}", "status": "busy" }
+    },
+    {
+      "offset": "2s",
+      "operation": "write",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": { "pid": "{PID}", "sessionId": "{SESSION}", "cwd": "{PROJECT_1}", "startedAt": "{T}", "status": "permission_required" }
+    },
+    {
+      "offset": "4s",
+      "operation": "write",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": { "pid": "{PID}", "sessionId": "{SESSION}", "cwd": "{PROJECT_1}", "startedAt": "{T}", "status": "busy" }
+    },
+    {
+      "offset": "6s",
+      "operation": "write",
+      "path": "{CLAUDE_HOME}/sessions/{PID}.json",
+      "content": { "pid": "{PID}", "sessionId": "{SESSION}", "cwd": "{PROJECT_1}", "startedAt": "{T}", "status": "idle" }
+    },
+    { "offset": "8s", "operation": "exit", "agent": "cli" }
+  ],
+  "expected": [
+    { "offset": "0s", "session": "claude:{SESSION}", "state": "working" },
+    { "offset": "2s", "session": "claude:{SESSION}", "state": "waiting" },
+    { "offset": "4s", "session": "claude:{SESSION}", "state": "working" },
+    { "offset": "6s", "session": "claude:{SESSION}", "state": "done" },
+    { "offset": "8s", "session": "claude:{SESSION}", "state": null }
+  ]
+}

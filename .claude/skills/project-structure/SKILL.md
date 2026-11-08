@@ -19,6 +19,7 @@ The repository has one npm package (`package.json`) and three runtimes. Each run
 | `web-src/`        | Dashboard (browser)              | `src/shared/`, `streamdeck/src/cards.ts` |
 | `src/shared/`     | All runtimes                     | `src/shared/` only                       |
 | `scripts/`        | Build, package, and design tools | All source roots                         |
+| `e2e/`            | End-to-end test harness (Node)   | `src/shared/`                            |
 
 `intellij-bridge/` is a separate Kotlin project. Do not put TypeScript in it.
 
@@ -47,6 +48,10 @@ Ask these questions in sequence. Use the first answer that is yes.
    - `scripts/streamdeck/`: the plugin folder, the release pack, the marketplace metadata, and the Stream Deck CLI.
    - `scripts/dev/`: tools for local development, such as the virtual deck app and the key demo.
    - `scripts/diagnostics/`: manual tools that print what a harness or an app exposes. Their output becomes test fixtures.
+8. Is it a fake agent, a scenario player, or an end-to-end scenario? Put it in the applicable folder of `e2e/`:
+   - `e2e/harness/`: fake processes, the hub launcher, the scenario builder and player, and the deck fixture. Unit tests are `*.test.ts` next to the source.
+   - `e2e/scenarios/`: scenarios as `*.e2e.test.ts`. A scenario module that the sandbox plays exports a list named `scenarios`.
+   - `e2e/fixtures/<agent>/<version>/`: shape files and recorded fixtures. A hand-written recording goes in `e2e/fixtures/<agent>/hand-written/`.
 
 If no answer is yes, stop. Ask the user. When you add a module, add it to the ARCH-03 table in the same change.
 

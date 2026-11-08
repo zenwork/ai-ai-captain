@@ -1,0 +1,205 @@
+{
+  "header": {
+    "formatVersion": 1,
+    "source": "export",
+    "agent": "junie",
+    "agentVersion": "unknown",
+    "platform": "darwin"
+  },
+  "timeline": [
+    {
+      "operation": "spawn",
+      "agent": "ide",
+      "processName": "IntelliJ IDEA.app/Contents/MacOS/idea"
+    },
+    {
+      "operation": "write",
+      "agent": "ide",
+      "path": "{JETBRAINS_INSTANCES}/idea_{PID}.json",
+      "content": {
+        "schema_version": 2,
+        "pid": "{PID}",
+        "project_path": "{PROJECT_1}"
+      }
+    },
+    {
+      "operation": "append",
+      "agent": "ide",
+      "path": "{JUNIE_HOME}/session-{SESSION}/events.jsonl",
+      "content": {
+        "kind": "UserPromptEvent",
+        "requestId": "request-1",
+        "timestampMs": "{NOW_MS}"
+      }
+    },
+    {
+      "operation": "append",
+      "agent": "ide",
+      "path": "{JUNIE_HOME}/index.jsonl",
+      "content": {
+        "sessionId": "session-{SESSION}",
+        "createdAt": "{NOW_MS}",
+        "updatedAt": "{NOW_MS}",
+        "projectDir": "{PROJECT_1}"
+      }
+    },
+    {
+      "offset": "0s",
+      "operation": "append",
+      "agent": "ide",
+      "path": "{JUNIE_HOME}/session-{SESSION}/events.jsonl",
+      "content": {
+        "kind": "SessionA2uxEvent",
+        "event": {
+          "state": "IN_PROGRESS",
+          "agentEvent": {
+            "kind": "TaskState",
+            "agent": {
+              "kind": "MainAgent",
+              "id": "main"
+            }
+          }
+        },
+        "taskId": "task-1",
+        "timestampMs": "{NOW_MS}"
+      }
+    },
+    {
+      "offset": "19286ms",
+      "operation": "append",
+      "agent": "ide",
+      "path": "{JUNIE_HOME}/session-{SESSION}/events.jsonl",
+      "content": {
+        "kind": "SessionA2uxEvent",
+        "event": {
+          "state": "INPUT_REQUIRED",
+          "agentEvent": {
+            "kind": "TaskState",
+            "agent": {
+              "kind": "MainAgent",
+              "id": "main"
+            }
+          }
+        },
+        "taskId": "task-1",
+        "timestampMs": "{NOW_MS}"
+      }
+    },
+    {
+      "offset": "30046ms",
+      "operation": "append",
+      "agent": "ide",
+      "path": "{JUNIE_HOME}/session-{SESSION}/events.jsonl",
+      "content": {
+        "kind": "SessionA2uxEvent",
+        "event": {
+          "state": "IN_PROGRESS",
+          "agentEvent": {
+            "kind": "TaskState",
+            "agent": {
+              "kind": "MainAgent",
+              "id": "main"
+            }
+          }
+        },
+        "taskId": "task-1",
+        "timestampMs": "{NOW_MS}"
+      }
+    },
+    {
+      "offset": "45104ms",
+      "operation": "append",
+      "agent": "ide",
+      "path": "{JUNIE_HOME}/session-{SESSION}/events.jsonl",
+      "content": {
+        "kind": "SessionA2uxEvent",
+        "event": {
+          "state": "INPUT_REQUIRED",
+          "agentEvent": {
+            "kind": "TaskState",
+            "agent": {
+              "kind": "MainAgent",
+              "id": "main"
+            }
+          }
+        },
+        "taskId": "task-1",
+        "timestampMs": "{NOW_MS}"
+      }
+    },
+    {
+      "offset": "48460ms",
+      "operation": "append",
+      "agent": "ide",
+      "path": "{JUNIE_HOME}/session-{SESSION}/events.jsonl",
+      "content": {
+        "kind": "SessionA2uxEvent",
+        "event": {
+          "state": "IN_PROGRESS",
+          "agentEvent": {
+            "kind": "TaskState",
+            "agent": {
+              "kind": "MainAgent",
+              "id": "main"
+            }
+          }
+        },
+        "taskId": "task-1",
+        "timestampMs": "{NOW_MS}"
+      }
+    },
+    {
+      "offset": "53923ms",
+      "operation": "append",
+      "agent": "ide",
+      "path": "{JUNIE_HOME}/session-{SESSION}/events.jsonl",
+      "content": {
+        "kind": "SessionA2uxEvent",
+        "event": {
+          "state": "COMPLETED",
+          "agentEvent": {
+            "kind": "TaskState",
+            "agent": {
+              "kind": "MainAgent",
+              "id": "main"
+            }
+          }
+        },
+        "taskId": "task-1",
+        "timestampMs": "{NOW_MS}"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "offset": "0s",
+      "session": "junie:session-{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "19286ms",
+      "session": "junie:session-{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "30046ms",
+      "session": "junie:session-{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "45104ms",
+      "session": "junie:session-{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "48460ms",
+      "session": "junie:session-{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "53923ms",
+      "session": "junie:session-{SESSION}",
+      "state": "done"
+    }
+  ]
+}

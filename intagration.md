@@ -71,7 +71,7 @@ Registry errors/unsupported formats or unavailable terminal evidence fail open f
 
 Read `index.jsonl` and each session's `events.jsonl` under `AI_AI_CAPTAIN_JUNIE_HOME`, or `~/.junie/sessions`. Read only the session identifier, the project folder, and the status field of the last status event. Never read prompts, task names, or responses.
 
-Map `IN_PROGRESS` to WORKING, `COMPLETED` to DONE, and `FAILED` to FAILED. Map other values to UNKNOWN. Show a session only when its project is open in a running IntelliJ IDEA process. When multiple IDEA processes run, bind focus to the process whose project registration is open. Report the session with the JetBrains AI identity.
+Map `IN_PROGRESS` to WORKING, `INPUT_REQUIRED` to WAITING, `COMPLETED` to DONE, and `FAILED` to FAILED. Map other values to UNKNOWN. Show a session only when its project is open in a running IntelliJ IDEA process. When multiple IDEA processes run, bind focus to the process whose project registration is open. Report the session with the JetBrains AI identity.
 
 ### Claude adapters
 

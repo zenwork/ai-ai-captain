@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mkdtemp, mkdir, realpath, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createFocusHandler, type FocusResult } from "./focus.js";
@@ -163,5 +163,26 @@ describe("focus on Linux and Windows", () => {
     const focus = createFocusHandler({ platform: "linux", run });
     const result = await focus({ appName: "Terminal" });
     expect(result.focused).toBe(false);
+  });
+});
+
+describe("focus dry run", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("writes the focus command to the log file and does not run it", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "focus-log-"));
+    const logPath = join(directory, "focus.log");
+    vi.stubEnv("AI_AI_CAPTAIN_FOCUS_LOG", logPath);
+    try {
+      const result = await createFocusHandler({ platform: "darwin" })({ pid: 10, appName: "Terminal" });
+      expect(result).toEqual({ focused: true, scope: "application" });
+      const lines = (await readFile(logPath, "utf8")).trim().split("\n");
+      expect(lines).toHaveLength(1);
+      expect(JSON.parse(lines[0])).toMatchObject({ command: "/usr/bin/osascript" });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });

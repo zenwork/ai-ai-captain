@@ -49,3 +49,36 @@ jobs:
         if: runner.os != 'Linux'
         run: npm test
       - run: npm run build
+
+  # The scenarios start the real hub and mock agent processes. The mock agents work on Linux and macOS only.
+  # The browser for the virtual deck runs headless, so no display is necessary.
+  e2e:
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright-core install --with-deps chromium
+      - name: End-to-end tests
+        env:
+          # A failed scenario keeps a recording of its steps in the temporary folder. The next step uploads it.
+          TMPDIR: ${{ runner.temp }}/e2e
+        run: |
+          mkdir -p "$TMPDIR"
+          npm run test:e2e
+      - name: Save the recordings of failed scenarios
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-recordings-${{ matrix.os }}
+          path: ${{ runner.temp }}/e2e/**/*.recording.json
+          if-no-files-found: ignore

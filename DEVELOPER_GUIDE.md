@@ -286,16 +286,19 @@ AI_AI_CAPTAIN_PRECISE_FOCUS=1 npm start
 
 Type the setting each time you start the hub.
 
-| Setting                             | Default value                                 | Function                                                  |
-| ----------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
-| `AI_AI_CAPTAIN_PORT`                | `43681`                                       | The network port of the hub.                              |
-| `AI_AI_CAPTAIN_DATA_DIR`            | `~/Library/Application Support/ai-ai-captain` | The folder where AI AI Captain keeps its data.            |
-| `AI_AI_CAPTAIN_PRECISE_FOCUS`       | Off                                           | Set to `1` to go to the exact window when you push a key. |
-| `AI_AI_CAPTAIN_COPILOT_HOME`        | `~/.copilot`                                  | The Copilot data folder.                                  |
-| `AI_AI_CAPTAIN_CODEX_HOME`          | `~/.codex`                                    | The Codex data folder.                                    |
-| `AI_AI_CAPTAIN_CLAUDE_HOME`         | `~/.claude`                                   | The Claude data folder. `CLAUDE_CONFIG_DIR` also sets it. |
-| `AI_AI_CAPTAIN_JUNIE_HOME`          | `~/.junie/sessions`                           | The Junie session folder.                                 |
-| `AI_AI_CAPTAIN_JETBRAINS_INSTANCES` | `~/.junie/instances`                          | The folder where IntelliJ IDEA records its open projects. |
+| Setting                                         | Default value                                 | Function                                                   |
+| ----------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------- |
+| `AI_AI_CAPTAIN_PORT`                            | `43681`                                       | The network port of the hub.                               |
+| `AI_AI_CAPTAIN_DATA_DIR`                        | `~/Library/Application Support/ai-ai-captain` | The folder where AI AI Captain keeps its data.             |
+| `AI_AI_CAPTAIN_PRECISE_FOCUS`                   | Off                                           | Set to `1` to go to the exact window when you push a key.  |
+| `AI_AI_CAPTAIN_COPILOT_HOME`                    | `~/.copilot`                                  | The Copilot data folder.                                   |
+| `AI_AI_CAPTAIN_CODEX_HOME`                      | `~/.codex`                                    | The Codex data folder.                                     |
+| `AI_AI_CAPTAIN_CLAUDE_HOME`                     | `~/.claude`                                   | The Claude data folder. `CLAUDE_CONFIG_DIR` also sets it.  |
+| `AI_AI_CAPTAIN_JUNIE_HOME`                      | `~/.junie/sessions`                           | The Junie session folder.                                  |
+| `AI_AI_CAPTAIN_JETBRAINS_INSTANCES`             | `~/.junie/instances`                          | The folder where IntelliJ IDEA records its open projects.  |
+| `AI_AI_CAPTAIN_SANDBOX`                         | Off                                           | Set to `1` for tests. The hub does not scan desktop apps.  |
+| `AI_AI_CAPTAIN_DISCOVERY_INTERVAL_MILLISECONDS` | `5000`                                        | The time between two scans. The minimum is `100`.          |
+| `AI_AI_CAPTAIN_FOCUS_LOG`                       | Off                                           | A file path. The hub writes focus commands and skips them. |
 
 Change a data folder only if the assistant uses a different folder.
 
@@ -372,6 +375,233 @@ npm run demo:keys -- --brightness
 Keys 1 to 5 show WAITING. Keys 6 to 10 show DONE. Intensity 0 to 4 goes from left to right. The terminal shows the name of each key. This demo does not change the saved setting of the hub.
 
 NOTE: The demo cannot show the aged and assessed DONE keys. These keys need a real session age. The demo keys go before other session keys on the first page.
+
+### 9.1 Play scenarios with mock agents
+
+The sandbox starts a hub with mock agents. The mock agents are real processes with the names that the hub looks for. They write the files that the hub reads. The sandbox also runs the adapters, and `npm run demo:keys` does not.
+
+1. Stop every other hub. The sandbox stops when a hub listens on port `43681`.
+2. Type this command:
+
+   ```sh
+   npm run sandbox -- e2e/scenarios/claude-code-lifecycle.ts e2e/fixtures/claude-code/hand-written/lifecycle.recording.json
+   ```
+
+3. Open <http://127.0.0.1:43681/deck.html> to see the virtual deck.
+4. Read the PASS and FAIL lines in the terminal.
+
+To use a different port, add `--port=<number>` before the scenarios. A scenario module must export a list named `scenarios`. A recording is a `.json` file.
+
+To play the scenarios again and again, add `--loop` before the scenarios. To play as fast as the hub allows, add `--fast`. The sandbox then ignores recorded times and pauses, and waits 1 second after each check. Add `--settle=<duration>` to change this time. Press **Control** and **C** to stop.
+
+To see the scenarios on the physical Stream Deck, use the setup command in [9.2](#92-show-mock-agents-on-the-physical-deck).
+
+### 9.2 Show mock agents on the physical deck
+
+The plugin uses a hub that already answers when the plugin starts. Thus, the sandbox hub must run before the Stream Deck app starts. This command does the steps for you. It works on macOS only.
+
+CAUTION: THE COMMAND QUITS THE STREAM DECK APP. THE REAL HUB OF THE PLUGIN STOPS WITH IT. YOUR REAL SESSIONS DISAPPEAR FROM THE DECK UNTIL THE SANDBOX STOPS.
+
+1. Save your work in the Stream Deck app.
+2. Type this command:
+
+   ```sh
+   npm run sandbox:deck
+   ```
+
+3. Look at the first keys of the Stream Deck. The mock session goes through WORKING, WAITING, WORKING, and DONE. Each state stays for 4 seconds.
+4. To stop, push **Control** and **C**.
+
+The command does these steps in sequence:
+
+1. It quits the Stream Deck app, if the app runs.
+2. It waits until port `43681` is free. If a hub still listens, it stops and tells you. It never stops a hub by force.
+3. It starts the sandbox hub on port `43681` and plays the scenarios in a loop.
+4. It starts the Stream Deck app.
+
+When you stop the command, the plugin starts its own hub again after a few seconds. To play other scenarios, add them to the command:
+
+```sh
+npm run sandbox:deck -- e2e/fixtures/claude-code/hand-written/lifecycle.recording.json
+```
+
+### 9.3 Run the end-to-end tests
+
+The end-to-end tests start the real hub and mock agents in a temporary folder. They do not change your files. The tests run on macOS and Linux. The Junie scenario runs on macOS only.
+
+1. Install the browser for the virtual deck once:
+
+   ```sh
+   npx playwright-core install chromium
+   ```
+
+2. Type this command:
+
+   ```sh
+   npm run test:e2e
+   ```
+
+The browser runs headless, so the tests need no display. To see the browser while a test runs, set `AI_AI_CAPTAIN_E2E_HEADED=1` before the command. CI ignores this setting.
+
+If a test fails, the message shows the scenario name, the step number, and the last sessions of the hub. The test also keeps a recording of the steps until the failure. The message gives the path of the recording. Refer to [test-harness.md](test-harness.md) for the design of the tests.
+
+### 9.4 Write a scenario
+
+A scenario is a list of steps. Each step does one thing: start a mock agent, change a file, or check the hub. Put a scenario in `e2e/scenarios/`. Name the file `<agent>-<topic>.ts`. Name the test `<agent>-<topic>.e2e.test.ts`.
+
+This example runs one Codex session through working and done:
+
+```ts
+import { codex } from "../harness/codex.js";
+import { scenario } from "../harness/scenario.js";
+
+await scenario("codex short life cycle", { cli: codex({ model: "codex-model" }) })
+  .step("cli", (agent) => agent.spawn())
+  .step("cli", (agent) => agent.startTurn())
+  .expectSession("cli", { harness: "codex-cli", state: "working" })
+  .step("cli", (agent) => agent.completeTurn())
+  .expectSession("cli", { state: "done" })
+  .run();
+```
+
+The second argument of `scenario()` names the agents. The first argument of `.step()` and `.expectSession()` is one of these names. The editor shows the steps of that agent and the fields of a session. It rejects a name that the scenario does not have. A scenario can use more than one agent. Use a different name for each agent.
+
+| Agent       | Import                               | Process that the hub looks for | Systems      |
+| ----------- | ------------------------------------ | ------------------------------ | ------------ |
+| Claude Code | `claudeCode()` and `ClaudeCodeSteps` | `claude`                       | macOS, Linux |
+| Codex       | `codex()` and `CodexSteps`           | `codex`                        | macOS, Linux |
+| Copilot     | `copilot()` and `CopilotSteps`       | `copilot`                      | macOS, Linux |
+| Junie       | `junie()` and `JunieSteps`           | IntelliJ IDEA (`idea`)         | macOS        |
+
+These methods check the hub and the deck:
+
+| Method                        | Function                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `.expectSession(key, fields)` | Wait until the session has these fields. Use `undefined` to wait until it is gone.   |
+| `.deck(options)`              | Open the virtual deck in a headless browser. Use it before the deck steps.           |
+| `.expectDeck(check)`          | Wait until the check passes for a snapshot of the deck keys.                         |
+| `.advanceDeckClock("10m")`    | Move the clock of the deck page forward, to age a DONE key. Use `clock: "manual"`.   |
+| `.pressKey(number)`           | Press a session key or an app key on the virtual deck.                               |
+| `.expectFocus({ appName })`   | Wait until the hub tries to focus the application. The hub does not run the command. |
+| `.wait("2s")`                 | Wait. Use it only for behavior that depends on time.                                 |
+
+Each expectation waits up to 15 seconds. Add `{ within: "30s" }` to change the limit. Add `{ during: "5s" }` to make sure that the value does not change.
+
+NOTE: The hub in a test sees all processes of the computer. If IntelliJ IDEA runs on your computer, the hub sees it too. Thus the Junie scenario does not check that the session disappears when the mock IDE stops.
+
+### 9.5 Show a scenario on a virtual deck or a physical deck
+
+The virtual deck is the page `/deck.html` of the hub. The physical deck is the Stream Deck with the plugin. Both show the sessions of the hub. Use the sandbox for both.
+
+1. Export the scenarios from a module as `export const scenarios: ScenarioBuilder[] = [...]`. The modules `e2e/scenarios/*-lifecycle.ts` are examples. They wait 4 seconds after each state.
+2. To show the scenario on the virtual deck, type this command and open <http://127.0.0.1:43681/deck.html>:
+
+   ```sh
+   npm run sandbox -- e2e/scenarios/codex-lifecycle.ts
+   ```
+
+3. To show the scenario on the physical deck, type this command. Read the CAUTION in [9.2](#92-show-mock-agents-on-the-physical-deck) first:
+
+   ```sh
+   npm run sandbox:deck -- e2e/scenarios/codex-lifecycle.ts
+   ```
+
+You can give more than one module or recording to both commands. They play the files in the order that you give them. Add `--loop` to the sandbox command to play them again and again.
+
+To check the virtual deck in a test, use `.deck()` and `.expectDeck()` in the scenario. The test runs the browser headless. To see the browser, set `AI_AI_CAPTAIN_E2E_HEADED=1`.
+
+### 9.6 Use a recording
+
+A recording is a JSON file with the steps of a scenario. A recording has three parts: a header, a timeline of operations, and the expected states. The player plays the timeline and checks the expected states in sequence.
+
+Use a recording to do these tasks:
+
+- Play a session from an issue report again.
+- Make sure that an inline scenario and a recording give the same result.
+- Show the same steps on a deck, without TypeScript.
+
+To play a recording in a test:
+
+```ts
+import { scenario } from "../harness/scenario.js";
+
+await scenario.fromRecording("e2e/fixtures/claude-code/hand-written/lifecycle.recording.json").run();
+```
+
+To play a recording on a deck, give the file to `npm run sandbox` or `npm run sandbox:deck`.
+
+A recording uses placeholders for values that change in each run: `{PID}`, `{SESSION}`, `{NOW}`, `{CLAUDE_HOME}`, `{CODEX_HOME}`, `{COPILOT_HOME}`, `{JUNIE_HOME}`, and `{PROJECT_1}`. A path in a recording must stay inside the temporary folder of the test.
+
+### 9.7 Export a session to a recording
+
+Usage:
+
+```sh
+npm run export:recording -- <codex|copilot|claude|junie> --list [--home=<folder>] [--limit=<number>]
+npm run export:recording -- <codex|copilot|claude|junie> <session identifier or file> [--home=<folder>] [--out=<file>]
+```
+
+Use the export script to turn a real session into a recording. Run the script by hand. The hub does not run it. Codex, Copilot, Claude Code, and Junie sessions work.
+
+1. Make a list of the sessions on the computer:
+
+   ```sh
+   npm run export:recording -- codex --list
+   ```
+
+   Each line has the session identifier, the time of the last change, and the size of the file. The newest session is the first line. The list shows no content. For other agents, use `copilot`, `claude`, or `junie` in place of `codex`. To show more than 20 lines, add `--limit=<number>`.
+
+2. Choose a session. Use the time and the size to find the session that you want. A session that you just used has the newest time.
+3. Type this command with the identifier from the list:
+
+   ```sh
+   npm run export:recording -- codex <session identifier>
+   ```
+
+   For another agent, use `copilot`, `claude`, or `junie` in place of `codex`.
+
+4. Open the file that the command names. Read it.
+5. Play it to check it:
+
+   ```sh
+   npm run sandbox -- codex-<short identifier>.recording.json
+   ```
+
+The list and the export read the default folders `~/.codex`, `~/.copilot`, `~/.claude`, and `~/.junie/sessions`. The variables `AI_AI_CAPTAIN_CODEX_HOME`, `AI_AI_CAPTAIN_COPILOT_HOME`, `AI_AI_CAPTAIN_CLAUDE_HOME`, and `AI_AI_CAPTAIN_JUNIE_HOME` change them. For a file that is not in these folders, give the path of the event file in place of the identifier. To use another agent folder, add `--home=<folder>`. To choose the name of the output, add `--out=<file>`. The command never overwrites a file.
+
+The recording has the sequence of events and nothing else. It has no prompt, response, tool data, error text, token count, path, or session identifier. The recording keeps the event types, the time between events, and the pairing of requests with answers. The header also has the day, the model name, and a few settings that are short words. Comments from fixed phrases explain the events before WAITING, DONE, and FAILED. The command writes the expected states from the state reducer of the hub.
+
+NOTE: A Claude Code export reads the transcript, because the registration file has no history. A prompt gives `busy`, and the end of a turn gives `idle`. The recording never has the state `waiting`. To record the real statuses, use the watch mode that follows. A Junie export keeps `INPUT_REQUIRED`, which the hub shows as WAITING.
+
+NOTE: The expected states show what the current hub does with the events. If the hub is wrong, the recording is wrong too. Check that the states agree with what you saw in the real session.
+
+To record the real statuses of a Claude Code session, watch it while it runs:
+
+1. Open a second terminal and type this command:
+
+   ```sh
+   npm run export:recording -- claude --watch
+   ```
+
+   Add the session identifier or the process identifier when more than one session runs. The command lists them.
+
+2. Use Claude Code as usual. The command prints each new status, for example `permission_required`.
+3. Press **Control** and **C**, or end the session. The command writes `claude-<short identifier>.recording.json`.
+
+The watch keeps only the status names and the time between changes. It never overwrites a file.
+
+Two more ways give a recording:
+
+- **From a failed scenario.** The error message ends with the path of a recording with the steps until the failure.
+- **From an inline scenario.** Call `.toRecording()` on the scenario.
+
+To keep a simulator correct, also make a shape file from a real session:
+
+1. Read one real file of the agent, for example a `rollout-*.jsonl` file of Codex.
+2. Write the key names and the value types of each event type to a `*.shape.json` file in `e2e/fixtures/<agent>/<version>/`. Do not write values.
+3. Add a unit test that checks each event of the simulator against the shape file. `e2e/harness/codex.test.ts` is an example.
+
+NOTE: The project has no real Copilot or Junie shape files yet. Their simulators follow the code of the adapters and the unit tests.
 
 ---
 
