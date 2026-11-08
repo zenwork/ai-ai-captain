@@ -38,6 +38,8 @@ export interface PlayOptions {
   settleMilliseconds?: number;
   /** Receives one line for each step. The sandbox shows these lines. */
   report?: (line: string) => void;
+  /** Receives the comments of a recording, one line for each comment. Without it, `report` receives them. */
+  reportComment?: (line: string) => void;
   /** Gives the first agent kind and version for the recording that is written when a step fails. */
   recordingHeader: { source: string; agent: string; agentVersion: string };
 }
@@ -77,6 +79,13 @@ function describeItem(item: ScenarioItem): string {
   }
 }
 
+/** The comment of a step, or nothing. A recording written by an export has comments. */
+function commentOf(item: ScenarioItem): string | undefined {
+  if (item.kind === "expectSession") return item.comment;
+  if (item.kind === "operation" && "comment" in item.operation) return item.operation.comment;
+  return undefined;
+}
+
 function isExpectation(item: ScenarioItem): boolean {
   return item.kind === "expectSession" || item.kind === "expectDeck" || item.kind === "expectFocus";
 }
@@ -109,6 +118,8 @@ class ScenarioPlayer {
       await delay(Math.max(0, this.startedAt + item.offsetMilliseconds - Date.now()));
     }
     const description = describeItem(item);
+    const comment = commentOf(item);
+    if (comment) (this.options.reportComment ?? this.options.report)?.(`      # ${comment}`);
     try {
       await this.execute(item);
     } catch (error) {

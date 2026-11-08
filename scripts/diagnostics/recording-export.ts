@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { formatDurationMilliseconds } from "../../e2e/harness/duration.js";
-import type { Operation, Recording } from "../../e2e/harness/recording.js";
+import type { Operation, Recording, RecordingContext } from "../../e2e/harness/recording.js";
 import { recordingFormatVersion } from "../../e2e/harness/recording.js";
 
 /** The agent key in an exported recording. */
@@ -81,6 +81,68 @@ export function appendTo(path: string): (line: JsonObject) => Operation {
   return (line) => ({ operation: "append", agent: exportAgentKey, path, content: line });
 }
 
+// A setting value from a session is safe when it is a short word. A path or a sentence does not pass.
+const safeValuePattern = /^[\w.:-]{1,40}$/;
+const importantStates = new Set(["waiting", "done", "failed"]);
+const maximumSummaryGroups = 6;
+// The phrases are fixed. They never contain text from a session.
+const statePhrases: Record<string, string> = {
+  starting: "The session starts.",
+  working: "The agent works.",
+  waiting: "The session waits for the user.",
+  done: "The agent has finished its turn.",
+  failed: "The session has failed.",
+};
+
+/** Gives the value when it is a short word, or nothing. */
+export function safeValue(value: unknown): string | undefined {
+  return typeof value === "string" && safeValuePattern.test(value) ? value : undefined;
+}
+
+/** Keeps the settings that have a safe value. */
+export function safeSettings(settings: Record<string, unknown>): Record<string, string> {
+  const safe: Record<string, string> = {};
+  for (const [name, value] of Object.entries(settings)) {
+    const text = safeValue(value);
+    if (text !== undefined) safe[name] = text;
+  }
+  return safe;
+}
+
+/** The first value that the function finds in the objects, or nothing. */
+export function firstValue(objects: JsonObject[], find: (object: JsonObject) => unknown): string | undefined {
+  for (const object of objects) {
+    const text = safeValue(find(object));
+    if (text !== undefined) return text;
+  }
+  return undefined;
+}
+
+function summarize(descriptions: string[]): string {
+  const counts = new Map<string, number>();
+  for (const description of descriptions) counts.set(description, (counts.get(description) ?? 0) + 1);
+  const groups = [...counts].slice(-maximumSummaryGroups).map(([description, count]) => (count > 1 ? `${description} (${String(count)})` : description));
+  return `Events since the previous state: ${groups.join(", ")}.`;
+}
+
+function describeState(state: string, descriptions: string[]): string | undefined {
+  const phrase = statePhrases[state];
+  if (phrase === undefined) return undefined;
+  return descriptions.length > 0 ? `${phrase} ${summarize(descriptions)}` : phrase;
+}
+
+function contextOf(options: AssembleOptions, startMilliseconds: number): RecordingContext {
+  // A time before the year 2000 means that the file had no time. Then the day of the export applies.
+  const minimumMilliseconds = Date.UTC(2000, 0, 1);
+  const dayMilliseconds = startMilliseconds >= minimumMilliseconds ? startMilliseconds : Date.now();
+  const settings = options.settings ? safeSettings(options.settings) : {};
+  return {
+    recordedOn: new Date(dayMilliseconds).toISOString().slice(0, 10),
+    ...(options.model ? { model: options.model } : {}),
+    ...(Object.keys(settings).length > 0 ? { settings } : {}),
+  };
+}
+
 export interface AssembleOptions {
   agent: string;
   /** The version text from the file. The export uses it only when it has a safe form. */
@@ -95,24 +157,54 @@ export interface AssembleOptions {
   endWithExit?: boolean;
   /** Applies one event to the state reducer of the hub and gives the new state. */
   stateAfter: (line: JsonObject, timestampMilliseconds: number) => string;
+  /** Gives a short fixed phrase for an event, for example "agent message". It must not use content of the session. */
+  describeEvent?: (line: JsonObject) => string | undefined;
+  /** The model of the session. Only a short word is kept. */
+  model?: string | undefined;
+  /** High-level settings, for example the permission mode. Only short words are kept. */
+  settings?: Record<string, unknown>;
+}
+
+// The hub polls the files. A state that ends in less time than this is not visible, so a replay cannot expect it.
+const shortestVisibleStateMilliseconds = 500;
+
+/** Removes the states that the next state replaces too fast for the hub to show. The last state stays. */
+function withoutShortStates<Entry extends { offsetMilliseconds: number; state: string }>(states: Entry[]): Entry[] {
+  const visible = states.filter((entry, index) => {
+    const next = states[index + 1];
+    return next === undefined || next.offsetMilliseconds - entry.offsetMilliseconds >= shortestVisibleStateMilliseconds;
+  });
+  // Removing a short state can leave two equal states in sequence. Only the first one counts.
+  return visible.filter((entry, index) => entry.state !== visible[index - 1]?.state);
 }
 
 /** Makes a recording from the kept events. The expected states come from the state reducer of the hub. */
 export function assembleRecording(options: AssembleOptions): Recording {
   const timeline: Recording["timeline"] = options.preamble.map((operation) => ({ ...operation }));
-  const expected: Recording["expected"] = [];
+  const observedStates: { offsetMilliseconds: number; state: string; comment: string | undefined }[] = [];
+  let descriptionsSinceChange: string[] = [];
   const startMilliseconds = options.events[0]?.timestampMilliseconds ?? 0;
   let offsetMilliseconds = 0;
   let previousState: string | undefined;
   for (const event of options.events) {
     offsetMilliseconds = Math.max(offsetMilliseconds, event.timestampMilliseconds - startMilliseconds);
     const offset = formatDurationMilliseconds(offsetMilliseconds);
-    timeline.push({ offset, ...options.toOperation(event.line) });
+    const description = options.describeEvent?.(event.line);
+    if (description) descriptionsSinceChange.push(description);
     const state = options.stateAfter(event.line, event.timestampMilliseconds);
+    const isImportant = state !== previousState && importantStates.has(state);
+    timeline.push({ offset, ...options.toOperation(event.line), ...(isImportant && description ? { comment: description } : {}) });
     if (state === previousState) continue;
-    expected.push({ offset, session: options.sessionTemplate, state });
+    observedStates.push({ offsetMilliseconds, state, comment: describeState(state, descriptionsSinceChange) });
+    descriptionsSinceChange = [];
     previousState = state;
   }
+  const expected: Recording["expected"] = withoutShortStates(observedStates).map((observed) => ({
+    offset: formatDurationMilliseconds(observed.offsetMilliseconds),
+    session: options.sessionTemplate,
+    state: observed.state,
+    ...(observed.comment ? { comment: observed.comment } : {}),
+  }));
   if (options.endWithExit !== false) {
     const exitOffset = formatDurationMilliseconds(offsetMilliseconds + exitDelayMilliseconds);
     timeline.push({ offset: exitOffset, operation: "exit", agent: exportAgentKey });
@@ -126,6 +218,7 @@ export function assembleRecording(options: AssembleOptions): Recording {
       agent: options.agent,
       agentVersion: version && versionPattern.test(version) ? version : "unknown",
       platform: process.platform,
+      context: contextOf(options, startMilliseconds),
     },
     timeline,
     expected,

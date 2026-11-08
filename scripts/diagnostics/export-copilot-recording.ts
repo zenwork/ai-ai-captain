@@ -4,6 +4,7 @@ import type { Recording } from "../../e2e/harness/recording.js";
 import {
   appendTo,
   assembleRecording,
+  firstValue,
   IdentifierAliases,
   objectField,
   parseJsonObjects,
@@ -35,6 +36,34 @@ const stateEventTypes = new Set([
 // The hub treats a tool that asks the user as a request. The tool name is the only content that the export keeps.
 const userInputTools = new Set(["ask_user", "exit_plan_mode"]);
 
+// The phrases are fixed. They name the kind of event and never show its content.
+const eventPhrases: Record<string, string> = {
+  "session.start": "start of the session",
+  "session.resume": "resume of the session",
+  "session.shutdown": "shutdown of the session",
+  "session.error": "error of the session",
+  "session.idle": "idle session",
+  "session.task_complete": "end of the task",
+  "session.cancelled": "cancel by the user",
+  "user.message": "prompt from the user",
+  "assistant.turn_start": "start of a turn",
+  "assistant.turn_end": "end of a turn",
+  "assistant.message": "agent message",
+  "tool.execution_start": "start of a tool call",
+  "tool.execution_complete": "end of a tool call",
+  "permission.requested": "permission request to the user",
+  "permission.completed": "answer to a permission request",
+};
+
+function describeEvent(kept: JsonObject): string | undefined {
+  const type = textField(kept.type) ?? "";
+  const data = objectField(kept.data);
+  if (type === "tool.execution_start" && textField(data.toolName) === "ask_user") return "question from the agent to the user";
+  if (type === "tool.execution_start" && textField(data.toolName) === "exit_plan_mode") return "plan approval request to the user";
+  if (type === "tool.execution_complete" && data.toolCallId !== undefined) return "answer to a question of the agent";
+  return eventPhrases[type];
+}
+
 function line(type: string, data: JsonObject): JsonObject {
   return { type, timestamp: placeholderTimestamp, data };
 }
@@ -65,8 +94,10 @@ export function exportCopilotRecording(eventsText: string): Recording {
   const requests = new IdentifierAliases("request");
   const tools = new IdentifierAliases("tool");
   const events: ExportedEvent[] = [];
+  const objects = parseJsonObjects(eventsText);
+  const dataOf = (type: string): JsonObject[] => objects.filter((object) => object.type === type).map((object) => objectField(object.data));
   let lastTimestamp = 0;
-  for (const object of parseJsonObjects(eventsText)) {
+  for (const object of objects) {
     lastTimestamp = timestampMilliseconds(object.timestamp) ?? lastTimestamp;
     const kept = keepEvent(object, requests, tools);
     if (kept) events.push({ timestampMilliseconds: lastTimestamp, line: kept });
@@ -75,7 +106,13 @@ export function exportCopilotRecording(eventsText: string): Recording {
   const definition = copilot()("cli");
   return assembleRecording({
     agent: "copilot",
-    agentVersion: undefined,
+    agentVersion: firstValue(dataOf("session.start"), (data) => data.copilotVersion),
+    model: firstValue(dataOf("session.auto_mode_resolved"), (data) => data.chosenModel) ?? firstValue(dataOf("session.model_change"), (data) => data.newModel),
+    settings: {
+      agentMode: firstValue(dataOf("assistant.turn_start"), (data) => data.agentMode),
+      permissionMode: firstValue(dataOf("permission.requested"), (data) => data.permissionMode),
+    },
+    describeEvent,
     preamble: definition.steps.spawn().slice(0, 2),
     toOperation: appendTo(copilotEventsPath),
     sessionTemplate: definition.sessionIdentifierTemplate,

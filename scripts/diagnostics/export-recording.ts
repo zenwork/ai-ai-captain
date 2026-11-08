@@ -18,6 +18,7 @@ const homeArgumentPrefix = "--home=";
 const outArgumentPrefix = "--out=";
 const limitArgumentPrefix = "--limit=";
 const listArgument = "--list";
+const listWord = "list";
 const watchArgument = "--watch";
 const intervalArgumentPrefix = "--interval=";
 const defaultWatchIntervalMilliseconds = 250;
@@ -167,7 +168,8 @@ async function main(): Promise<void> {
     return;
   }
   const homeOption = optionValue(options, homeArgumentPrefix);
-  if (source === listArgument || options.includes(listArgument)) {
+  // The word "list" is also a request for the list, because people type it without dashes.
+  if (source === listArgument || source === listWord || options.includes(listArgument)) {
     await printSessions(agent, agentHome(agent, homeOption), Number(optionValue(options, limitArgumentPrefix) ?? defaultListLimit));
     return;
   }

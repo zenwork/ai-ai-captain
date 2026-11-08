@@ -4,6 +4,7 @@ import type { Recording } from "../../e2e/harness/recording.js";
 import {
   appendTo,
   assembleRecording,
+  firstValue,
   IdentifierAliases,
   objectField,
   parseJsonObjects,
@@ -20,6 +21,17 @@ const permissionRequestPattern = /^(?:functions\.)?request_user_input$/;
 const turnStartTypes = new Set(["task_started", "turn_started"]);
 const turnEndTypes = new Set(["task_complete", "turn_complete", "turn_completed", "turn_aborted"]);
 const failureTypes = new Set(["error", "turn_failed"]);
+
+function describeEvent(kept: JsonObject): string | undefined {
+  const payload = objectField(kept.payload);
+  const payloadType = textField(payload.type) ?? "";
+  if (kept.type === "session_meta") return "start of the session";
+  if (turnStartTypes.has(payloadType)) return "start of a turn";
+  if (turnEndTypes.has(payloadType)) return payloadType === "turn_aborted" ? "stop of a turn by the user" : "end of a turn";
+  if (failureTypes.has(payloadType)) return "error in a turn";
+  if (kept.type !== "response_item") return undefined;
+  return payloadType.endsWith("_output") ? "answer to a question of the agent" : "question from the agent to the user";
+}
 
 function line(type: string, payload: JsonObject): JsonObject {
   return { timestamp: placeholderTimestamp, type, payload };
@@ -68,11 +80,19 @@ export function exportCodexRecording(rolloutText: string): Recording {
     if (kept) events.push({ timestampMilliseconds: lastTimestamp, line: kept });
   }
   const sessionMeta = objects.find((object) => object.type === "session_meta");
+  const turnContexts = objects.filter((object) => object.type === "turn_context").map((object) => objectField(object.payload));
   const reducer = new CodexSessionState();
   const definition = codex()("cli");
   return assembleRecording({
     agent: "codex",
     agentVersion: textField(objectField(sessionMeta?.payload).cli_version),
+    model: firstValue(turnContexts, (context) => context.model),
+    settings: {
+      reasoningEffort: firstValue(turnContexts, (context) => context.effort),
+      approvalPolicy: firstValue(turnContexts, (context) => context.approval_policy),
+      sandbox: firstValue(turnContexts, (context) => objectField(context.sandbox_policy).type),
+    },
+    describeEvent,
     preamble: definition.steps.spawn().slice(0, 3),
     toOperation: appendTo(codexRolloutPath),
     sessionTemplate: definition.sessionIdentifierTemplate,

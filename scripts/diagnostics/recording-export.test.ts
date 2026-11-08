@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { assembleRecording } from "./recording-export.js";
 import { recordingSchema } from "../../e2e/harness/recording.js";
 import { exportClaudeRecording } from "./export-claude-recording.js";
 import { exportJunieRecording } from "./export-junie-recording.js";
@@ -28,6 +29,18 @@ describe("the export of a Codex session", () => {
     expect(output).not.toContain("CANARY");
     expect(output).not.toContain("/Users/");
     expect(output).not.toContain("999");
+  });
+
+  it("keeps the model and the safe settings, and drops a setting that is free text", () => {
+    expect(recording.header.context?.model).toBe("test-model-1");
+    expect(recording.header.context?.settings).toEqual({ approvalPolicy: "on-request" });
+    expect(recording.header.context?.recordedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("describes the important states with fixed phrases", () => {
+    const comments = recording.expected.map((entry) => entry.comment ?? "").join(" ");
+    expect(comments).toContain("The session waits for the user.");
+    expect(comments).toContain("The agent has finished its turn.");
   });
 
   it("keeps the sequence of states from the state reducer of the hub", () => {
@@ -92,5 +105,26 @@ describe("the export of a Junie session", () => {
 
   it("does not stop the mock IDE", () => {
     expect(recording.timeline.some((step) => step.operation === "exit")).toBe(false);
+  });
+});
+
+describe("the states of an export", () => {
+  it("leaves out a state that the next state replaces in less than the polling time", () => {
+    const recording = assembleRecording({
+      agent: "test",
+      agentVersion: undefined,
+      preamble: [],
+      toOperation: () => ({ operation: "append", agent: "agent", path: "file", content: {} }),
+      sessionTemplate: "test:{SESSION}",
+      endWithExit: false,
+      events: [
+        { line: {}, timestampMilliseconds: 0 },
+        { line: {}, timestampMilliseconds: 1_000 },
+        { line: {}, timestampMilliseconds: 1_001 },
+        { line: {}, timestampMilliseconds: 3_000 },
+      ],
+      stateAfter: (_line, timestampMilliseconds) => (timestampMilliseconds === 1_000 ? "done" : "working"),
+    });
+    expect(recording.expected.map((entry) => entry.state)).toEqual(["working", "working"].slice(0, 1));
   });
 });

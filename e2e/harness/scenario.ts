@@ -30,6 +30,7 @@ export interface RunOptions {
   /** The time that the `fast` pace waits after each expectation. The default is one second. */
   settleMilliseconds?: number;
   report?: (line: string) => void;
+  reportComment?: (line: string) => void;
 }
 
 const millisecondsPerSecond = 1_000;
@@ -69,11 +70,13 @@ export class ScenarioBuilder<Factories extends AgentFactories = AgentFactories> 
     const builder = new ScenarioBuilder(name);
     builder.items = recordingToItems(recording);
     builder.playsRecording = true;
+    builder.contextLine = describeRecordingContext(recording);
     builder.recordingHeader = { source: recording.header.source, agent: recording.header.agent, agentVersion: recording.header.agentVersion };
     return builder;
   }
 
   private playsRecording = false;
+  private contextLine: string | undefined;
   private recordingHeader = { source: "inline", agent: "unknown", agentVersion: "unknown" };
 
   /** Opens the virtual deck in a headless browser. Only a scenario with a deck can use deck steps. */
@@ -149,6 +152,8 @@ export class ScenarioBuilder<Factories extends AgentFactories = AgentFactories> 
     const startedAt = Date.now();
     const elapsedSeconds = (): string => ((Date.now() - startedAt) / millisecondsPerSecond).toFixed(1);
     if (logRecording) console.info(`[recording] Playing ${this.name}: ${String(this.items.length)} steps`);
+    // The context tells people what the recording shows. The sandbox shows it too.
+    if (this.playsRecording && this.contextLine) console.info(this.contextLine);
     const report = options.report ?? (verboseSteps ? console.info : undefined);
     try {
       await playScenario({
@@ -159,6 +164,8 @@ export class ScenarioBuilder<Factories extends AgentFactories = AgentFactories> 
         pace: options.pace ?? "none",
         ...(options.settleMilliseconds === undefined ? {} : { settleMilliseconds: options.settleMilliseconds }),
         ...(report ? { report } : {}),
+        // A recording tells its story in the test output, even when the step lines are off.
+        ...(this.playsRecording ? { reportComment: console.info } : {}),
         recordingHeader: this.recordingHeader,
       });
       if (logRecording) console.info(`[recording] Finished ${this.name} in ${elapsedSeconds()} s`);
@@ -184,6 +191,19 @@ function createScenario<Factories extends AgentFactories>(name: string, agents?:
 }
 
 /** Reads a recording file and makes a scenario from it. The read is synchronous, so that `.until()` and `.step()` can follow. */
+/** Makes one line that tells what a recording shows: the agent, the day, the model, and the settings. */
+function describeRecordingContext(recording: Recording): string {
+  const { header } = recording;
+  const parts = [`${header.agent} ${header.agentVersion}`];
+  const context = header.context;
+  if (context) {
+    parts.push(`recorded ${context.recordedOn}`);
+    if (context.model) parts.push(`model ${context.model}`);
+    for (const [name, value] of Object.entries(context.settings ?? {})) parts.push(`${name}=${value}`);
+  }
+  return `[recording] Context: ${parts.join(", ")}`;
+}
+
 function fromRecording(file: string): ScenarioBuilder {
   const recording = recordingSchema.parse(JSON.parse(readFileSync(file, "utf8")));
   return ScenarioBuilder.fromRecordingData(relative(process.cwd(), file), recording);

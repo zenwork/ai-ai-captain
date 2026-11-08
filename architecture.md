@@ -166,7 +166,7 @@ Restored sessions remain hidden until a live adapter/reporter confirms them. Per
 ## ARCH-08 — Privacy and trust boundaries
 
 - Existing local event files may be read transiently to derive metadata. Prompts, responses, instructions, tool contents, private error messages, and registry RPC tokens must not be retained or forwarded by automatic adapters.
-- A manual script, `npm run export:recording`, can write the sequence of events of one session to a file. A person runs it by hand, outside the hub. It copies only event types, timing, and aliased pairing identifiers. It never copies content, paths, models, or session identifiers. The hub does not run it.
+- A manual script, `npm run export:recording`, can write the sequence of events of one session to a file. A person runs it by hand, outside the hub. It copies only event types, timing, aliased pairing identifiers, the day, the model name, and a few settings that are short words. It adds comments from fixed phrases. It never copies content, paths, or session identifiers. The hub does not run it.
 - Claude registrations retain only validated session, process, project, model, status, and timestamp fields. The desktop inspector returns only conversation IDs and states. It never changes Accessibility permissions, starts a model turn, or reads authentication storage.
 - Arbitrary API `label`, `project`, and `metadata` strings are not a secret-redaction service. Reporters must send descriptive metadata only.
 - User processes and harness history settings must not be modified or terminated to make the inventory appear correct.

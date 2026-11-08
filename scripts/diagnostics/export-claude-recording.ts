@@ -1,7 +1,7 @@
 import { claudeRegistryState } from "../../src/server/claude.js";
 import { claudeCode, type ClaudeCodeStatus } from "../../e2e/harness/claude-code.js";
 import type { Recording } from "../../e2e/harness/recording.js";
-import { assembleRecording, objectField, parseJsonObjects, textField, timestampMilliseconds, type ExportedEvent } from "./recording-export.js";
+import { assembleRecording, firstValue, objectField, parseJsonObjects, textField, timestampMilliseconds, type ExportedEvent } from "./recording-export.js";
 
 const promptStatus: ClaudeCodeStatus = "busy";
 const turnEndStatus: ClaudeCodeStatus = "idle";
@@ -26,7 +26,18 @@ function statusOf(line: Record<string, unknown>): ClaudeCodeStatus | undefined {
  * Makes a recording from a sequence of registration statuses. The mock agent writes each status to the registration
  * file, as Claude Code does. The expected states come from the status mapping of the hub.
  */
-export function claudeRecordingFromStatuses(events: ExportedEvent[], version: string | undefined): Recording {
+const statusPhrases: Record<string, string> = {
+  busy: "agent starts to work",
+  idle: "agent is idle",
+  permission_required: "permission request to the user",
+};
+
+export interface ClaudeRecordingContext {
+  model?: string | undefined;
+  settings?: Record<string, unknown>;
+}
+
+export function claudeRecordingFromStatuses(events: ExportedEvent[], version: string | undefined, context: ClaudeRecordingContext = {}): Recording {
   const steps = claudeCode({})("cli").steps;
   return assembleRecording({
     agent: "claude-code",
@@ -37,6 +48,9 @@ export function claudeRecordingFromStatuses(events: ExportedEvent[], version: st
       return operation;
     },
     sessionTemplate: "claude:{SESSION}",
+    describeEvent: (line) => statusPhrases[textField(line.status) ?? ""],
+    model: context.model,
+    ...(context.settings ? { settings: context.settings } : {}),
     events,
     stateAfter: (line) => claudeRegistryState(textField(line.status)),
   });
@@ -61,5 +75,12 @@ export function exportClaudeRecording(transcriptText: string): Recording {
     events.push({ timestampMilliseconds: lastTimestamp, line: { status } });
   }
   const version = objects.map((object) => textField(object.version)).find((text) => text !== undefined);
-  return claudeRecordingFromStatuses(events, version);
+  const messages = objects.map((object) => objectField(object.message));
+  return claudeRecordingFromStatuses(events, version, {
+    model: firstValue(messages, (message) => message.model),
+    settings: {
+      permissionMode: firstValue(objects, (object) => object.permissionMode),
+      effort: firstValue(objects, (object) => object.effort),
+    },
+  });
 }

@@ -1,0 +1,510 @@
+{
+  "header": {
+    "formatVersion": 1,
+    "source": "export",
+    "agent": "copilot",
+    "agentVersion": "1.0.107",
+    "platform": "darwin",
+    "context": {
+      "recordedOn": "2026-11-08",
+      "model": "mai-code-1.1-flash",
+      "settings": {
+        "agentMode": "interactive",
+        "permissionMode": "manual"
+      }
+    }
+  },
+  "timeline": [
+    {
+      "operation": "spawn",
+      "agent": "cli",
+      "processName": "copilot"
+    },
+    {
+      "operation": "holdOpen",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/inuse.{PID}.hold"
+    },
+    {
+      "offset": "0s",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "session.start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "86326ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "user.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "86340ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "89604ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "89605ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "115906ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "user.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "115909ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "119285ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "119286ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "120088ms",
+      "comment": "permission request to the user",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "permission.requested",
+        "timestamp": "{NOW}",
+        "data": {
+          "requestId": "request-1"
+        }
+      }
+    },
+    {
+      "offset": "123064ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "permission.completed",
+        "timestamp": "{NOW}",
+        "data": {
+          "requestId": "request-1"
+        }
+      }
+    },
+    {
+      "offset": "128094ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "128097ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "128098ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "129759ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "129760ms",
+      "comment": "question from the agent to the user",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {
+          "toolName": "ask_user",
+          "toolCallId": "tool-1"
+        }
+      }
+    },
+    {
+      "offset": "135577ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {
+          "toolCallId": "tool-1"
+        }
+      }
+    },
+    {
+      "offset": "135581ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "135582ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "137419ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "137420ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "137422ms",
+      "comment": "permission request to the user",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "permission.requested",
+        "timestamp": "{NOW}",
+        "data": {
+          "requestId": "request-2"
+        }
+      }
+    },
+    {
+      "offset": "140924ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "permission.completed",
+        "timestamp": "{NOW}",
+        "data": {
+          "requestId": "request-2"
+        }
+      }
+    },
+    {
+      "offset": "145966ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "145971ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "145972ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "147707ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "147708ms",
+      "comment": "question from the agent to the user",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {
+          "toolName": "ask_user",
+          "toolCallId": "tool-2"
+        }
+      }
+    },
+    {
+      "offset": "153817ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {
+          "toolCallId": "tool-2"
+        }
+      }
+    },
+    {
+      "offset": "153822ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "153822ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "156982ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "156983ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "157983ms",
+      "operation": "exit",
+      "agent": "cli"
+    }
+  ],
+  "expected": [
+    {
+      "offset": "0s",
+      "comment": "The session starts. Events since the previous state: start of the session.",
+      "session": "copilot:{SESSION}",
+      "state": "starting"
+    },
+    {
+      "offset": "86326ms",
+      "comment": "The agent works. Events since the previous state: prompt from the user.",
+      "session": "copilot:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "89605ms",
+      "comment": "The agent has finished its turn. Events since the previous state: start of a turn, agent message, end of a turn.",
+      "session": "copilot:{SESSION}",
+      "state": "done"
+    },
+    {
+      "offset": "115906ms",
+      "comment": "The agent works. Events since the previous state: prompt from the user.",
+      "session": "copilot:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "120088ms",
+      "comment": "The session waits for the user. Events since the previous state: start of a turn, agent message, start of a tool call, permission request to the user.",
+      "session": "copilot:{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "123064ms",
+      "comment": "The agent works. Events since the previous state: answer to a permission request.",
+      "session": "copilot:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "129760ms",
+      "comment": "The session waits for the user. Events since the previous state: agent message, question from the agent to the user.",
+      "session": "copilot:{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "135582ms",
+      "comment": "The agent works. Events since the previous state: start of a turn.",
+      "session": "copilot:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "137422ms",
+      "comment": "The session waits for the user. Events since the previous state: agent message, start of a tool call, permission request to the user.",
+      "session": "copilot:{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "140924ms",
+      "comment": "The agent works. Events since the previous state: answer to a permission request.",
+      "session": "copilot:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "147708ms",
+      "comment": "The session waits for the user. Events since the previous state: agent message, question from the agent to the user.",
+      "session": "copilot:{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "153822ms",
+      "comment": "The agent works. Events since the previous state: start of a turn.",
+      "session": "copilot:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "156983ms",
+      "comment": "The agent has finished its turn. Events since the previous state: agent message, end of a turn.",
+      "session": "copilot:{SESSION}",
+      "state": "done"
+    },
+    {
+      "offset": "157983ms",
+      "session": "copilot:{SESSION}",
+      "state": null
+    }
+  ]
+}

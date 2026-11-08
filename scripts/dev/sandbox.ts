@@ -12,6 +12,7 @@ const defaultSandboxPort = 43681;
 const portArgumentPrefix = "--port=";
 const loopArgument = "--loop";
 const fastArgument = "--fast";
+const deckLoadingPauseMilliseconds = 5000;
 const settleArgumentPrefix = "--settle=";
 const pauseBetweenRoundsMilliseconds = 3_000;
 const sandboxScanIntervalMilliseconds = 1_000;
@@ -77,13 +78,17 @@ async function main(): Promise<void> {
   process.once("SIGTERM", requestStop);
   try {
     do {
-      for (const item of scenarios)
+      for (const item of scenarios) {
+        // The deck needs time to load and to connect to the hub. People must see the first state.
+        console.info(`Wait ${String(deckLoadingPauseMilliseconds / 1000)} s for the deck to load.`);
+        await delay(deckLoadingPauseMilliseconds);
         await item.run({
           environment,
           pace: fast ? "fast" : "realtime",
           ...(settleMilliseconds === undefined ? {} : { settleMilliseconds }),
           report: console.info,
         });
+      }
       console.info(loop ? "All scenarios passed. Starting again. Press Control and C to stop." : "All scenarios passed.");
       if (loop) await delay(pauseBetweenRoundsMilliseconds);
     } while (loop && !stopRequested);

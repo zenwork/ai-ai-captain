@@ -569,7 +569,7 @@ Use the export script to turn a real session into a recording. Run the script by
 
 The list and the export read the default folders `~/.codex`, `~/.copilot`, `~/.claude`, and `~/.junie/sessions`. The variables `AI_AI_CAPTAIN_CODEX_HOME`, `AI_AI_CAPTAIN_COPILOT_HOME`, `AI_AI_CAPTAIN_CLAUDE_HOME`, and `AI_AI_CAPTAIN_JUNIE_HOME` change them. For a file that is not in these folders, give the path of the event file in place of the identifier. To use another agent folder, add `--home=<folder>`. To choose the name of the output, add `--out=<file>`. The command never overwrites a file.
 
-The recording has the sequence of events and nothing else. It has no prompt, response, tool data, error text, model name, token count, path, or session identifier. The recording keeps the event types, the time between events, and the pairing of requests with answers. The command writes the expected states from the state reducer of the hub.
+The recording has the sequence of events and nothing else. It has no prompt, response, tool data, error text, token count, path, or session identifier. The recording keeps the event types, the time between events, and the pairing of requests with answers. The header also has the day, the model name, and a few settings that are short words. Comments from fixed phrases explain the events before WAITING, DONE, and FAILED. The command writes the expected states from the state reducer of the hub.
 
 NOTE: A Claude Code export reads the transcript, because the registration file has no history. A prompt gives `busy`, and the end of a turn gives `idle`. The recording never has the state `waiting`. To record the real statuses, use the watch mode that follows. A Junie export keeps `INPUT_REQUIRED`, which the hub shows as WAITING.
 

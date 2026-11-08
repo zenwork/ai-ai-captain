@@ -20,6 +20,8 @@ export type ScenarioItem =
       /** The fields that the session must have. The value `undefined` means that the session must not exist. */
       expected: Record<string, unknown> | undefined;
       options: ExpectationOptions;
+      /** A text for people. The player shows it before the check. */
+      comment?: string;
     }
   | { kind: "expectDeck"; check: (snapshot: DeckSnapshot) => void | Promise<void>; options: ExpectationOptions }
   | { kind: "advanceDeckClock"; milliseconds: number }
@@ -80,7 +82,14 @@ export function recordingToItems(recording: Recording): ScenarioItem[] {
       offsetMilliseconds,
       rank: 1,
       index,
-      item: { kind: "expectSession", offsetMilliseconds, sessionTemplate: state.session, expected, options: {} },
+      item: {
+        kind: "expectSession",
+        offsetMilliseconds,
+        sessionTemplate: state.session,
+        expected,
+        options: {},
+        ...(state.comment ? { comment: state.comment } : {}),
+      },
     });
   }
   entries.sort((first, second) => first.offsetMilliseconds - second.offsetMilliseconds || first.rank - second.rank || first.index - second.index);

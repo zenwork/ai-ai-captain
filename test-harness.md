@@ -88,7 +88,7 @@ The sandbox starts a hub with mock agents and plays scenarios in real time. Use 
 
 3. Read the PASS and FAIL lines in the terminal.
 
-A scenario module must export a list named `scenarios`. The files `e2e/scenarios/*-lifecycle.ts` are examples. A recording is a `.json` file. The sandbox waits 4 seconds after each state in these examples, so that people can see it. Add `--fast` to ignore the times in recordings and the pauses in scenarios. The sandbox then waits only 1 second after each check. Add `--settle=<duration>` to change that time, for example `--settle=2s`. Add `--loop` to play the files again and again. Press **Control** and **C** to stop. Add `--port=<number>` to test while a real hub runs.
+A scenario module must export a list named `scenarios`. The files `e2e/scenarios/*-lifecycle.ts` are examples. A recording is a `.json` file. The sandbox waits 4 seconds after each state in these examples, so that people can see it. Add `--fast` to ignore the times in recordings and the pauses in scenarios. The sandbox then waits only 1 second after each check. Add `--settle=<duration>` to change that time, for example `--settle=2s`. The sandbox waits 5 seconds before each scenario, so that the deck can load. Add `--loop` to play the files again and again. Press **Control** and **C** to stop. Add `--port=<number>` to test while a real hub runs.
 
 The sandbox sets `AI_AI_CAPTAIN_SANDBOX=1`. The hub then does not scan the Claude desktop application and does not list desktop applications. The sandbox also sets a short scan interval (`AI_AI_CAPTAIN_DISCOVERY_INTERVAL_MILLISECONDS`) and a focus log (`AI_AI_CAPTAIN_FOCUS_LOG`). The hub writes the focus commands to the log and does not run them. A mock host process thus never activates a real application.
 
@@ -200,7 +200,9 @@ The export has the sequence of events and nothing else.
 
 - The recording keeps the type of each event and the time between events.
 - The recording keeps the pairing of a turn, a request, or a call with its end. The script replaces each identifier with an alias such as `turn-1`.
-- The recording has no prompt, response, tool argument, tool result, error message, model name, token count, path, or session identifier.
+- The recording has no prompt, response, tool argument, tool result, error message, token count, path, or session identifier.
+- The header has a `context` block: the day of the session, the name of the model, and a few high-level settings. Examples are the permission mode and the sandbox mode. The script keeps a value only when it is a short word. A path or a sentence does not pass.
+- The recording has `comment` fields. They tell a person what happens before and at the important states WAITING, DONE, and FAILED. The script writes each comment from a fixed phrase for the kind of event, for example "agent message" or "permission request to the user". A comment never has text from the session. The player ignores the comments.
 - The script uses an allowlist. It copies a field only when the field is on the list. A new field of a new agent version is dropped until a person adds it.
 - The expected part comes from the state reducer of the hub. The script replays the kept events through it.
 

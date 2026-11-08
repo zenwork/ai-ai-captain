@@ -6,6 +6,13 @@ import { assembleRecording, objectField, parseJsonObjects, textField, type Expor
 // The hub reads the text `"state":"<STATE>","agentEvent"`. The export keeps only a state name of this form.
 const stateNamePattern = /^[A-Z_]{1,40}$/;
 
+const statePhrases: Record<string, string> = {
+  IN_PROGRESS: "task is in progress",
+  INPUT_REQUIRED: "Junie asks the user for input",
+  COMPLETED: "task is complete",
+  FAILED: "task has failed",
+};
+
 function numberValue(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
@@ -34,6 +41,7 @@ export function exportJunieRecording(eventsText: string): Recording {
     toOperation: (line) => steps.stateEvent(textField(line.state) ?? ""),
     sessionTemplate: junie()("ide").sessionIdentifierTemplate,
     events,
+    describeEvent: (line) => statePhrases[textField(line.state) ?? ""],
     endWithExit: false,
     stateAfter: (line) => junieEventState(textField(line.state)),
   });

@@ -8,7 +8,8 @@ import { ClaudeStatusRecorder, watchClaudeSession } from "./watch-claude-session
 const sessionIdentifier = "11111111-2222-3333-4444-555555555555";
 const processIdentifier = 4242;
 const pollMilliseconds = 20;
-const statusChangePauseMilliseconds = 120;
+// The export drops a state that lasts less than 500 ms, so each status must last longer.
+const statusChangePauseMilliseconds = 600;
 
 function registration(status: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
   return { pid: processIdentifier, sessionId: sessionIdentifier, version: "2.1.319", cwd: "/Users/CANARY-user/secret", name: "CANARY-name", status, ...extra };
