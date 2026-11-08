@@ -1,16 +1,23 @@
 name: CI
 
+# CI runs once for each pull request. The branch rules of `main` require an up-to-date branch,
+# so the tested result is the result that lands on `main`. A run on the push to `main` would repeat the test.
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
+
+# A new push to the same pull request replaces the run that is still active.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   quality:
+    # The release pull request changes only the version and the changelog. The code is already tested.
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -26,6 +33,8 @@ jobs:
 
   validate:
     needs: quality
+    # The release pull request changes only the version and the changelog. The code is already tested.
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     strategy:
       fail-fast: false
       matrix:
@@ -54,6 +63,8 @@ jobs:
   # The browser for the virtual deck runs headless, so no display is necessary.
   e2e:
     needs: quality
+    # The release pull request changes only the version and the changelog. The code is already tested.
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     strategy:
       fail-fast: false
       matrix:
