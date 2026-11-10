@@ -1,0 +1,1046 @@
+{
+  "header": {
+    "formatVersion": 1,
+    "source": "export",
+    "agent": "copilot",
+    "agentVersion": "1.0.103",
+    "platform": "darwin",
+    "context": {
+      "recordedOn": "2026-11-09",
+      "model": "gpt-6.1-terra",
+      "settings": {
+        "permissionMode": "manual"
+      }
+    }
+  },
+  "timeline": [
+    {
+      "operation": "spawn",
+      "agent": "cli",
+      "processName": "copilot"
+    },
+    {
+      "operation": "holdOpen",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/inuse.{PID}.hold"
+    },
+    {
+      "offset": "0s",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "session.start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "46462ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "user.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "46465ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "55951ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "55953ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "55958ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "55971ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "55972ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "60592ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "60593ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "60594ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "60595ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "60596ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "60603ms",
+      "comment": "permission request to the user",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "permission.requested",
+        "timestamp": "{NOW}",
+        "data": {
+          "requestId": "request-1"
+        }
+      }
+    },
+    {
+      "offset": "60604ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "60635ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "60637ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "64689ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "permission.completed",
+        "timestamp": "{NOW}",
+        "data": {
+          "requestId": "request-1"
+        }
+      }
+    },
+    {
+      "offset": "64761ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "64771ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "64771ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70523ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70525ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70525ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70526ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70527ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70534ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70537ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70549ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70551ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70558ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "70559ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76983ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76985ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76986ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76987ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76988ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76989ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76990ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76991ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "76992ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77004ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77006ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77008ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77010ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77013ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77016ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77018ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77020ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77029ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "77029ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "88724ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "88726ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "88727ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "88728ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "88728ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "88753ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "88754ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "88943ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "89006ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "89016ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "89017ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "95390ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "95392ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "95589ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "95600ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "95600ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "104093ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "104095ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "104283ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "104294ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "104294ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110609ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110610ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110611ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110612ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110625ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110644ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110646ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110655ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "110656ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "122833ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.message",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "122835ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "122836ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "122996ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "123125ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "tool.execution_complete",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "123135ms",
+      "comment": "end of a turn",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_end",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "123135ms",
+      "operation": "append",
+      "agent": "cli",
+      "path": "{COPILOT_HOME}/session-state/{SESSION}/events.jsonl",
+      "content": {
+        "type": "assistant.turn_start",
+        "timestamp": "{NOW}",
+        "data": {}
+      }
+    },
+    {
+      "offset": "124135ms",
+      "operation": "exit",
+      "agent": "cli"
+    }
+  ],
+  "expected": [
+    {
+      "offset": "0s",
+      "comment": "The session starts. Events since the previous state: start of the session.",
+      "session": "copilot:{SESSION}",
+      "state": "starting"
+    },
+    {
+      "offset": "46462ms",
+      "comment": "The agent works. Events since the previous state: prompt from the user.",
+      "session": "copilot:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "60603ms",
+      "comment": "The session waits for the user. Events since the previous state: agent message, start of a tool call (4), permission request to the user.",
+      "session": "copilot:{SESSION}",
+      "state": "waiting"
+    },
+    {
+      "offset": "64771ms",
+      "comment": "The agent works. Events since the previous state: start of a turn.",
+      "session": "copilot:{SESSION}",
+      "state": "working"
+    },
+    {
+      "offset": "124135ms",
+      "session": "copilot:{SESSION}",
+      "state": null
+    }
+  ]
+}
