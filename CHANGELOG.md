@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/zenwork/ai-ai-captain/compare/v1.2.0...v1.3.0) (2026-11-10)
+
+
+### Features
+
+* add a clean control to the deck ([#33](https://github.com/zenwork/ai-ai-captain/issues/33)) ([39a2c38](https://github.com/zenwork/ai-ai-captain/commit/39a2c38fe042cf619b499e88cd802123b4fd786e))
+
+
+### Bug Fixes
+
+* focus the selected IntelliJ project ([#30](https://github.com/zenwork/ai-ai-captain/issues/30)) ([bba8d68](https://github.com/zenwork/ai-ai-captain/commit/bba8d68574f5bee91aafa6e2d6d21fe3909bebae))
+* reload an installed Stream Deck plugin ([#31](https://github.com/zenwork/ai-ai-captain/issues/31)) ([f678c0b](https://github.com/zenwork/ai-ai-captain/commit/f678c0bc9d7fcf514109a4d925ebbb957cec4149))
+
 ## [1.2.0](https://github.com/zenwork/ai-ai-captain/compare/v1.1.0...v1.2.0) (2026-11-08)
 
 
