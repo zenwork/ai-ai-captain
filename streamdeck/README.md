@@ -129,3 +129,7 @@ The command writes these files to `dist/marketplace/`:
 The command does not change the plugin UUID. A new UUID breaks existing installs and profiles.
 
 The release workflow in `.github/workflows/release-please.yml` runs this command when Release Please makes a release. It attaches both files to the GitHub release.
+
+## Clean completed sessions
+
+Place **Clean Sessions** on a physical Stream Deck key. The key shows CLEAN, an eraser, and the eligible session count. Push it once to hide all DONE, FAILED, and UNKNOWN sessions across all pages. The virtual deck has the same control in its key grid. Active sessions remain visible. Hidden sessions return when their state or state change time changes. CLEAN does not close conversations.

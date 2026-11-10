@@ -126,6 +126,12 @@ The default base URL is `http://127.0.0.1:43681`.
 | `GET /api/events`                     | SSE snapshot, then session/client/settings/budget changes                                                                                                                                              |
 | `GET` / `PUT` / `DELETE /api/budgets` | Subscription budgets. Refer to `INT-12`                                                                                                                                                                |
 
+The virtual deck shows hub connection status as a compact settings card with a tooltip and accessible label.
+
+The virtual deck reserves a grid slot for CLEAN before PREV and NEXT. CLEAN stays available on every page.
+
+`POST /api/sessions/dismiss` dismisses all visible DONE, FAILED, and UNKNOWN sessions. It returns `{ "sessions": [...] }` with the changed records. Repeated calls can return an empty list. The hub checks current states and leaves active sessions unchanged.
+
 The API accepts metadata, not transcripts. Request bodies are limited to 32 KiB, with field lengths constrained by `src/shared/session.ts`. Encode session IDs when constructing URLs. Invalid input returns 400; nonexistent end/focus targets return 404. A focus operation can return HTTP 200 with `focused: false`, so clients must check the result as well as the HTTP status.
 
 Example open session report:

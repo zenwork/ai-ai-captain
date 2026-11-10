@@ -443,6 +443,7 @@ ${text("INFO", 36, 58, palette.muted, 8, `text-anchor="middle" font-weight="700"
 
 /** Monochrome symbols for the action list of the Stream Deck app. Each symbol is drawn in a 20 × 20 box. */
 export const actionIconSymbols = {
+  clean: "eraser",
   session: "session-key",
   "session-info": "info-key",
   "previous-page": "chevron-left",
@@ -461,7 +462,9 @@ export type ActionIconId = keyof typeof actionIconSymbols;
 export function renderActionIcon(id: ActionIconId, icons: CardIcons, color = "#FFFFFF"): string {
   const symbol = actionIconSymbols[id];
   let content: string;
-  if (symbol === "session-key") {
+  if (symbol === "eraser") {
+    content = `<g fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M3 11 L10 4 Q11 3 12 4 L17 9 Q18 10 17 11 L12 16 H8 Z"/><path d="M6.5 7.5 L14 14 M3 17 H18"/></g>`;
+  } else if (symbol === "session-key") {
     content = `<rect x="2.5" y="2.5" width="15" height="15" rx="3" fill="none" stroke="${color}" stroke-width="1.6"/><rect x="4.5" y="12" width="11" height="3.5" rx="1" fill="${color}"/>`;
   } else if (symbol === "info-key") {
     content = `<rect x="2" y="7" width="16" height="6" rx="1.8" fill="none" stroke="${color}" stroke-width="1.5"/><rect x="3.6" y="8.6" width="8" height="2.8" rx=".8" fill="${color}"/><path d="M14.5 5.5v9" stroke="${color}" stroke-width="1.2"/><path d="M3 3.5h5M12 3.5h5M3 16.5h4" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/>`;
@@ -483,6 +486,18 @@ export function renderActionIcon(id: ActionIconId, icons: CardIcons, color = "#F
  */
 export const settingStyles = ["current", "minimal", "panel", "value"] as const;
 export type SettingStyle = (typeof settingStyles)[number];
+
+/** Use the settings key frame to show how many sessions CLEAN can hide. */
+export function renderCleanCard(count: number, palette: CardPalette): string {
+  const accent = count > 0 ? palette.controls.accent : palette.muted;
+  return `<rect width="72" height="72" rx="8" fill="${palette.canvas}"/>
+${keyBorder(accent)}
+${text("CLEAN", 36, 13, palette.muted, 8, 'text-anchor="middle" font-weight="700" letter-spacing=".8"')}
+<g fill="none" stroke="${accent}" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round">
+<path d="M22 35 L36 21 Q38 19 40 21 L50 31 Q52 33 50 35 L40 45 H32 Z"/>
+<path d="M29 28 L44 42 M22 46 H51"/></g>
+${text(`${count} READY`, 36, 63, palette.foreground, count > 999 ? 9 : 11, 'text-anchor="middle" font-weight="800"')}`;
+}
 
 export interface SettingCardData {
   kind: "info-keys" | "theme" | "brightness";

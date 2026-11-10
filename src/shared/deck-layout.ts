@@ -60,20 +60,21 @@ export function deckPage(
   requestedPage: number,
   maxColumns = deckColumns,
   maxRows = deckRows,
+  fixedKeyCount = 0,
 ): DeckPage {
   const rowLimit = Math.max(minimumRows, Math.floor(maxRows));
-  const columnLimit = Math.max(rowLimit === 1 ? minimumSingleRowColumns : minimumColumns, Math.floor(maxColumns));
+  const columnLimit = Math.max(rowLimit === 1 ? minimumSingleRowColumns + fixedKeyCount : minimumColumns, Math.floor(maxColumns));
   const items: DeckItem[] = [
     ...orderedSessions(sessions).map((session, index): DeckItem => ({ kind: "session", keyNumber: index + 1, session })),
     ...orderedClients(clients).map((client, index): DeckItem => ({ kind: "app", keyNumber: sessions.length + index + 1, client })),
   ];
   const capacity = columnLimit * rowLimit;
-  const hasPager = items.length > capacity;
-  const itemsPerPage = hasPager ? capacity - pagerKeyCount : capacity;
+  const hasPager = items.length > capacity - fixedKeyCount;
+  const itemsPerPage = hasPager ? capacity - pagerKeyCount - fixedKeyCount : capacity - fixedKeyCount;
   const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
   const page = Math.min(Math.max(0, requestedPage), totalPages - 1);
   const start = page * itemsPerPage;
   const pageItems = items.slice(start, start + itemsPerPage);
-  const grid = hasPager ? { columns: columnLimit, rows: rowLimit } : fitDeckGrid(pageItems.length, columnLimit, rowLimit);
+  const grid = hasPager ? { columns: columnLimit, rows: rowLimit } : fitDeckGrid(pageItems.length + fixedKeyCount, columnLimit, rowLimit);
   return { items: pageItems, page, totalPages, columns: grid.columns, rows: grid.rows, hasPager };
 }

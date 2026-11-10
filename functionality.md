@@ -197,6 +197,8 @@ The response distinguishes application/project focus where available and reports
 
 **Required for IDE session navigation:** selecting the exact conversation/tab inside an IDE. Project focus must not be advertised as conversation selection or proof of assessment. Claude CLI and local desktop Code sessions retain application-level focus.
 
+**Implemented:** one press on CLEAN dismisses all visible DONE, FAILED, and UNKNOWN sessions across all pages. The hub checks each current state. STARTING, WORKING, and WAITING remain visible. Dismissed sessions return under the same rules as double press. CLEAN does not close conversations. An empty clean operation changes nothing.
+
 ## FUNC-07 — Stream Deck layout and paging
 
 **Implemented.**
@@ -210,10 +212,13 @@ The response distinguishes application/project focus where available and reports
 - Pressing an app key asks the hub to focus the app (`POST /api/clients/:id/focus`). A failed press shows an alert. App keys cannot be removed.
 - Empty session keys stay empty and do not perform focus or dashboard navigation.
 - **Implemented:** the **AI Session Info** action shows model, tokens used, context used, freedom (padlock), and approval (AUTO) for the session key directly above it. It stays empty when no session key is above it. A value that the host does not report shows a dashed marker. The **Show info keys** option in the dashboard turns the info keys on or off in the Stream Deck, the dashboard preview, and the virtual deck. In the single-row mode of the virtual deck, each info key sits directly after its session key, so the row alternates between session keys and info keys.
+- **Clean Sessions** is a separate, manually placed action. The virtual deck has the same CLEAN control in its key grid.
 - INFO is a separate **Open AI AI Captain Dashboard** action, manually placed wherever desired. It never appears automatically after the last session or migrates when sessions arrive.
 - The dashboard shortcut opens the configured hub URL even when session polling cannot connect.
 - With a reachable upgraded macOS hub, INFO detects the current default browser and selects its matching dashboard tab. The adapters verify the configured URL and do not read webpage contents. The hub combines concurrent requests into one operation. If reuse fails or no match exists, the hub opens the configured URL through the default browser. This fallback can create a new tab. The plugin uses its system opener if the hub is unavailable or reports failure. INFO shows an alert only if that opener also fails.
 - Reloading a linked plugin must not replace the user's customized layout or require profile reimport.
+
+**Implemented:** in single row mode, virtual deck controls fill compact columns beside the session row. The session row height sets the number of control rows. Controls wrap at the smallest width that keeps them within that height. Every settings row fills that width. The + and − actions resize controls with the keys, with a minimum control height of 20 pixels. CLEAN uses a session-sized grid slot before the paging arrows. All controls remain available. A small connection card stays with the settings controls. It uses the palette WORKING accent with a check for a connected hub. It uses the FAILED accent with an exclamation mark when the hub is unavailable. Its tooltip and accessible label give the full status. The card resizes with the settings buttons. Resize and Picture-in-Picture use the same layout.
 
 ## FUNC-08 — Dashboard and diagnostics
 
@@ -259,6 +264,8 @@ Implemented behavior must retain regression coverage for:
 16. Two IDEA versions running with a Junie project open in one: focus targets the owning installation and reuses its running process.
 17. Microsoft Copilot desktop presence showing an APP key with its ribbon mark and tracking explanation; pressing it focuses the detected bundle path or, if missing, its bundle ID; sidebar history links do not create sessions.
 18. Two IDEA versions running with a Copilot project open in one: the key targets that installation, not the runtime parent.
+
+19. CLEAN hiding eligible sessions across multiple pages, preserving active sessions, accepting repeated presses, and allowing sessions to return after new work.
 
 Claude regression coverage verifies independent registrations, process identity, closure, recovery, completion age, and metadata filtering. Desktop tests verify exposed-chat identity, control-based state, denied permissions, removal, and restricted deep links. App presence and sidebar history must never create session keys.
 
