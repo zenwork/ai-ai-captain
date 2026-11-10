@@ -548,3 +548,13 @@ CAUTION: READ THE LOG FILES BEFORE YOU SEND THEM. REMOVE ALL PRIVATE DATA.
 ## Clean completed sessions
 
 Place **Clean Sessions** on a physical Stream Deck key. The key shows CLEAN, an eraser, and the eligible session count. Push it once to hide all DONE, FAILED, and UNKNOWN sessions across all pages. The virtual deck has the same control in its key grid. Active sessions remain visible. Hidden sessions return when their state or state change time changes. CLEAN does not close conversations.
+
+## Reload an installed plugin
+
+Run this command from the project folder:
+
+```sh
+npm run reload:streamdeck
+```
+
+The command updates an installed copy in the standard Stream Deck plugin folder. It stops the plugin, copies runtime files, and restarts it. It keeps profiles, logs, and custom key assignments. An existing development link needs only a restart after the build. If no copy exists, the command creates a development link. You do not need to uninstall the plugin.

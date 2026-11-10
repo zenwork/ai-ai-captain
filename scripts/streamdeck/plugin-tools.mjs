@@ -1,8 +1,10 @@
 // Shared values and helpers for the Stream Deck scripts: the plugin location and the Stream Deck CLI.
-import { accessSync, constants, statSync } from "node:fs";
+import { accessSync, constants, cpSync, existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { homedir } from "node:os";
+import { z } from "zod";
 
 export const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
 export const pluginIdentifier = "com.local.ai-ai-captain";
@@ -53,4 +55,56 @@ export function runStreamDeckCommand(streamDeckCliPath, commandArguments, allowA
   const commandOutput = `${standardOutput}\n${standardError}`;
   if (allowAlreadyLinked && result.status !== 0 && /already linked/i.test(commandOutput)) return 0;
   return result.status ?? 1;
+}
+
+/** Find the standard plugin directory without changing Stream Deck settings. */
+export function installedPluginDirectory(platform = process.platform, userDirectory = homedir(), applicationDataDirectory = process.env.APPDATA) {
+  if (platform === "darwin") return join(userDirectory, "Library", "Application Support", "com.elgato.StreamDeck", "Plugins", `${pluginIdentifier}.sdPlugin`);
+  if (platform === "win32" && applicationDataDirectory)
+    return join(applicationDataDirectory, "Elgato", "StreamDeck", "Plugins", `${pluginIdentifier}.sdPlugin`);
+  return undefined;
+}
+
+/** Update installed runtime files without replacing profiles, logs, or key assignments. */
+export function reloadStreamDeckPlugin(options = {}) {
+  const sourceDirectory = options.sourceDirectory ?? pluginDirectory;
+  const installedDirectory = options.installedDirectory ?? installedPluginDirectory();
+  const streamDeckCliPath = findStreamDeckCli();
+  if (!streamDeckCliPath) {
+    console.error(`Stream Deck CLI not found. ${cliInstallHint} Then run \`npm run reload:streamdeck\` again.`);
+    return 1;
+  }
+  const developerModeResult = runStreamDeckCommand(streamDeckCliPath, ["dev"]);
+  if (developerModeResult !== 0) return developerModeResult;
+  if (installedDirectory && existsSync(installedDirectory)) {
+    if (realpathSync(installedDirectory) === realpathSync(sourceDirectory)) {
+      return runStreamDeckCommand(streamDeckCliPath, ["restart", pluginIdentifier]);
+    }
+    const manifestSchema = z.object({ UUID: z.literal(pluginIdentifier) });
+    try {
+      for (const directory of [sourceDirectory, installedDirectory]) {
+        manifestSchema.parse(JSON.parse(readFileSync(join(directory, "manifest.json"), "utf8")));
+      }
+    } catch {
+      console.error("PLUGIN_MANIFEST_INVALID");
+      return 1;
+    }
+    const stopResult = runStreamDeckCommand(streamDeckCliPath, ["stop", pluginIdentifier]);
+    if (stopResult !== 0) return stopResult;
+    let updateResult = 0;
+    try {
+      for (const entry of ["bin", "imgs", "web", "manifest.json", "THIRD_PARTY_NOTICES.txt"]) {
+        cpSync(join(sourceDirectory, entry), join(installedDirectory, entry), { recursive: true });
+      }
+      console.info("Updated the installed plugin. Profiles and key assignments stay unchanged.");
+    } catch {
+      console.error("PLUGIN_UPDATE_FAILED");
+      updateResult = 1;
+    }
+    const restartResult = runStreamDeckCommand(streamDeckCliPath, ["restart", pluginIdentifier]);
+    return updateResult || restartResult;
+  }
+  const linkResult = runStreamDeckCommand(streamDeckCliPath, ["link", sourceDirectory], true);
+  if (linkResult !== 0) return linkResult;
+  return runStreamDeckCommand(streamDeckCliPath, ["restart", pluginIdentifier]);
 }
