@@ -270,27 +270,10 @@ Use an export as a regression test for a defect, or as a fixture for an agent ve
 
 3. Check the expected states. Change a state that is wrong. A bug report can come with the wrong state. The corrected file is then the regression test.
 4. Move the file to `e2e/fixtures/<agent>/<agent version>/<topic>.recording.json`. The version is in the header of the file.
-5. Add a test file `e2e/scenarios/<agent>-<topic>.e2e.test.ts`:
-
-   ```ts
-   import { fileURLToPath } from "node:url";
-   import { describe, expect, it } from "vitest";
-   import { isAgentSimulationSupported } from "../harness/agent-process.js";
-   import { scenario } from "../harness/scenario.js";
-
-   const recording = fileURLToPath(new URL("../fixtures/codex/0.162.1/permission.recording.json", import.meta.url));
-
-   describe.skipIf(!isAgentSimulationSupported)("codex permission session", () => {
-     it("gives the expected states", async () => {
-       await expect(scenario.fromRecording(recording).run()).resolves.toBeUndefined();
-     });
-   });
-   ```
-
-6. Run `npm run test:e2e`. The test must pass.
-7. Run the test again with a wrong expected state in the file. The test must fail with a clear message. Then correct the file.
-8. To add steps after the recording, use `scenario.fromRecording(file).until("12s")` and continue with inline steps.
-9. Run the checks that `AGENTS.md` section 7 lists.
+5. Run `npm run test:e2e`. The recording test finds all `.recording.json` files in `e2e/fixtures/`. It runs each recording on supported systems. Junie recordings run on macOS only.
+6. Change one expected state. Run the test again. Make sure that the test fails with a clear message. Correct the state.
+7. To add steps after a recording, add a separate scenario. Use `scenario.fromRecording(file).until("12s")` and continue with inline steps.
+8. Run the checks that `AGENTS.md` section 7 lists.
 
 To keep a mock agent correct for a new agent version, also make a shape file:
 
