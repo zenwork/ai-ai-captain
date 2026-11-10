@@ -85,3 +85,23 @@ describe("deck layout", () => {
     expect(tight.items).toHaveLength(4);
   });
 });
+
+describe("fixed deck controls", () => {
+  it("keeps CLEAN on an empty deck and reserves its slot before paging", () => {
+    expect(deckPage([], [], 0, 8, 4, 1)).toMatchObject({ columns: 1, rows: 1, hasPager: false });
+    const sessions = Array.from({ length: 8 }, (_value, index) => makeSession(index));
+    const page = deckPage(sessions, [], 0, 8, 1, 1);
+    expect(page.hasPager).toBe(true);
+    expect(page.items).toHaveLength(5);
+  });
+
+  it("keeps every session reachable when CLEAN and arrows share a narrow row", () => {
+    const sessions = Array.from({ length: 12 }, (_value, index) => makeSession(index));
+    const first = deckPage(sessions, [], 0, 2, 1, 1);
+    expect(first.columns).toBe(4);
+    const identifiers = Array.from({ length: first.totalPages }, (_value, index) =>
+      deckPage(sessions, [], index, 2, 1, 1).items.map((item) => item.keyNumber),
+    ).flat();
+    expect(identifiers).toEqual(sessions.map((_session, index) => index + 1));
+  });
+});

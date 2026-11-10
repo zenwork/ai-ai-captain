@@ -15,6 +15,7 @@ import {
   renderDashboardKey,
   renderInfoCard,
   renderSettingCard,
+  renderCleanCard,
   type SettingCardData,
   renderInfoPlaceholder,
   renderSessionPlaceholder,
@@ -165,6 +166,10 @@ export function budgetImage(provider: BudgetProviderId, budget: Budget | undefin
 // The reset times change each minute, so the signature uses the key data, not the budget.
 export function budgetSignature(provider: BudgetProviderId, budget: Budget | undefined, palette?: PaletteId, now = Date.now()): string {
   return JSON.stringify(["budget", getPalette(palette).id, budgetCardData(provider, budget, now)]);
+}
+
+export function cleanImage(count: number, palette?: PaletteId): string {
+  return svg(renderCleanCard(count, getPalette(palette)), `Clean: ${count} sessions ready to hide`);
 }
 
 export function dashboardImage(palette?: PaletteId): string {

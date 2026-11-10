@@ -185,7 +185,7 @@ Assessment is a DONE substate: the user visited this specific session after its 
 
 ## FUNC-06 — Navigation
 
-**Implemented:** pressing a populated session key or browser focus control asks the hub to activate the recorded target. IntelliJ sessions with valid absolute project paths use project-specific navigation. For Junie and Copilot in IntelliJ, the hub targets the running installation whose project registration is open. macOS opens the project as a document so it can reuse that installation. Pressing a desktop APP key activates the detected app bundle. On macOS, the hub uses the exact bundle path when known, then the bundle ID, then the app name.
+**Implemented:** pressing a populated session key or browser focus control asks the hub to activate the recorded target. IntelliJ sessions with valid absolute project paths use project-specific navigation. For Junie and Copilot in IntelliJ, the hub targets the running installation whose project registration is open. macOS passes the project path to the launcher of that installation. The launcher forwards the request to the running IDE. Pressing a desktop APP key activates the detected app bundle. On macOS, the hub uses the exact bundle path when known, then the bundle ID, then the app name.
 
 **Implemented:** a double press (two presses within 0.4 seconds) on a DONE, FAILED, or UNKNOWN session key dismisses the session (`POST /api/sessions/:id/dismiss`). This applies to all session types. The hub sets `dismissedAt`. The Stream Deck and the virtual deck hide the session, and the other keys move up. The hub clears `dismissedAt` when the state changes, or when the session enters the same state again with a new state change time. Then the session shows again. The hub does not dismiss STARTING, WORKING, or WAITING sessions (HTTP 409). A single press on a DONE, FAILED, or UNKNOWN key waits 0.4 seconds before focus, so that the plugin can see a second press. Other states get focus at once.
 
@@ -196,6 +196,8 @@ The response distinguishes application/project focus where available and reports
 **Implemented for Claude desktop sidebar rows on macOS:** the restricted `claudeRowKey` focus field opens the sidebar row with that title key. The hub brings Claude to the front, clicks the center of the row with the mouse, and puts the pointer back. The app ignores the Accessibility press on sidebar rows. Session scope is reported only when the open page has the title key of that row. If the row is not visible, the hub activates Claude only and reports application scope. A chat that has a conversation ID uses its deep link instead. Pressing a row does not assess DONE.
 
 **Required for IDE session navigation:** selecting the exact conversation/tab inside an IDE. Project focus must not be advertised as conversation selection or proof of assessment. Claude CLI and local desktop Code sessions retain application-level focus.
+
+**Implemented:** one press on CLEAN dismisses all visible DONE, FAILED, and UNKNOWN sessions across all pages. The hub checks each current state. STARTING, WORKING, and WAITING remain visible. Dismissed sessions return under the same rules as double press. CLEAN does not close conversations. An empty clean operation changes nothing.
 
 ## FUNC-07 — Stream Deck layout and paging
 
@@ -210,10 +212,13 @@ The response distinguishes application/project focus where available and reports
 - Pressing an app key asks the hub to focus the app (`POST /api/clients/:id/focus`). A failed press shows an alert. App keys cannot be removed.
 - Empty session keys stay empty and do not perform focus or dashboard navigation.
 - **Implemented:** the **AI Session Info** action shows model, tokens used, context used, freedom (padlock), and approval (AUTO) for the session key directly above it. It stays empty when no session key is above it. A value that the host does not report shows a dashed marker. The **Show info keys** option in the dashboard turns the info keys on or off in the Stream Deck, the dashboard preview, and the virtual deck. In the single-row mode of the virtual deck, each info key sits directly after its session key, so the row alternates between session keys and info keys.
+- **Clean Sessions** is a separate, manually placed action. The virtual deck has the same CLEAN control in its key grid.
 - INFO is a separate **Open AI AI Captain Dashboard** action, manually placed wherever desired. It never appears automatically after the last session or migrates when sessions arrive.
 - The dashboard shortcut opens the configured hub URL even when session polling cannot connect.
 - With a reachable upgraded macOS hub, INFO detects the current default browser and selects its matching dashboard tab. The adapters verify the configured URL and do not read webpage contents. The hub combines concurrent requests into one operation. If reuse fails or no match exists, the hub opens the configured URL through the default browser. This fallback can create a new tab. The plugin uses its system opener if the hub is unavailable or reports failure. INFO shows an alert only if that opener also fails.
-- Reloading a linked plugin must not replace the user's customized layout or require profile reimport.
+- Reloading an installed or linked plugin must not replace the user's customized layout or require profile reimport.
+
+**Implemented:** in single row mode, virtual deck controls fill compact columns beside the session row. The session row height sets the number of control rows. Controls wrap at the smallest width that keeps them within that height. Every settings row fills that width. The + and − actions resize controls with the keys, with a minimum control height of 20 pixels. CLEAN uses a session-sized grid slot before the paging arrows. All controls remain available. A small connection card stays with the settings controls. It uses the palette WORKING accent with a check for a connected hub. It uses the FAILED accent with an exclamation mark when the hub is unavailable. Its tooltip and accessible label give the full status. The card resizes with the settings buttons. Resize and Picture-in-Picture use the same layout.
 
 ## FUNC-08 — Dashboard and diagnostics
 
@@ -259,6 +264,8 @@ Implemented behavior must retain regression coverage for:
 16. Two IDEA versions running with a Junie project open in one: focus targets the owning installation and reuses its running process.
 17. Microsoft Copilot desktop presence showing an APP key with its ribbon mark and tracking explanation; pressing it focuses the detected bundle path or, if missing, its bundle ID; sidebar history links do not create sessions.
 18. Two IDEA versions running with a Copilot project open in one: the key targets that installation, not the runtime parent.
+
+19. CLEAN hiding eligible sessions across multiple pages, preserving active sessions, accepting repeated presses, and allowing sessions to return after new work.
 
 Claude regression coverage verifies independent registrations, process identity, closure, recovery, completion age, and metadata filtering. Desktop tests verify exposed-chat identity, control-based state, denied permissions, removal, and restricted deep links. App presence and sidebar history must never create session keys.
 

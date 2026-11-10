@@ -89,3 +89,21 @@ footer a { color: #a0b2c4; }
 .deck-side-controls .deck-toolbar button[data-control="row"], .deck-side-controls .deck-toolbar button[data-window] { grid-column: 1 / -1; }
 .deck-side-controls .deck-status { grid-area: status; margin-top: 4px; font-size: 11px; }
 .deck-side-controls .deck-window-message { grid-area: message; }
+
+/* Fill the available height before adding another control column. */
+.deck-single-row.deck-side-controls { grid-template-columns: auto max-content; grid-template-areas: "grid toolbar" "message message"; column-gap: 4px; }
+.deck-single-row .deck-toolbar { justify-self: start; display: flex; flex-flow: row wrap; justify-content: flex-start; align-content: flex-start; width: var(--control-width, 112px); gap: 3px; margin-top: 0; }
+.deck-single-row .deck-toolbar button { flex: 0 0 auto; width: max-content; min-width: var(--control-size, 24px); max-width: 56px; height: var(--control-size, 24px); padding: 0 3px; font-size: var(--control-font, 10px); line-height: var(--control-line, 12px); }
+.deck-single-row .deck-toolbar button[data-control="row"], .deck-single-row .deck-toolbar button[data-window] { grid-column: auto; }
+.deck-single-row .deck-status { margin-top: 2px; }
+
+.deck-toolbar button[data-control="smaller"], .deck-toolbar button[data-control="bigger"] { min-width: 24px; width: 24px; padding-inline: 0; }
+.deck-single-row .deck-toolbar button[data-control="smaller"], .deck-single-row .deck-toolbar button[data-control="bigger"] { order: -1; }
+
+.deck-single-row .deck-toolbar button[data-control="smaller"], .deck-single-row .deck-toolbar button[data-control="bigger"] { min-width: var(--control-size, 24px); width: var(--control-size, 24px); }
+
+/* The connection card shares the size and flow of the settings controls. */
+.deck-connection { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; box-sizing: border-box; width: var(--control-size, 24px); height: var(--control-size, 24px); border: 1px solid var(--connection-border); border-radius: 6px; color: var(--connection-color); background: var(--connection-background); font-size: var(--control-font, 12px); font-weight: 800; order: -2; }
+
+/* Share spare row space while preserving the natural widths used for wrapping. */
+.deck-single-row .deck-toolbar button, .deck-single-row .deck-toolbar .deck-connection { flex-grow: var(--control-grow, 1); flex-basis: var(--control-basis, auto); max-width: var(--control-maximum, none); }

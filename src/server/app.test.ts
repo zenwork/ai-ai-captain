@@ -100,6 +100,31 @@ describe("session API", () => {
     expect(store.upsert({ ...working, state: "done" }, "2026-11-01T10:20:00Z", "2026-11-01T10:20:00Z").dismissedAt).toBeUndefined();
   });
 
+  it("cleans eligible sessions across all pages and retains active sessions", async () => {
+    const store = new SessionStore();
+    const app = createApp({ webRoot: "/no-static-assets", store });
+    apps.push(app);
+    const states = ["done", "failed", "unknown", "starting", "working", "waiting"] as const;
+    for (const state of states) {
+      for (let index = 0; index < 15; index++) {
+        store.upsert({ id: `${state}:${index}`, source: "test", label: state, state });
+      }
+    }
+    store.dismiss("done:0");
+    // The hub checks the current state, even if a client still shows a completed session.
+    store.upsert({ id: "done:1", source: "test", label: "New work", state: "working" });
+    const response = await app.inject({ method: "POST", url: "/api/sessions/dismiss" });
+    expect(response.statusCode).toBe(200);
+    const cleaned = body(response, responseSchemas.sessions).sessions;
+    expect(cleaned).toHaveLength(43);
+    expect(cleaned.every((session) => session.dismissedAt)).toBe(true);
+    expect(store.list().filter((session) => !session.dismissedAt)).toHaveLength(46);
+    expect(store.get("done:1")?.dismissedAt).toBeUndefined();
+    expect(body(await app.inject({ method: "POST", url: "/api/sessions/dismiss" }), responseSchemas.sessions).sessions).toEqual([]);
+    store.upsert({ id: "failed:0", source: "test", label: "New work", state: "working" });
+    expect(store.get("failed:0")?.dismissedAt).toBeUndefined();
+  });
+
   it("marks a DONE session as attended until its state changes", async () => {
     const store = new SessionStore();
     const app = createApp({ webRoot: "/no-static-assets", store });

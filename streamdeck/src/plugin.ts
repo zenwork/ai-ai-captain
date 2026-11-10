@@ -23,6 +23,7 @@ import {
   sessionPlaceholderImage,
   sessionSignature,
   settingControlImage,
+  cleanImage,
   settingControlSignature,
   waitingPulseIntervalMs,
   type SettingControlKind,
@@ -49,6 +50,7 @@ let budgets: Budget[] = [];
 const budgetActions = new Map<string, { provider: BudgetProviderId; action: KeyAction<SessionSettings> }>();
 // After a start or a reload of the plugin, ask the hub once to read the budget sources again.
 let budgetRefreshRequested = false;
+const cleanActions = new Map<string, KeyAction<SessionSettings>>();
 const pages = new Map<string, number>();
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 let refreshInFlight: Promise<void> | undefined;
@@ -145,7 +147,17 @@ function stopRefreshWhenHidden(): void {
     updatePulseTimer(false);
     updateDoneTimer();
   }
-  if (visibleKeys.size || pagerActions.size || dashboardActions.size || infoKeys.size || settingActions.size || budgetActions.size || !refreshTimer) return;
+  if (
+    cleanActions.size ||
+    visibleKeys.size ||
+    pagerActions.size ||
+    dashboardActions.size ||
+    infoKeys.size ||
+    settingActions.size ||
+    budgetActions.size ||
+    !refreshTimer
+  )
+    return;
   clearInterval(refreshTimer);
   refreshTimer = undefined;
 }
@@ -243,6 +255,7 @@ async function renderKeyImages(logUpdates: boolean): Promise<void> {
     await renderPagers();
     await renderDashboards();
     await renderSettingControls();
+    await renderCleanControls();
   }
 }
 
@@ -567,6 +580,46 @@ class SessionInfoKey extends SingletonAction<SessionSettings> {
   }
 }
 
+async function renderCleanControls(): Promise<void> {
+  const count = visibleSessions().filter((session) => dismissableStates.includes(session.state)).length;
+  const signature = JSON.stringify(["clean", count, palette]);
+  for (const key of cleanActions.values()) {
+    if (renderedControls.get(key.id) === signature) continue;
+    await key.setImage(svgDataUri(cleanImage(count, palette)));
+    await key.setTitle("");
+    renderedControls.set(key.id, signature);
+  }
+}
+
+@action({ UUID: "com.local.ai-ai-captain.clean" })
+class CleanAction extends SingletonAction<SessionSettings> {
+  async onWillAppear(event: WillAppearEvent<SessionSettings>): Promise<void> {
+    if (!event.action.isKey()) return;
+    cleanActions.set(event.action.id, event.action);
+    renderedControls.delete(event.action.id);
+    refreshTimer ??= setInterval(() => void refresh(), 1500);
+    await refresh();
+  }
+
+  onWillDisappear(event: WillDisappearEvent<SessionSettings>): void {
+    cleanActions.delete(event.action.id);
+    renderedControls.delete(event.action.id);
+    stopRefreshWhenHidden();
+  }
+
+  async onKeyDown(event: KeyDownEvent<SessionSettings>): Promise<void> {
+    if (!event.action.isKey()) return;
+    try {
+      const response = await fetch(`${hubUrl}/api/sessions/dismiss`, { method: "POST", signal: AbortSignal.timeout(4000) });
+      if (!response.ok) throw new Error("CLEAN_FAILED");
+      await refresh();
+    } catch {
+      streamDeck.logger.warn("CLEAN_FAILED");
+      await event.action.showAlert();
+    }
+  }
+}
+
 const settingActions = new Map<string, { kind: SettingControlKind; action: KeyAction<SessionSettings> }>();
 
 function currentFlashIntensity(): HubSettings["flashIntensity"] {
@@ -751,3 +804,5 @@ void streamDeck.connect().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+streamDeck.actions.registerAction(new CleanAction());

@@ -608,3 +608,33 @@ describe("dashboard keys", () => {
     expect(lastImage(last)).not.toContain(">INFO<");
   });
 });
+
+describe("CLEAN action", () => {
+  it("updates the count after bulk dismissal and keeps polling with only CLEAN visible", async () => {
+    let cleaned = false;
+    const completed: Session = { ...waiting, id: "complete", state: "done" };
+    const fetchHub = vi.fn(async (url: string) => {
+      if (url.endsWith("/api/sessions/dismiss")) {
+        cleaned = true;
+        return new Response(JSON.stringify({ sessions: [] }));
+      }
+      return new Response(JSON.stringify({ sessions: [waiting, { ...completed, ...(cleaned ? { dismissedAt: new Date().toISOString() } : {}) }] }));
+    });
+    vi.stubGlobal("fetch", fetchHub);
+    loadPlugin();
+    const action = sdk.actions[sdk.actions.length - 1];
+    const clean = key("clean", 0);
+    await action.onWillAppear({ action: clean });
+    expect(lastImage(clean)).toContain(">1 READY<");
+    await action.onKeyDown({ action: clean });
+    expect(fetchHub).toHaveBeenCalledWith("http://127.0.0.1:43681/api/sessions/dismiss", expect.objectContaining({ method: "POST" }));
+    expect(lastImage(clean)).toContain(">0 READY<");
+    const requests = fetchHub.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(fetchHub.mock.calls.length).toBeGreaterThan(requests);
+    fetchHub.mockRejectedValueOnce(new Error("Test failure"));
+    await action.onKeyDown({ action: clean });
+    expect(clean.showAlert).toHaveBeenCalledOnce();
+    action.onWillDisappear({ action: clean });
+  });
+});

@@ -50,6 +50,8 @@ The hub owns session identity, lifecycle evidence, persistence, and OS navigatio
 
 The dashboard and reporters are available only while a hub runs. With supervision only, the hub runs only while the Stream Deck app runs.
 
+The reload command updates runtime files in a regular installation or restarts a development link. It preserves profiles and custom key assignments.
+
 ## ARCH-02 — Technology baseline
 
 | Layer                    | Implemented technology                                                                                           | Responsibility                                                                             |
@@ -129,7 +131,7 @@ The JSONL cursor replays a file initially, then reads appended bytes. It handles
 
 Ownership is necessary but insufficient. Host-lifetime filtering additionally considers revoked terminal descriptors, known app ownership, and supported JetBrains project registrations. It suppresses history from previous project openings until a fresh session/turn trigger occurs. Lack of lifetime evidence is `unverified`, not proof of closure. Detection details and coverage limits belong to [intagration.md](intagration.md).
 
-When multiple IntelliJ IDEA processes run, Junie and Copilot in IntelliJ target the process whose project registration is open.
+When multiple IntelliJ IDEA processes run, Junie and Copilot in IntelliJ target the process whose project registration is open. The focus adapter passes the absolute project path to that installation’s launcher. A document-open event alone does not establish project focus.
 
 ## ARCH-06 — Transport and rendering
 
@@ -143,7 +145,7 @@ Key animations are local presentation timers, not extra discovery or HTTP reques
 
 Shared icons are flattened into transformed path groups with explicit fill/stroke colors. Each key image has one root SVG viewport: nested SVG elements and inherited `currentColor` must not be used for hardware artwork. Browser rendering alone is not sufficient compatibility verification; inspect the Stream Deck application preview after renderer changes.
 
-The hub also serves a standalone deck page at `/deck.html` with its own manifest. It draws a virtual Stream Deck with the same key images and key numbers as the plugin. The grid is at most 8 columns by 4 rows. It becomes smaller to fit the window and the number of keys. It shows the PREV and NEXT keys only when the keys do not fit. A toolbar makes the keys smaller or bigger (32 to 160 pixels) and has a single-row mode. The page saves these settings in `localStorage`. It uses SSE and works without a Stream Deck. The layout rule is in `src/shared/deck-layout.ts`.
+The hub also serves a standalone deck page at `/deck.html` with its own manifest. It draws a virtual Stream Deck with the same key images and key numbers as the plugin. The grid is at most 8 columns by 4 rows. It becomes smaller to fit the window and the number of keys. It reserves one grid slot for CLEAN on every page. It shows the PREV and NEXT keys only when the keys do not fit. A small toolbar card shows the hub connection state. A toolbar makes the keys smaller or bigger (32 to 160 pixels) and has a single-row mode. The page saves these settings in `localStorage`. It uses SSE and works without a Stream Deck. The layout rule is in `src/shared/deck-layout.ts`.
 
 **Implemented:** the deck's **Keep on top** button uses the browser's Document Picture-in-Picture API after a user click. It moves the existing deck controls into a floating window and loads the same local stylesheet. The original component keeps its session stream, attention timer, page, and size settings. Closing the floating window returns the controls to the original page. The original page must stay open. Unsupported browsers show a disabled button and an explanation. Failed requests show a safe error code.
 
@@ -162,6 +164,8 @@ The default data directory is `~/Library/Application Support/ai-ai-captain`. Whe
 Restored sessions remain hidden until a live adapter/reporter confirms them. Persisting a `working` value must not resurrect a running session after restart. Automatic adapters remove confirmed closed hosts/projects promptly; ordinary session closure uses the ten-second grace period described in [functionality.md](functionality.md).
 
 **Implemented:** the hub owns assessed DONE. `POST /api/sessions/:id/attend` sets `attendedAt` on a DONE session. The store keeps it only while the state and the state change time stay the same, so it belongs to one completion. The store persists it, and the SSE stream sends it to every consumer. The plugin does not keep its own flag.
+
+The hub owns bulk dismissal. `POST /api/sessions/dismiss` checks current visible records and applies the existing dismissal rules. Each changed record uses the existing persistence and SSE paths.
 
 ## ARCH-08 — Privacy and trust boundaries
 
