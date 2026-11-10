@@ -50,6 +50,8 @@ The hub owns session identity, lifecycle evidence, persistence, and OS navigatio
 
 The dashboard and reporters are available only while a hub runs. With supervision only, the hub runs only while the Stream Deck app runs.
 
+The reload command updates runtime files in a regular installation or restarts a development link. It preserves profiles and custom key assignments.
+
 ## ARCH-02 — Technology baseline
 
 | Layer                    | Implemented technology                                                                                           | Responsibility                                                                             |

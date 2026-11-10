@@ -238,6 +238,8 @@ Available actions are:
 
 Drag **Open AI AI Captain Dashboard** onto any preferred key. INFO is not automatically appended. Other controls may replace session slots; remaining session keys compact and paging adjusts, up to 30 per device.
 
+**Implemented:** reload updates a regular installation in the standard macOS or Windows plugin folder. It validates the UUID, stops the plugin, copies runtime files, and restarts it. Profiles, logs, and key assignments remain unchanged. A development link needs no copy. Without an installation, reload creates a development link.
+
 ## INT-07 — Optional IntelliJ bridge
 
 The manual bridge is not needed for the supported automatic Copilot/Codex adapters. It does not observe all JetBrains AI or Copilot conversations, register automatic project-close reporting, or provide conversation-tab focus.
