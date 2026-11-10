@@ -129,7 +129,7 @@ The JSONL cursor replays a file initially, then reads appended bytes. It handles
 
 Ownership is necessary but insufficient. Host-lifetime filtering additionally considers revoked terminal descriptors, known app ownership, and supported JetBrains project registrations. It suppresses history from previous project openings until a fresh session/turn trigger occurs. Lack of lifetime evidence is `unverified`, not proof of closure. Detection details and coverage limits belong to [intagration.md](intagration.md).
 
-When multiple IntelliJ IDEA processes run, Junie and Copilot in IntelliJ target the process whose project registration is open.
+When multiple IntelliJ IDEA processes run, Junie and Copilot in IntelliJ target the process whose project registration is open. The focus adapter passes the absolute project path to that installation’s launcher. A document-open event alone does not establish project focus.
 
 ## ARCH-06 — Transport and rendering
 
