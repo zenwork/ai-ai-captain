@@ -13,6 +13,7 @@ import {
   renderInfoPlaceholder,
   renderSessionPlaceholder,
   renderSettingCard,
+  renderCleanCard,
   inKeySafeArea,
 } from "../../src/shared/card-design.ts";
 import { cardIcons, designPalettes, defaultPaletteId } from "../../src/shared/card-assets.ts";
@@ -99,6 +100,7 @@ const notReported = (provider) => ({
 });
 const keyImages = {
   session: renderSessionPlaceholder(keyPalette),
+  clean: renderCleanCard(0, keyPalette),
   "session-info": renderInfoPlaceholder(keyPalette),
   "previous-page": renderControl("chevron-left", "PREV", keyPalette, cardIcons),
   "next-page": renderControl("chevron-right", "NEXT", keyPalette, cardIcons),

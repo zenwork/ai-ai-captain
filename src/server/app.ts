@@ -100,6 +100,14 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     if (!session) return reply.code(404).send({ error: "Session not found" });
     return { session };
   });
+  app.post("/api/sessions/dismiss", () => {
+    const sessions = store.list().flatMap((session) => {
+      if (session.dismissedAt) return [];
+      const dismissed = store.dismiss(session.id);
+      return dismissed ? [dismissed] : [];
+    });
+    return { sessions };
+  });
   app.post("/api/sessions/:id/dismiss", async (request, reply) => {
     const { id } = request.params as { id: string };
     if (!store.get(id)) return reply.code(404).send({ error: "Session not found" });

@@ -33,6 +33,7 @@ class TestElement extends EventTarget {
   }
 
   querySelectorAll(selector: string): TestElement[] {
+    if (selector === "button[data-action]" && this.innerHTML.includes('data-action="clean"')) return [cleanButton];
     if (selector !== "button[data-control]") return [];
     return [...this.selectors.values()].filter((element) => element.dataset.control !== undefined);
   }
@@ -63,6 +64,7 @@ class TestWindow extends EventTarget {
   matchMedia = vi.fn(() => ({ matches: false }));
   setInterval = vi.fn(() => 1);
   clearInterval = vi.fn();
+  setTimeout = vi.fn();
   close = vi.fn(() => this.dispatchEvent(new Event("pagehide")));
   focus = vi.fn();
   documentPictureInPicture?: { requestWindow: (options: { width: number; height: number }) => Promise<TestWindow> };
@@ -71,6 +73,7 @@ class TestWindow extends EventTarget {
 class TestEventSource {
   static instances: TestEventSource[] = [];
   onopen?: () => void;
+  onerror?: () => void;
   onmessage?: (message: { data: string }) => void;
   close = vi.fn();
 
@@ -89,6 +92,7 @@ let placeholder: TestElement;
 let floatingButton: TestElement;
 let returnButton: TestElement;
 let rowButton: TestElement;
+let cleanButton: TestElement;
 let createPanel: () => TestElement;
 
 async function loadPanel(supported = true): Promise<TestElement> {
@@ -121,6 +125,9 @@ beforeEach(() => {
   placeholder.hidden = true;
   floatingButton = new TestElement();
   returnButton = new TestElement();
+  cleanButton = new TestElement();
+  cleanButton.dataset.action = "clean";
+  shell.selectors.set("button[data-clean]", cleanButton);
   rowButton = new TestElement();
   rowButton.dataset.control = "row";
   shell.selectors.set("#deck-grid", grid);
@@ -145,6 +152,12 @@ beforeEach(() => {
         this.selectors.set('button[data-window="picture-in-picture"]', floatingButton);
         this.selectors.set('button[data-window="return"]', returnButton);
         this.selectors.set("row-control", rowButton);
+        for (const control of ["smaller", "bigger"]) {
+          const button = new TestElement();
+          button.dataset.control = control;
+          this.selectors.set(`button[data-control="${control}"]`, button);
+        }
+        this.selectors.set("button[data-clean]", cleanButton);
       }
     },
   );
@@ -189,7 +202,8 @@ describe("deck Picture-in-Picture", () => {
     expect(floatingButton.disabled).toBe(false);
     expect(TestEventSource.instances).toHaveLength(1);
     expect(events.close).not.toHaveBeenCalled();
-    expect(status.textContent).toBe("Hub connected");
+    expect(status.textContent).toBe("✓");
+    expect(status.attributes.get("aria-label")).toBe("Hub connected");
     expect(grid.styleProperties.get("--key-size")).toBe("56px");
   });
 
@@ -308,5 +322,85 @@ describe("deck key contract for tests", () => {
     await loadPanel();
     TestEventSource.instances[0].onmessage?.({ data: JSON.stringify({ type: "snapshot", sessions: [session("two", "Shop · 4d5e6f", "done")] }) });
     expect(grid.innerHTML).toMatch(/data-state="done" data-attention="(?:bright|dim)"/);
+  });
+});
+
+describe("virtual deck CLEAN", () => {
+  it("counts eligible sessions, calls the hub, and follows shared updates", async () => {
+    await loadPanel();
+    const events = TestEventSource.instances[0];
+    expect(grid.innerHTML).toContain('data-action="clean"');
+    events.onopen?.();
+    const completed = {
+      id: "complete",
+      source: "test",
+      label: "Complete",
+      state: "done",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastActivityAt: new Date().toISOString(),
+    };
+    events.onmessage?.({ data: JSON.stringify({ type: "snapshot", sessions: [completed, { ...completed, id: "active", state: "working" }] }) });
+    expect(grid.innerHTML).toContain(">1 READY<");
+    const fetchHub = vi.fn(async () => new Response("{}"));
+    vi.stubGlobal("fetch", fetchHub);
+    await click(cleanButton);
+    expect(fetchHub).toHaveBeenCalledWith("/api/sessions/dismiss", expect.objectContaining({ method: "POST" }));
+    events.onmessage?.({ data: JSON.stringify({ type: "upsert", session: { ...completed, dismissedAt: new Date().toISOString() } }) });
+    expect(grid.innerHTML).toContain(">0 READY<");
+    expect(grid.innerHTML).toContain('data-action="clean" data-argument="" disabled');
+    fetchHub.mockRejectedValueOnce(new Error("Test failure"));
+    await click(cleanButton);
+    await Promise.resolve();
+    expect(message.textContent).toBe("CLEAN_FAILED");
+  });
+});
+
+describe("single row controls", () => {
+  it("packs controls within the session row height as the window changes", async () => {
+    await loadPanel();
+    mainWindow.innerHeight = 120;
+    await click(rowButton);
+    expect(shell.classList.toggle).toHaveBeenCalledWith("deck-single-row", true);
+    expect(shell.classList.toggle).toHaveBeenCalledWith("deck-side-controls", true);
+    const shortWidth = Number.parseFloat(shell.styleProperties.get("--control-width") ?? "0");
+    mainWindow.innerHeight = 400;
+    mainWindow.dispatchEvent(new Event("resize"));
+    expect(Number.parseFloat(shell.styleProperties.get("--control-width") ?? "0")).toBeLessThan(shortWidth);
+    await click(rowButton);
+    expect(shell.classList.toggle).toHaveBeenCalledWith("deck-single-row", false);
+  });
+});
+
+describe("control size", () => {
+  it("shrinks controls with the keys and restores their size with plus", async () => {
+    const panel = await loadPanel();
+    await click(rowButton);
+    const smaller = panel.selectors.get('button[data-control="smaller"]');
+    const bigger = panel.selectors.get('button[data-control="bigger"]');
+    if (!smaller || !bigger) throw new Error("SIZE_CONTROLS_MISSING");
+    for (let press = 0; press < 10; press++) await click(smaller);
+    expect(grid.styleProperties.get("--key-size")).toBe("32px");
+    expect(shell.styleProperties.get("--control-size")).toBe("20px");
+    for (let press = 0; press < 3; press++) await click(bigger);
+    expect(shell.styleProperties.get("--control-size")).toBe("24px");
+  });
+});
+
+describe("connection card", () => {
+  it("shows connection changes with a symbol, color, and accessible label", async () => {
+    await loadPanel();
+    const events = TestEventSource.instances[0];
+    expect(status.textContent).toBe("!");
+    const unavailableColor = status.styleProperties.get("--connection-color");
+    events.onopen?.();
+    expect(status.textContent).toBe("✓");
+    expect(status.title).toBe("Hub connected");
+    expect(status.attributes.get("aria-label")).toBe("Hub connected");
+    expect(status.styleProperties.get("--connection-color")).not.toBe(unavailableColor);
+    events.onerror?.();
+    expect(status.textContent).toBe("!");
+    expect(status.title).toBe("Hub not reachable. Reconnecting…");
+    expect(status.styleProperties.get("--connection-color")).toBe(unavailableColor);
   });
 });

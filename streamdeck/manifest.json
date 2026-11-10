@@ -5,7 +5,14 @@
       "Name": "AI Session",
       "Icon": "imgs/actions/session",
       "Tooltip": "Shows and focuses the session assigned to this key position",
-      "States": [{ "Image": "imgs/keys/session", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/session",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -13,7 +20,14 @@
       "Name": "AI Session Info",
       "Icon": "imgs/actions/session-info",
       "Tooltip": "Shows model, tokens, context, freedom, and approval for the session key directly above this key",
-      "States": [{ "Image": "imgs/keys/session-info", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/session-info",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -21,7 +35,14 @@
       "Name": "Previous Session Page",
       "Icon": "imgs/actions/previous-page",
       "Tooltip": "Show the previous page of sessions",
-      "States": [{ "Image": "imgs/keys/previous-page", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/previous-page",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -29,7 +50,14 @@
       "Name": "Next Session Page",
       "Icon": "imgs/actions/next-page",
       "Tooltip": "Show the next page of sessions",
-      "States": [{ "Image": "imgs/keys/next-page", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/next-page",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -37,7 +65,14 @@
       "Name": "Open AI AI Captain Dashboard",
       "Icon": "imgs/actions/dashboard",
       "Tooltip": "Open session state explanations, telemetry evidence, and troubleshooting details in your browser",
-      "States": [{ "Image": "imgs/keys/dashboard", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/dashboard",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -45,7 +80,14 @@
       "Name": "Toggle Info Keys",
       "Icon": "imgs/actions/toggle-info-keys",
       "Tooltip": "Turn the info keys on or off",
-      "States": [{ "Image": "imgs/keys/toggle-info-keys", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/toggle-info-keys",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -53,7 +95,14 @@
       "Name": "Cycle Theme",
       "Icon": "imgs/actions/cycle-theme",
       "Tooltip": "Select the next icon palette",
-      "States": [{ "Image": "imgs/keys/cycle-theme", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/cycle-theme",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -61,7 +110,14 @@
       "Name": "Cycle Brightness",
       "Icon": "imgs/actions/cycle-brightness",
       "Tooltip": "Select the next flash intensity level",
-      "States": [{ "Image": "imgs/keys/cycle-brightness", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/cycle-brightness",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -69,7 +125,14 @@
       "Name": "AI Budget: Claude",
       "Icon": "imgs/actions/budget-claude",
       "Tooltip": "Shows the use and the reset time of the Claude subscription. Press to open its usage page",
-      "States": [{ "Image": "imgs/keys/budget-claude", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/budget-claude",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -77,7 +140,14 @@
       "Name": "AI Budget: OpenAI",
       "Icon": "imgs/actions/budget-openai",
       "Tooltip": "Shows the use and the reset time of the ChatGPT plan used by Codex. Press to open its usage page",
-      "States": [{ "Image": "imgs/keys/budget-openai", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/budget-openai",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -85,7 +155,14 @@
       "Name": "AI Budget: GitHub Copilot",
       "Icon": "imgs/actions/budget-copilot",
       "Tooltip": "Shows the use and the reset time of the GitHub Copilot AI Credits. Press to open its usage page",
-      "States": [{ "Image": "imgs/keys/budget-copilot", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/budget-copilot",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     },
     {
@@ -93,11 +170,40 @@
       "Name": "AI Budget: JetBrains AI",
       "Icon": "imgs/actions/budget-jetbrains",
       "Tooltip": "Shows the use and the reset time of the JetBrains AI credits. Press to open its usage page",
-      "States": [{ "Image": "imgs/keys/budget-jetbrains", "TitleAlignment": "bottom", "FontSize": 11, "TitleColor": "#ffffff" }],
+      "States": [
+        {
+          "Image": "imgs/keys/budget-jetbrains",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
+      "Controllers": ["Keypad"]
+    },
+    {
+      "UUID": "com.local.ai-ai-captain.clean",
+      "Name": "Clean Sessions",
+      "Icon": "imgs/actions/clean",
+      "Tooltip": "Hide all DONE, FAILED, and UNKNOWN sessions across all pages",
+      "States": [
+        {
+          "Image": "imgs/keys/clean",
+          "TitleAlignment": "bottom",
+          "FontSize": 11,
+          "TitleColor": "#ffffff"
+        }
+      ],
       "Controllers": ["Keypad"]
     }
   ],
-  "Profiles": [{ "Name": "profiles/ai-ai-captain-xl", "DeviceType": 2, "AutoInstall": true, "DontAutoSwitchWhenInstalled": true }],
+  "Profiles": [
+    {
+      "Name": "profiles/ai-ai-captain-xl",
+      "DeviceType": 2,
+      "AutoInstall": true,
+      "DontAutoSwitchWhenInstalled": true
+    }
+  ],
   "Author": "AI AI Captain",
   "Category": "AI AI Captain",
   "CategoryIcon": "imgs/plugin",
@@ -106,12 +212,22 @@
   "Name": "AI AI Captain",
   "Icon": "imgs/plugin",
   "SDKVersion": 3,
-  "Software": { "MinimumVersion": "7.1" },
+  "Software": {
+    "MinimumVersion": "7.1"
+  },
   "OS": [
-    { "Platform": "mac", "MinimumVersion": "13" },
-    { "Platform": "windows", "MinimumVersion": "10" }
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
   ],
-  "Nodejs": { "Version": "20" },
+  "Nodejs": {
+    "Version": "20"
+  },
   "UUID": "com.local.ai-ai-captain",
   "Version": "0.1.0.0"
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Client, Session } from "../../src/shared/session.js";
 import {
+  cleanImage,
   appIconName,
   appImage,
   appSignature,
@@ -170,5 +171,15 @@ describe("placeholder keys", () => {
     expect(image).toContain(">INFO<");
     expect(image).toContain(">DASHBOARD<");
     expect(image).not.toContain('height="18" rx="4"');
+  });
+});
+
+describe("CLEAN keys", () => {
+  it("shows the eligible count and uses the selected palette", () => {
+    expect(cleanImage(12, "nocturne")).toContain(">12 READY<");
+    expect(cleanImage(0, "nocturne")).toContain(">0 READY<");
+    expect(cleanImage(12, "nocturne")).toContain(">CLEAN<");
+    expect(cleanImage(12, "nocturne")).not.toBe(cleanImage(12, "porcelain"));
+    expect(cleanImage(0, "nocturne")).not.toBe(cleanImage(12, "nocturne"));
   });
 });

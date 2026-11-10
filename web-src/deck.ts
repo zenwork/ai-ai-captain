@@ -1,11 +1,21 @@
-import { hubEventSchema, type Client, type Session } from "../src/shared/session.js";
+import { dismissableStates, hubEventSchema, type Client, type Session } from "../src/shared/session.js";
 import { doneAttention } from "../src/shared/attention.js";
 import { defaultFlashIntensity } from "../src/shared/settings.js";
 import { isFlashIntensity } from "../src/shared/flash-intensity.js";
-import { defaultPaletteId, isPaletteId, type PaletteId } from "../src/shared/palette.js";
+import { defaultPaletteId, getPalette, isPaletteId, type PaletteId } from "../src/shared/palette.js";
 import { deckColumns, deckPage, deckRows, type DeckItem } from "../src/shared/deck-layout.js";
 import { escapeHtml } from "./session-details.js";
-import { appImage, emptyImage, infoImage, pagerImage, sessionImage, sessionTypeLabels, sessionType, waitingPulseIntervalMs } from "../streamdeck/src/cards.js";
+import {
+  cleanImage,
+  appImage,
+  emptyImage,
+  infoImage,
+  pagerImage,
+  sessionImage,
+  sessionTypeLabels,
+  sessionType,
+  waitingPulseIntervalMs,
+} from "../streamdeck/src/cards.js";
 
 const reconnectDelayMilliseconds = 3000;
 const attentionRefreshMilliseconds = 1000;
@@ -16,6 +26,9 @@ const shellPadding = 40;
 const statusLineHeight = 32;
 const toolbarHeight = 36;
 const sideControlsWidth = 92;
+const compactControlHeight = 24;
+const compactControlGap = 3;
+const compactControlSlots = 6;
 const smallestUserKeySize = 32;
 const largestUserKeySize = 160;
 const keySizeStep = 8;
@@ -67,7 +80,7 @@ class DeckPanel extends HTMLElement {
   #openingPictureInPicture = false;
 
   connectedCallback(): void {
-    this.innerHTML = `<div class="deck-shell"><div id="deck-grid" class="deck-grid" ></div><p id="deck-status" class="deck-status" role="status">Connecting…</p><div class="deck-toolbar" role="toolbar" aria-label="Deck controls"><button type="button" data-control="smaller" aria-label="Smaller keys" title="Smaller keys">−</button><button type="button" data-control="auto" aria-label="Automatic key size" title="Automatic key size">Auto</button><button type="button" data-control="bigger" aria-label="Bigger keys" title="Bigger keys">+</button><button type="button" data-control="row" aria-pressed="false" title="Show all keys in a single row">Single row</button><button type="button" data-window="picture-in-picture" aria-pressed="false" title="Open the deck in an always-on-top window">Keep on top</button></div><p id="deck-window-message" class="deck-status deck-window-message" role="status" hidden></p></div><div id="deck-window-placeholder" hidden><p class="deck-status">The deck is in Picture-in-Picture. Keep this window open.</p><div class="deck-toolbar"><button type="button" data-window="return">Return to deck</button></div></div>`;
+    this.innerHTML = `<div class="deck-shell"><div id="deck-grid" class="deck-grid" ></div><div class="deck-toolbar" role="toolbar" aria-label="Deck controls"><span id="deck-status" class="deck-connection" role="status" aria-label="Connecting to hub" title="Connecting to hub">○</span><button type="button" data-control="smaller" aria-label="Smaller keys" title="Smaller keys">−</button><button type="button" data-control="auto" aria-label="Automatic key size" title="Automatic key size">Auto</button><button type="button" data-control="bigger" aria-label="Bigger keys" title="Bigger keys">+</button><button type="button" data-control="row" aria-pressed="false" title="Show all keys in a single row">Single row</button><button type="button" data-window="picture-in-picture" aria-pressed="false" title="Open the deck in an always-on-top window">Keep on top</button></div><p id="deck-window-message" class="deck-status deck-window-message" role="status" hidden></p></div><div id="deck-window-placeholder" hidden><p class="deck-status">The deck is in Picture-in-Picture. Keep this window open.</p><div class="deck-toolbar"><button type="button" data-window="return">Return to deck</button></div></div>`;
     this.#shell = this.querySelector<HTMLElement>(".deck-shell") ?? undefined;
     this.querySelectorAll<HTMLButtonElement>("button[data-control]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -85,6 +98,7 @@ class DeckPanel extends HTMLElement {
       this.#windowMessage("Keep on top is not available in this browser.");
     }
     this.#connect();
+    this.#render();
     window.addEventListener("resize", this.#onResize);
     this.#timer = window.setInterval(() => {
       this.#render();
@@ -233,9 +247,71 @@ class DeckPanel extends HTMLElement {
     };
   }
 
-  // Space that the key grid can use: the window minus the padding of the shell and the status line.
+  #controlSize(keySize: number): number {
+    return Math.max(20, Math.round(compactControlHeight * Math.min(1, keySize / minimumKeySize)));
+  }
+
+  #setControlSize(keySize: number): void {
+    this.#shell?.style.setProperty("--control-size", `${this.#controlSize(keySize)}px`);
+    this.#shell?.style.setProperty("--control-font", keySize < minimumKeySize ? "9px" : "10px");
+    this.#shell?.style.setProperty("--control-line", keySize < minimumKeySize ? "9px" : "12px");
+  }
+
+  #compactControlRows(
+    keySize = this.#view.keySize ?? Math.min(maximumKeySize, Math.max(minimumKeySize, this.#viewWindow().innerHeight - shellPadding - keyGap)),
+  ): number {
+    const gridHeight = keySize + 26;
+    return Math.min(compactControlSlots, Math.max(1, Math.floor((gridHeight + compactControlGap) / (this.#controlSize(keySize) + compactControlGap))));
+  }
+
+  #compactToolbarWidth(
+    keySize = this.#view.keySize ?? Math.min(maximumKeySize, Math.max(minimumKeySize, this.#viewWindow().innerHeight - shellPadding - keyGap)),
+  ): number {
+    this.#setControlSize(keySize);
+    const selectors = [
+      "#deck-status",
+      'button[data-control="smaller"]',
+      'button[data-control="bigger"]',
+      'button[data-control="auto"]',
+      'button[data-control="row"]',
+      'button[data-window="picture-in-picture"]',
+    ];
+    const fallbackWidths = [this.#controlSize(keySize), this.#controlSize(keySize), this.#controlSize(keySize), 32, 54, 56];
+    const controls = selectors.map((selector) => this.#shell?.querySelector<HTMLElement>(selector));
+    for (const control of controls) control?.style.setProperty("--control-basis", "auto");
+    // Measure natural widths before the buttons expand to fill each row.
+    this.#shell?.style.setProperty("--control-grow", "0");
+    this.#shell?.style.setProperty("--control-maximum", "56px");
+    // Leave one pixel for fractional browser widths so the last button does not wrap again.
+    const widths = controls.map((control, index) => (control?.offsetWidth ?? fallbackWidths[index]) + 1);
+    controls.forEach((control, index) => control?.style.setProperty("--control-basis", `${widths[index] - 1}px`));
+    this.#shell?.style.setProperty("--control-grow", "1");
+    this.#shell?.style.setProperty("--control-maximum", "none");
+    const rowLimit = this.#compactControlRows(keySize);
+    const maximumWidth = widths.reduce((total, width) => total + width + compactControlGap, 0);
+    for (let candidate = Math.max(...widths); candidate <= maximumWidth; candidate++) {
+      let rows = 1;
+      let usedWidth = 0;
+      for (const width of widths) {
+        const needed = usedWidth === 0 ? width : width + compactControlGap;
+        if (usedWidth + needed > candidate) {
+          rows++;
+          usedWidth = width;
+        } else {
+          usedWidth += needed;
+        }
+      }
+      if (rows <= rowLimit) return candidate;
+    }
+    return maximumWidth;
+  }
+
   #availableSpace(sideControls: boolean): { width: number; height: number } {
     const viewWindow = this.#viewWindow();
+    if (this.#view.singleRow) {
+      const controlsWidth = this.#compactToolbarWidth();
+      return { width: viewWindow.innerWidth - shellPadding - controlsWidth, height: viewWindow.innerHeight - shellPadding };
+    }
     if (sideControls) return { width: viewWindow.innerWidth - shellPadding - sideControlsWidth, height: viewWindow.innerHeight - shellPadding };
     return { width: viewWindow.innerWidth - shellPadding, height: viewWindow.innerHeight - shellPadding - statusLineHeight - toolbarHeight };
   }
@@ -260,10 +336,21 @@ class DeckPanel extends HTMLElement {
     return this.#keyButton(sessionImage(session, item.keyNumber, options), label, "focus-session", encodeURIComponent(session.id), sessionAttributes);
   }
 
-  // The controls go to the side of the keys when the stacked layout is taller than the window.
+  async #clean(): Promise<void> {
+    try {
+      const response = await fetch("/api/sessions/dismiss", { method: "POST", signal: AbortSignal.timeout(4000) });
+      if (!response.ok) throw new Error("CLEAN_FAILED");
+    } catch {
+      this.#windowMessage("CLEAN_FAILED");
+    }
+  }
+
+  // Move controls beside the keys when the stacked layout exceeds the window height.
   #render(): void {
-    this.#layout(false);
-    if (this.#shell && this.#shell.offsetHeight > this.#viewWindow().innerHeight) this.#layout(true);
+    this.#shell?.classList.toggle("deck-single-row", this.#view.singleRow);
+
+    this.#layout(this.#view.singleRow);
+    if (!this.#view.singleRow && this.#shell && this.#shell.offsetHeight > this.#viewWindow().innerHeight) this.#layout(true);
   }
 
   #layout(sideControls: boolean): void {
@@ -300,6 +387,7 @@ class DeckPanel extends HTMLElement {
       this.#page,
       alternating ? Math.floor(maxColumns / slotsPerItem) : maxColumns,
       maxRows,
+      1,
     );
     this.#page = page.page;
     const pageLabel = `${page.page + 1}/${page.totalPages}`;
@@ -309,6 +397,7 @@ class DeckPanel extends HTMLElement {
     );
     const keySize = userKeySize ?? Math.max(minimumKeySize, automaticKeySize);
     this.#lastKeySize = keySize;
+    this.#shell?.style.setProperty("--control-width", `${this.#compactToolbarWidth(keySize)}px`);
     grid.style.setProperty("--columns", String(page.columns * slotsPerItem));
     grid.style.setProperty("--key-size", `${keySize}px`);
     this.#shell?.querySelector("button[data-control=row]")?.setAttribute("aria-pressed", String(this.#view.singleRow));
@@ -327,7 +416,12 @@ class DeckPanel extends HTMLElement {
       return `<div class="deck-key deck-info-key" role="img" aria-label="${escapeHtml(`Info for ${item.session.label}`)}">${infoImage(item.session, this.#palette)}</div>`;
     };
     const cells = page.items.map((item) => pair(this.#itemButton(item, options), infoKey(item)));
-    while (cells.length < page.columns * page.rows - pagerCount) cells.push(pair(emptyKey, emptyKey));
+    while (cells.length < page.columns * page.rows - pagerCount - 1) cells.push(pair(emptyKey, emptyKey));
+    const cleanCount = this.#sessions.filter((session) => !session.dismissedAt && dismissableStates.includes(session.state)).length;
+    const cleanDisabled = !this.#connected || cleanCount === 0 ? " disabled" : "";
+    cells.push(
+      pair(this.#keyButton(cleanImage(cleanCount, this.#palette), `Clean: ${cleanCount} sessions ready to hide`, "clean", "", cleanDisabled), emptyKey),
+    );
     if (page.hasPager) {
       cells.push(pair(this.#keyButton(pagerImage("previous", pageLabel, this.#palette), "Previous page", "page", "-1"), emptyKey));
       cells.push(pair(this.#keyButton(pagerImage("next", pageLabel, this.#palette), "Next page", "page", "1"), emptyKey));
@@ -340,10 +434,21 @@ class DeckPanel extends HTMLElement {
         button.addEventListener("click", () => void this.#press(button.dataset.action ?? "", button.dataset.argument ?? ""));
       });
     }
-    status.textContent = this.#connected ? `Hub connected${page.hasPager ? ` · page ${pageLabel}` : ""}` : "Hub not reachable. Start the hub. Reconnecting…";
+    const connectionLabel = this.#connected ? "Hub connected" : "Hub not reachable. Reconnecting…";
+    const palette = getPalette(this.#palette);
+    status.textContent = this.#connected ? "✓" : "!";
+    status.title = connectionLabel;
+    status.setAttribute("aria-label", connectionLabel);
+    status.style.setProperty("--connection-color", palette.states[this.#connected ? "working" : "failed"].accent);
+    status.style.setProperty("--connection-background", palette.canvas);
+    status.style.setProperty("--connection-border", palette.controls.accent);
   }
 
   async #press(action: string, argument: string): Promise<void> {
+    if (action === "clean") {
+      await this.#clean();
+      return;
+    }
     if (action === "page") {
       this.#page += Number(argument);
       this.#render();

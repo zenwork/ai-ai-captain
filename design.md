@@ -144,6 +144,8 @@ Signal and Porcelain target at least 7:1 foreground/background contrast for stat
 
 ## DSN-07 — Layout, fixed controls, and browser
 
+**Implemented:** CLEAN uses the settings key frame, palette canvas, control-accent border, and small top label. An eraser fills the center. The bottom shows the eligible count as `12 READY`. With no eligible sessions, it shows `0 READY` with a muted border and symbol. CLEAN stays steady. It uses the selected palette in the physical and virtual decks.
+
 INFO uses a neutral/purple dashboard-grid symbol and remains a separate, manually positioned action. Previous/next controls use matching chevrons and readable paging information. Their placement must not consume or skip a logical session in the remaining configured session keys.
 
 The browser must use the same card semantics and logical key numbering, but has room for names, models, projects, timestamps, evidence, and grouped navigation. Its preview represents logical sessions, not every user's hardware layout. UNKNOWN diagnostics expand automatically; missing data must be described rather than hidden behind a misleading icon.
@@ -151,6 +153,8 @@ The browser must use the same card semantics and logical key numbering, but has 
 The standalone deck toolbar has a **Keep on top** button. In Picture-in-Picture, its label changes to **Return to deck** and `aria-pressed` becomes `true`. Both windows provide a return control. The original page explains that it must stay open. The floating window uses the same stylesheet, card images, and keyboard controls. Unsupported browsers disable the button and show an associated explanation. Request failures use a visible status message with a safe error code.
 
 Any adopted visual update must reach both card previews and hardware rendering. Supporting browser badges, explanations, and legends must use consistent wording and meaning even when their layout differs.
+
+**Implemented:** in single row mode, virtual deck controls fill compact columns beside the session row. The session row height sets the number of control rows. Controls wrap into rows at the smallest width that fits beside the keys. Each row fills the same toolbar width. Buttons share the spare space within their row. Control columns fit their labels and use 24-pixel rows. The + and − buttons use the control height as their width. Controls decrease from 24 to 20 pixels when the user reduces the key size. Text decreases from 10 to 9 pixels. The layout recalculates the stack width after each size change. CLEAN uses a session-sized grid slot before the paging arrows. All controls remain available. A small connection card stays with the settings controls. It uses the palette WORKING accent with a check for a connected hub. It uses the FAILED accent with an exclamation mark when the hub is unavailable. Its tooltip and accessible label give the full status. The card resizes with the settings buttons. Resize and Picture-in-Picture use the same layout.
 
 ## DSN-08 — Accessibility and visual acceptance
 
