@@ -75,15 +75,15 @@ describe("project-aware focus", () => {
     expect(run.mock.calls.every(([command]) => command !== "/usr/bin/osascript")).toBe(true);
   });
 
-  it.skipIf(process.platform === "win32")("targets different projects in the same IDEA installation before PID-only activation", async () => {
+  it.skipIf(process.platform === "win32")("passes each project to the owning launcher before PID-only activation", async () => {
     const paths = await projects();
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: true, run });
     expect(await focus(target, paths[0])).toEqual({ focused: true, scope: "project" });
     expect(await focus(target, paths[1])).toEqual({ focused: true, scope: "project" });
     expect(run.mock.calls).toEqual([
-      ["/usr/bin/open", ["-a", application, paths[0]]],
-      ["/usr/bin/open", ["-a", application, paths[1]]],
+      [join(application, "Contents", "MacOS", "idea"), [paths[0]]],
+      [join(application, "Contents", "MacOS", "idea"), [paths[1]]],
     ]);
   });
 
@@ -92,7 +92,7 @@ describe("project-aware focus", () => {
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", preciseFocus: false, run });
     await focus({ appName: "IntelliJ IDEA", bundleId: "com.jetbrains.intellij" }, project);
-    expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-b", "com.jetbrains.intellij", project]);
+    expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-n", "-b", "com.jetbrains.intellij", "--args", project]);
   });
 
   it.skipIf(process.platform === "win32")("uses the named IntelliJ launcher for bridge sessions without installation metadata", async () => {
@@ -100,7 +100,7 @@ describe("project-aware focus", () => {
     const run = successfulRunner();
     const focus = createFocusHandler({ platform: "darwin", run });
     expect(await focus({ appName: "IntelliJ IDEA" }, project)).toEqual({ focused: true, scope: "project" });
-    expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-a", "IntelliJ IDEA", project]);
+    expect(run).toHaveBeenCalledWith("/usr/bin/open", ["-n", "-a", "IntelliJ IDEA", "--args", project]);
   });
 
   it("rejects unavailable or relative project paths instead of reporting an app-only success", async () => {

@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { appendFile, realpath, stat } from "node:fs/promises";
-import { isAbsolute } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { promisify } from "node:util";
 import type { FocusTarget } from "./types.js";
 import { focusTargetSchema } from "../shared/session.js";
@@ -97,8 +97,11 @@ export function createFocusHandler(options: { platform?: NodeJS.Platform; precis
       const path = await realpath(projectPath).catch(() => projectPath);
       const application = target.appPath ?? target.bundleId ?? target.appName;
       if (!application) return { focused: false, reason: "The IntelliJ installation could not be identified" };
-      const selector = target.appPath || !target.bundleId ? "-a" : "-b";
-      const result = await run("/usr/bin/open", [selector, application, path]);
+      // The document-open event can leave another project in front. The launcher forwards the path to the running IDE.
+      const selector = target.bundleId ? "-b" : "-a";
+      const result = target.appPath
+        ? await run(join(target.appPath, "Contents", "MacOS", "idea"), [path])
+        : await run("/usr/bin/open", ["-n", selector, application, "--args", path]);
       return result.focused ? { focused: true, scope: "project" } : { focused: false, reason: "IntelliJ could not open or activate the session's project" };
     }
     let preciseResult: FocusResult | undefined;

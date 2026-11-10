@@ -183,14 +183,15 @@ The reporter normalizes lifecycle names and retains selected metadata only. Star
 
 ## INT-05 — Focus integration
 
-The macOS adapter validates IntelliJ's absolute project directory and opens it as a document with the owning installation. For Copilot in IntelliJ, the hub selects the running IDEA process with an open registration for the session project. It does not use the Copilot runtime's IDEA parent when another installation owns the project.
+The macOS adapter validates IntelliJ's absolute project directory and passes it to the launcher of the owning installation. For Copilot in IntelliJ, the hub selects the running IDEA process with an open registration for the session project. It does not use the Copilot runtime's IDEA parent when another installation owns the project.
 
 ```text
-open -a <owning IDEA.app> <absolute project directory>
-open -b <IDEA bundle ID> <absolute project directory>
+"<owning IDEA.app>/Contents/MacOS/idea" "<absolute project directory>"
+open -n -b <IDEA bundle ID> --args "<absolute project directory>"
+open -n -a <IDEA app name> --args "<absolute project directory>"
 ```
 
-Do not use `-n` or `--args`; these options start a new IDEA process or pass the project path as an application argument. Opening the project as a document lets macOS reuse the selected running installation. The adapter reports project scope when the command succeeds. Other sessions use supported app-path/name, bundle-ID, optional PID, or HTTP(S) URL navigation. For a detected desktop APP key, the hub uses its exact app bundle path when known, then its bundle ID, then its app name. `AI_AI_CAPTAIN_PRECISE_FOCUS=1` enables an attempted PID-based app focus, which may need Accessibility permission; project targeting takes precedence.
+Use the exact bundle launcher when the application path is available. Otherwise, use `open -n` with `--args` to deliver the project argument through the launcher. The launcher forwards the request to the running IDE. A document-open event can activate the wrong project and must not replace this method. The adapter reports project scope when the launcher command succeeds. Other sessions use supported app-path/name, bundle-ID, optional PID, or HTTP(S) URL navigation. For a detected desktop APP key, the hub uses its exact app bundle path when known, then its bundle ID, then its app name. `AI_AI_CAPTAIN_PRECISE_FOCUS=1` enables an attempted PID-based app focus, which may need Accessibility permission; project targeting takes precedence.
 
 Focus scopes are application, project, and session. An identified Claude desktop chat uses session scope through its restricted deep link. On macOS, a Claude desktop sidebar row uses session scope when the hub opens that row. The hub finds the row through Accessibility and clicks it with a mouse event, then restores the pointer position. The app ignores the Accessibility press on sidebar rows. This click is the only action that the Claude adapter does in the app. The press reuses the inspection script with the row title key as a second argument. A successful navigation command does not prove that the user read the result. Assessed DONE remains unimplemented.
 
